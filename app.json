@@ -3,7 +3,6 @@
     "name": "Smartspeak",
     "slug": "Smartspeak",
     "version": "1.0.0",
-    "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "smartspeak",
     "userInterfaceStyle": "automatic",
@@ -16,6 +15,8 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
+      "package": "com.smartspeak.Smartspeak",
+      "versionCode": 1,
       "edgeToEdgeEnabled": true
     },
     "web": {
@@ -33,10 +34,47 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
+      ],
+      [
+        "expo-screen-orientation",
+        {
+          "initialOrientation": "LANDSCAPE"
+        }
+      ],
+      [
+        "expo-font",
+        {
+          "fonts": [
+            "./assets/fonts/Poppins-Regular.ttf"
+          ],
+          "android": {
+            "fonts": [
+              {
+                "fontFamily": "Poppins",
+                "fontDefinitions": [
+                  {
+                    "path": "./assets/fonts/Poppins-SemiBold.ttf",
+                    "weight": 600
+                  },
+                  {
+                    "path": "./assets/fonts/Poppins-Bold.ttf",
+                    "weight": 700
+                  }
+                ]
+              }
+            ]
+          }
+        }
       ]
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "54d13d26-16f8-47dc-b4dd-3d62360b086a"
+      }
     }
   }
 }
