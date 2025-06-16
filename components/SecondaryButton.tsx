@@ -10,12 +10,15 @@ const SecondaryButton = (props: buttonDetail) => {
       borderWidth: 1,
       borderRadius: 5,
 
-      padding: 5,
+      height: 50,
+
+      padding: 10,
 
       alignItems: "center",
       justifyContent: "center",
     },
     buttonText: {
+      fontFamily: "Poppins",
       color: COLORS.accent,
     },
   });

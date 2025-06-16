@@ -8,13 +8,18 @@ const PrimaryButton = (props: buttonDetail) => {
     buttonContainer: {
       backgroundColor: COLORS.accent,
       borderRadius: 5,
+      flexGrow: 1,
 
-      padding: 5,
+      height: 50,
+      padding: 10,
 
       alignItems: "center",
       justifyContent: "center",
     },
     buttonText: {
+      fontSize: 18,
+      fontFamily: "Poppins",
+      fontWeight: "500",
       color: COLORS.pureWhite,
     },
   });

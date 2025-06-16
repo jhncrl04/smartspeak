@@ -1,20 +1,42 @@
+import ActionLink from "@/components/ActionLink";
+import PrimaryButton from "@/components/PrimaryButton";
 import COLORS from "@/constants/Colors";
-import { Button, StyleSheet, Text, View } from "react-native";
+import { router } from "expo-router";
+import { Image, StyleSheet, Text, View } from "react-native";
 
 const index = () => {
   return (
     <View style={styles.container}>
       <View></View>
       <View style={styles.appInfoContainer}>
-        <View style={styles.homepageImage} />
-        <Text style={styles.appName}>SmartSpeak</Text>
+        <Image
+          source={require("../assets/images/logo.png")}
+          style={styles.homepageImage}
+        />
+        {/* <Text style={styles.appName}>SmartSpeak</Text> */}
         <Text style={styles.appPhrase}>
-          Lorem ipsum, dolor sit amet consectetur adipisicing elit. Natus.
+          Your localized picture exchange communication app.
         </Text>
       </View>
       <View style={styles.buttonContainer}>
-        <Button title="Test 1" />
-        <Button title="Test 2" />
+        <PrimaryButton
+          title={"Sign In"}
+          clickHandler={() => router.push("./screens/login/")}
+        />
+        <View style={styles.registerContainer}>
+          <Text
+            style={{
+              fontSize: 16,
+              color: COLORS.gray,
+            }}
+          >
+            Don't have an account?
+          </Text>
+          <ActionLink
+            text={"Register"}
+            clickHandler={() => router.push("./screens/signup/")}
+          />
+        </View>
       </View>
     </View>
   );
@@ -31,15 +53,13 @@ const styles = StyleSheet.create({
   appInfoContainer: {
     flexGrow: 0,
     flexDirection: "column",
-    gap: 20,
+    gap: 10,
 
     alignItems: "center",
   },
   homepageImage: {
-    width: "25%",
-    height: "25%",
-
-    backgroundColor: COLORS.shadow,
+    width: 200,
+    height: 100,
   },
   appName: {
     fontSize: 24,
@@ -59,6 +79,12 @@ const styles = StyleSheet.create({
     flexGrow: 0,
     flexShrink: 0,
     gap: 10,
+  },
+  registerContainer: {
+    flexDirection: "row",
+    gap: 5,
+
+    justifyContent: "center",
   },
 });
 
