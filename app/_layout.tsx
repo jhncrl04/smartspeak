@@ -9,7 +9,7 @@ import { setCustomText } from "react-native-global-props";
 
 const RootLayout = () => {
   useEffect(() => {
-    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.DEFAULT);
+    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
   });
 
   // setting default font, working on web but not on android
@@ -32,13 +32,13 @@ const RootLayout = () => {
 
   return (
     <>
-      {/* <StatusBar hidden={true} /> */}
-      <StatusBar barStyle={"default"} />
+      <StatusBar hidden={true} />
+      {/* <StatusBar barStyle={"default"} /> */}
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen
           name="index"
           options={{
-            title: "Manage Learners",
+            title: "Landing Page",
           }}
         />
       </Stack>

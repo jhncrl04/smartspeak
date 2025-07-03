@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Button, Text, View } from "react-native";
+import { Button, StyleSheet, Text, View } from "react-native";
 import {
   DrawerLayoutAndroid,
   GestureHandlerRootView,
@@ -11,7 +11,7 @@ const Sidebar = () => {
   );
 
   const sidebar = () => (
-    <View>
+    <View style={styles.sidebar}>
       <Text> This is a test</Text>
       <Button
         title="Close Sidebar"
@@ -38,5 +38,11 @@ const Sidebar = () => {
     </GestureHandlerRootView>
   );
 };
+
+const styles = StyleSheet.create({
+  sidebar: {
+    width: "30%",
+  },
+});
 
 export default Sidebar;

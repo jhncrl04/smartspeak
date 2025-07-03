@@ -5,7 +5,6 @@ import Card from "./Card";
 const CardContainer = () => {
   const styles = StyleSheet.create({
     cardContainer: {
-      flex: 1,
       flexWrap: "wrap",
       flexGrow: 0,
       flexDirection: "row",

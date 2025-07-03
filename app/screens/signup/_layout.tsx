@@ -1,4 +1,5 @@
 import COLORS from "@/constants/Colors";
+import { SignupFormProvider } from "@/context/signupContext";
 import { Stack } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
 
@@ -14,43 +15,45 @@ const SignupLayout = () => {
   });
 
   return (
-    <Stack>
-      <Stack.Screen
-        name="index"
-        options={{
-          headerTitleAlign: "center",
-          headerTitle: () => (
-            <View style={styles.headerContainer}>
-              <Text style={styles.title}>SIGN UP</Text>
-            </View>
-          ),
-        }}
-      />
+    <SignupFormProvider>
+      <Stack>
+        <Stack.Screen
+          name="index"
+          options={{
+            headerTitleAlign: "center",
+            headerTitle: () => (
+              <View style={styles.headerContainer}>
+                <Text style={styles.title}>SIGN UP</Text>
+              </View>
+            ),
+          }}
+        />
 
-      <Stack.Screen
-        name="personalDetails"
-        options={{
-          headerTitleAlign: "center",
-          headerTitle: () => (
-            <View style={styles.headerContainer}>
-              <Text style={styles.title}>PERSONAL DETAILS</Text>
-            </View>
-          ),
-        }}
-      />
+        <Stack.Screen
+          name="personalDetails"
+          options={{
+            headerTitleAlign: "center",
+            headerTitle: () => (
+              <View style={styles.headerContainer}>
+                <Text style={styles.title}>PERSONAL DETAILS</Text>
+              </View>
+            ),
+          }}
+        />
 
-      <Stack.Screen
-        name="credentials"
-        options={{
-          headerTitleAlign: "center",
-          headerTitle: () => (
-            <View style={styles.headerContainer}>
-              <Text style={styles.title}>LOG IN DETAILS</Text>
-            </View>
-          ),
-        }}
-      />
-    </Stack>
+        <Stack.Screen
+          name="credentials"
+          options={{
+            headerTitleAlign: "center",
+            headerTitle: () => (
+              <View style={styles.headerContainer}>
+                <Text style={styles.title}>LOG IN DETAILS</Text>
+              </View>
+            ),
+          }}
+        />
+      </Stack>
+    </SignupFormProvider>
   );
 };
 

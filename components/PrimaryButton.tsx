@@ -10,14 +10,14 @@ const PrimaryButton = (props: buttonDetail) => {
       borderRadius: 5,
       flexGrow: 1,
 
-      height: 50,
-      padding: 10,
+      height: "auto",
+      padding: 5,
 
       alignItems: "center",
       justifyContent: "center",
     },
     buttonText: {
-      fontSize: 18,
+      fontSize: 16,
       fontFamily: "Poppins",
       fontWeight: "500",
       color: COLORS.pureWhite,

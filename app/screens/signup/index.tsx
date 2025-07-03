@@ -1,9 +1,22 @@
 import PrimaryButton from "@/components/PrimaryButton";
 import COLORS from "@/constants/Colors";
+import { useSignupForm } from "@/context/signupContext";
 import { router } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
 
 const SignupScreen = () => {
+  const { formData, setFormData } = useSignupForm();
+
+  const setFormRole = (role: string) => {
+    setFormData({ ...formData, role: role });
+
+    proceedToStepTwo();
+  };
+
+  const proceedToStepTwo = () => {
+    router.push("/screens/signup/personalDetails");
+  };
+
   return (
     <View style={styles.container}>
       <View style={{ backgroundColor: COLORS.gray, height: 1 }}></View>
@@ -15,11 +28,13 @@ const SignupScreen = () => {
         <View style={styles.buttonContainer}>
           <PrimaryButton
             title={"Teacher"}
-            clickHandler={() => router.push("/screens/signup/personalDetails")}
+            clickHandler={() => {
+              setFormRole("Teacher");
+            }}
           />
           <PrimaryButton
             title={"Parent"}
-            clickHandler={() => router.push("/screens/signup/personalDetails")}
+            clickHandler={() => setFormRole("Parent")}
           />
         </View>
       </View>
@@ -31,9 +46,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     flexDirection: "column",
-    justifyContent: "space-between",
+    justifyContent: "space-around",
 
-    paddingVertical: "20%",
     paddingHorizontal: "5%",
   },
   formContainer: {
@@ -57,8 +71,6 @@ const styles = StyleSheet.create({
     color: COLORS.black,
   },
   buttonContainer: {
-    flexGrow: 1,
-
     width: "100%",
     gap: 10,
   },

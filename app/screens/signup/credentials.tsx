@@ -1,8 +1,13 @@
 import PrimaryButton from "@/components/PrimaryButton";
 import COLORS from "@/constants/Colors";
+import { useSignupForm } from "@/context/signupContext";
+import { useState } from "react";
 import { StyleSheet, Text, TextInput, View } from "react-native";
 
 const SignUpCredentialScreens = () => {
+  const { formData, setFormData } = useSignupForm();
+  const [confirmPass, setConfirmPass] = useState("");
+
   return (
     <View style={styles.container}>
       <View style={styles.headerContainer}>
@@ -14,24 +19,73 @@ const SignUpCredentialScreens = () => {
           style={styles.textbox}
           placeholder="Email"
           keyboardType="email-address"
+          onChangeText={(userMail) => {
+            setFormData({ ...formData, email: userMail });
+          }}
+          value={formData.email}
         />
         <TextInput
           style={styles.textbox}
           placeholder="Password"
           secureTextEntry={true}
+          onChangeText={(userPassword) => {
+            setFormData({ ...formData, password: userPassword });
+          }}
+          value={formData.password}
         />
         <TextInput
           style={styles.textbox}
           placeholder="Confirm Password"
           secureTextEntry={true}
+          onChangeText={(confirmPassword) => {
+            setConfirmPass(confirmPassword);
+          }}
+          value={confirmPass}
         />
       </View>
 
       <View>
-        <PrimaryButton title="Sign Up" clickHandler={() => {}} />
+        <PrimaryButton
+          title="Sign Up"
+          clickHandler={() =>
+            finishRegistration(formData.email, formData.password, confirmPass)
+          }
+        />
       </View>
     </View>
   );
+};
+
+const finishRegistration = (
+  email: string,
+  password: string,
+  confirmPassword: string
+) => {
+  if (
+    !email ||
+    email.trim().length === 0 ||
+    !password ||
+    password.trim().length === 0 ||
+    !confirmPassword ||
+    confirmPassword.trim().length === 0
+  ) {
+    console.log("====================================");
+    console.log("a textfield is empty");
+    console.log("====================================");
+    return false;
+  }
+
+  if (password !== confirmPassword) {
+    console.log("====================================");
+    console.log("password don't match");
+    console.log("====================================");
+    return false;
+  }
+
+  console.log("====================================");
+  console.log("register successfully");
+  console.log("====================================");
+  return true;
 };
 
 const styles = StyleSheet.create({
