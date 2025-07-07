@@ -1,47 +1,109 @@
-import { useRef, useState } from "react";
-import { Button, StyleSheet, Text, View } from "react-native";
-import {
-  DrawerLayoutAndroid,
-  GestureHandlerRootView,
-} from "react-native-gesture-handler";
-const Sidebar = () => {
-  const drawer = useRef<DrawerLayoutAndroid>(null);
-  const [drawerPosition, setDrawerPosition] = useState<"left" | "right">(
-    "left"
-  );
+import COLORS from "@/constants/Colors";
+import { useSidebarWidth } from "@/context/sidebarContext";
+import { useState } from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import Icon from "react-native-vector-icons/Octicons";
 
-  const sidebar = () => (
-    <View style={styles.sidebar}>
-      <Text> This is a test</Text>
-      <Button
-        title="Close Sidebar"
-        onPress={() => drawer.current?.closeDrawer()}
-      />
-    </View>
-  );
+type SidebarProps = {
+  onNavigate: (screen: string) => void;
+};
+
+const Sidebar = ({ onNavigate }: SidebarProps) => {
+  const [expanded, setExpanded] = useState(true);
+
+  const { setWidth } = useSidebarWidth();
+
+  const menuItems = [
+    {
+      icon: "people",
+      label: "Learners",
+      screen: "/screens/teacher/learnerProfile",
+    },
+    {
+      icon: "image",
+      label: "Cards",
+      screen: "/screens/teacher/learnerProfile",
+    },
+    {
+      icon: "copy",
+      label: "Boards",
+      screen: "/screens/teacher/learnerProfile",
+    },
+    {
+      icon: "comment",
+      label: "Messages",
+      screen: "/screens/teacher/learnerProfile",
+    },
+    {
+      icon: "gear",
+      label: "Settings",
+      screen: "/screens/teacher/learnerProfile",
+    },
+  ];
+
+  // Report width when expanded/collapsed
+  const toggleSidebar = () => {
+    const newExpanded = !expanded;
+    setExpanded(newExpanded);
+
+    const newWidth = newExpanded ? "20%" : 60;
+    setWidth(newWidth);
+  };
+
+  const currentWidth = expanded ? "20%" : 60;
+
   return (
-    <GestureHandlerRootView>
-      <DrawerLayoutAndroid
-        ref={drawer}
-        drawerWidth={300}
-        drawerPosition={drawerPosition}
-        renderNavigationView={sidebar}
-      >
-        <View>
-          <Text>Drawer test</Text>
-          <Button
-            title="Open Drawer"
-            onPress={() => drawer.current?.openDrawer()}
-          />
-        </View>
-      </DrawerLayoutAndroid>
-    </GestureHandlerRootView>
+    <View
+      style={[
+        styles.sidebar,
+        { width: currentWidth }, // dynamic width here
+      ]}
+    >
+      {/* Expand/Collapse Button */}
+      <TouchableOpacity style={styles.toggleButton} onPress={toggleSidebar}>
+        {expanded && <Text>Profile Name</Text>}
+        <Icon name={expanded ? "chevron-left" : "chevron-right"} size={24} />
+      </TouchableOpacity>
+
+      {/* Menu Items */}
+      {menuItems.map((item) => (
+        <TouchableOpacity
+          key={item.label}
+          style={styles.menuItem}
+          onPress={() => onNavigate(item.screen)}
+        >
+          <Icon name={item.icon} size={24} />
+          {expanded && <Text style={styles.menuText}>{item.label}</Text>}
+        </TouchableOpacity>
+      ))}
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   sidebar: {
-    width: "30%",
+    backgroundColor: COLORS.navbarBg,
+    paddingVertical: 20,
+    paddingHorizontal: 10,
+    gap: 10,
+  },
+  toggleButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingVertical: 10,
+  },
+  toggleText: {
+    fontSize: 16,
+  },
+  menuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingVertical: 10,
+  },
+  menuText: {
+    fontSize: 16,
   },
 });
 

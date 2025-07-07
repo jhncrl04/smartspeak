@@ -1,42 +1,18 @@
-// ManageLearnersScreen.tsx
 import CardContainer from "@/components/CardContainer";
-import { useRef } from "react";
-import { Button, StyleSheet, Text, View } from "react-native";
-import {
-  DrawerLayoutAndroid,
-  GestureHandlerRootView,
-} from "react-native-gesture-handler";
+import Sidebar from "@/components/Sidebar";
+import { router } from "expo-router";
+import { StyleSheet, View } from "react-native";
 
 const ManageLearnersScreen = () => {
-  const drawer = useRef<DrawerLayoutAndroid>(null);
-
-  const sidebar = () => (
-    <View style={styles.sidebar}>
-      <Text>This is a test</Text>
-      <Button
-        title="Close Sidebar"
-        onPress={() => drawer.current?.closeDrawer()}
-      />
-    </View>
-  );
+  const handleNavigation = (screen: string) => {
+    router.push(screen as any);
+  };
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <DrawerLayoutAndroid
-        ref={drawer}
-        drawerWidth={300}
-        drawerPosition="left"
-        renderNavigationView={sidebar}
-      >
-        <View style={styles.container}>
-          <Button
-            title="Open Drawer"
-            onPress={() => drawer.current?.openDrawer()}
-          />
-          <CardContainer />
-        </View>
-      </DrawerLayoutAndroid>
-    </GestureHandlerRootView>
+    <View style={styles.container}>
+      <Sidebar onNavigate={handleNavigation} />
+      <CardContainer />
+    </View>
   );
 };
 
@@ -45,6 +21,8 @@ const styles = StyleSheet.create({
     flex: 1,
 
     flexDirection: "row",
+
+    gap: 10,
   },
   sidebar: {
     flex: 1,

@@ -1,4 +1,5 @@
 import COLORS from "@/constants/Colors";
+import { SidebarProvider } from "@/context/sidebarContext";
 import { Stack } from "expo-router";
 import { StatusBar, StyleSheet } from "react-native";
 
@@ -14,7 +15,7 @@ const TeacherLayout = () => {
   });
 
   return (
-    <>
+    <SidebarProvider>
       <StatusBar hidden={true} />
       {/* <StatusBar barStyle={"default"} /> */}
       <Stack screenOptions={{ headerShown: false }}>
@@ -24,8 +25,14 @@ const TeacherLayout = () => {
             title: "Manage Learners",
           }}
         />
+        <Stack.Screen
+          name="learnerProfile"
+          options={{
+            title: "Learner Profile",
+          }}
+        />
       </Stack>
-    </>
+    </SidebarProvider>
   );
 };
 

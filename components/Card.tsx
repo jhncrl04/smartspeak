@@ -1,4 +1,5 @@
 import COLORS from "@/constants/Colors";
+import { useSidebarWidth } from "@/context/sidebarContext";
 import { Entypo } from "@expo/vector-icons";
 import {
   Image,
@@ -17,8 +18,14 @@ const MIN_CARD_WIDTH = 100;
 
 const Card = (props: profile) => {
   const { width } = useWindowDimensions();
-  const availableWidth = width - HORIZONTAL_PADDING;
+  const { width: sidebarWidth } = useSidebarWidth();
 
+  const SidebarWidthInPixel =
+    typeof sidebarWidth === "number" ? sidebarWidth : width * 0.2;
+
+  const availableWidth = width - (HORIZONTAL_PADDING + SidebarWidthInPixel);
+
+  // Add a check for sidebar width then decrease it to the available width
   let cardWidth: number = 200;
   let colCount: number =
     (availableWidth + COLUMN_GAP) / (cardWidth + COLUMN_GAP);
@@ -26,13 +33,14 @@ const Card = (props: profile) => {
 
   let totalGapSpace = (colCount - 1) * COLUMN_GAP;
 
-  // dynamically setting the card width if screen is too small
+  // dynamically setting the card width acccording to screen size
   cardWidth = (availableWidth - totalGapSpace) / colCount;
 
   if (cardWidth < MIN_CARD_WIDTH) {
     cardWidth = availableWidth;
   }
 
+  // setting the card height to a specific aspect ratio (40% longer than the width)
   let cardHeight: number = cardWidth + cardWidth * 0.4;
 
   const styles = StyleSheet.create({

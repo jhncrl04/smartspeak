@@ -4,6 +4,7 @@ const COLORS = {
   white: "#F5F5F5",
   pureWhite: "#ffffff",
   shadow: "#43434326",
+  navbarBg: "#EBEBEB",
   accent: "#9B72CF",
   errorBg: "#FFA69E",
   errorText: "#FF686B",
