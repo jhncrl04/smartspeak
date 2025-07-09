@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "110744669497",
+    "project_id": "smartspeak-dev-db",
+    "storage_bucket": "smartspeak-dev-db.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:110744669497:android:463b7d959446f5eff56ce8",
+        "android_client_info": {
+          "package_name": "com.smartspeak.Smartspeak"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCsVAeKDYkCO-vfFbmOB80PkvRmItNrAo8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

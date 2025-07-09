@@ -1,5 +1,4 @@
 package com.smartspeak.Smartspeak
-import com.facebook.react.common.assets.ReactFontManager
 
 import android.app.Application
 import android.content.res.Configuration
@@ -43,9 +42,6 @@ class MainApplication : Application(), ReactApplication {
 
   override fun onCreate() {
     super.onCreate()
-    // @generated begin xml-fonts-init - expo prebuild (DO NOT MODIFY) sync-060a7d3fb2a0cb23e42f16ce68740d13bdbfaf56
-    ReactFontManager.getInstance().addCustomFont(this, "Poppins", R.font.xml_poppins)
-    // @generated end xml-fonts-init
     SoLoader.init(this, OpenSourceMergedSoMapping)
     if (BuildConfig.IS_NEW_ARCHITECTURE_ENABLED) {
       // If you opted-in for the New Architecture, we load the native entry point for this app.

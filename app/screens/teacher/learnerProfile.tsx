@@ -20,7 +20,7 @@ const LearnerProfile = () => {
             <HorizontalLine />
           </View>
         </View>
-        <PageHeader pageTitle="Assign Card" />
+        <PageHeader pageTitle="Assign Boards" />
       </View>
     </View>
   );
