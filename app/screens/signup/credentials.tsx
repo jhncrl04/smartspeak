@@ -1,8 +1,18 @@
 import PrimaryButton from "@/components/PrimaryButton";
 import COLORS from "@/constants/Colors";
 import { useSignupForm } from "@/context/signupContext";
+import { registerUser } from "@/services/userApi/NonLearnerRegistration";
 import { useState } from "react";
 import { StyleSheet, Text, TextInput, View } from "react-native";
+
+type userDataType = {
+  role: string;
+  fname: string;
+  lname: string;
+  phoneNum: string;
+  email: string;
+  password: string;
+};
 
 const SignUpCredentialScreens = () => {
   const { formData, setFormData } = useSignupForm();
@@ -48,7 +58,12 @@ const SignUpCredentialScreens = () => {
         <PrimaryButton
           title="Sign Up"
           clickHandler={() =>
-            finishRegistration(formData.email, formData.password, confirmPass)
+            finishRegistration(
+              formData.email,
+              formData.password,
+              confirmPass,
+              formData
+            )
           }
         />
       </View>
@@ -59,7 +74,8 @@ const SignUpCredentialScreens = () => {
 const finishRegistration = (
   email: string,
   password: string,
-  confirmPassword: string
+  confirmPassword: string,
+  userData: userDataType
 ) => {
   if (
     !email ||
@@ -82,6 +98,8 @@ const finishRegistration = (
     return false;
   }
 
+  registerUser(userData);
+
   console.log("====================================");
   console.log("register successfully");
   console.log("====================================");
@@ -93,10 +111,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.white,
 
-    paddingVertical: "10%",
+    paddingVertical: 10,
     paddingHorizontal: "5%",
 
-    gap: 30,
+    gap: 10,
   },
   headerContainer: {
     gap: 5,

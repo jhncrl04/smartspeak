@@ -1,5 +1,6 @@
-import expo.modules.splashscreen.SplashScreenManager
 package com.smartspeak.Smartspeak
+
+import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build
 import android.os.Bundle

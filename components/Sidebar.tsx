@@ -62,7 +62,11 @@ const Sidebar = ({ onNavigate }: SidebarProps) => {
       {/* Expand/Collapse Button */}
       <TouchableOpacity style={styles.toggleButton} onPress={toggleSidebar}>
         {expanded && <Text>Profile Name</Text>}
-        <Icon name={expanded ? "chevron-left" : "chevron-right"} size={24} />
+        <Icon
+          name={expanded ? "chevron-left" : "chevron-right"}
+          size={24}
+          color={COLORS.gray}
+        />
       </TouchableOpacity>
 
       {/* Menu Items */}
@@ -72,7 +76,7 @@ const Sidebar = ({ onNavigate }: SidebarProps) => {
           style={styles.menuItem}
           onPress={() => onNavigate(item.screen)}
         >
-          <Icon name={item.icon} size={24} />
+          <Icon name={item.icon} size={24} color={COLORS.gray} />
           {expanded && <Text style={styles.menuText}>{item.label}</Text>}
         </TouchableOpacity>
       ))}

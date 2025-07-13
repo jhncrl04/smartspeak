@@ -6,7 +6,7 @@ const CardContainer = () => {
   const styles = StyleSheet.create({
     cardContainer: {
       flexWrap: "wrap",
-      flexGrow: 0,
+      flexGrow: 1,
       flexDirection: "row",
 
       alignItems: "center",

@@ -31,6 +31,12 @@ const TeacherLayout = () => {
             title: "Learner Profile",
           }}
         />
+        <Stack.Screen
+          name="boardCategory"
+          options={{
+            title: "Asign Cards",
+          }}
+        />
       </Stack>
     </SidebarProvider>
   );

@@ -1,6 +1,6 @@
-import Board from "@/components/Board";
 import LearnerProfileHeader from "@/components/LeanerProfileHeader";
 import PageHeader from "@/components/PageHeader";
+import PecsCard from "@/components/PecsCard";
 import PrimaryButton from "@/components/PrimaryButton";
 import Sidebar from "@/components/Sidebar";
 import HorizontalLine from "@/components/ui/HorizontalLine";
@@ -8,7 +8,7 @@ import COLORS from "@/constants/Colors";
 import { router } from "expo-router";
 import { StyleSheet, View } from "react-native";
 
-const LearnerProfile = () => {
+const BoardCategory = () => {
   const handleNavigation = (screen: string) => {
     router.push(screen as any);
   };
@@ -24,7 +24,7 @@ const LearnerProfile = () => {
           </View>
         </View>
         <View style={styles.pageHeaderContainer}>
-          <PageHeader pageTitle="Assign Boards" />
+          <PageHeader pageTitle="Assign Cards" />
           <View style={styles.buttonContainer}>
             <PrimaryButton
               title="Remove Board"
@@ -37,10 +37,26 @@ const LearnerProfile = () => {
           </View>
         </View>
         <View style={styles.boardContainer}>
-          <Board boardName="Foods" boardBackground="#ff0102" />
-          <Board boardName="Places" boardBackground="#005923" />
-          <Board boardName="Drinks" boardBackground="#2e2e2e" />
-          <Board boardName="Activities" boardBackground="#fefae0" />
+          <PecsCard
+            cardName="Apple"
+            cardCategory="Foods"
+            categoryColor="#ff0102"
+          />
+          <PecsCard
+            cardName="Biscuits"
+            cardCategory="Foods"
+            categoryColor="#ff0102"
+          />
+          <PecsCard
+            cardName="Church"
+            cardCategory="Places"
+            categoryColor="#005923"
+          />
+          <PecsCard
+            cardName="Water"
+            cardCategory="Drinks"
+            categoryColor="#2e2e2e"
+          />
         </View>
       </View>
     </View>
@@ -57,8 +73,6 @@ const styles = StyleSheet.create({
   pageContainer: {
     flex: 1,
     flexDirection: "column",
-
-    backgroundColor: COLORS.white,
 
     gap: 15,
 
@@ -93,4 +107,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default LearnerProfile;
+export default BoardCategory;

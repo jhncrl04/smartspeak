@@ -52,6 +52,18 @@ const SignupLayout = () => {
             ),
           }}
         />
+
+        <Stack.Screen
+          name="otpVerification"
+          options={{
+            headerTitleAlign: "center",
+            headerTitle: () => (
+              <View style={styles.headerContainer}>
+                <Text style={styles.title}>OTP VERIFICATION</Text>
+              </View>
+            ),
+          }}
+        />
       </Stack>
     </SignupFormProvider>
   );
