@@ -36,11 +36,6 @@ const MessageScreen = () => {
             message="Hello, World!"
             time="10:30 pm"
           />
-          <ChatSnippet
-            chatName="Oueia Orbe"
-            message="Sana mapansin na kahit sa ml lang hehehe <3. Joke lang hehehe"
-            time="02:30 pm"
-          />
         </View>
       </View>
     </View>
