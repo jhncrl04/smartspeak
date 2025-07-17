@@ -34,7 +34,7 @@ const MessageScreen = () => {
           <ChatSnippet
             chatName="John Carlo Servidad"
             message="Hello, World!"
-            time="10:30 pm"
+            time="11:30 pm"
           />
         </View>
       </View>
