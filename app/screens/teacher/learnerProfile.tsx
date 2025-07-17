@@ -26,6 +26,7 @@ const LearnerProfile = () => {
         <View style={styles.pageHeaderContainer}>
           <PageHeader
             pageTitle="Assign Boards"
+            hasFilter={true}
             searchPlaceholder="Search Card"
           />
           <View style={styles.buttonContainer}>

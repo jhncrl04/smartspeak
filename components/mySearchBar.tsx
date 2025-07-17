@@ -24,7 +24,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "flex-end",
-    gap: 5,
+    gap: 10,
 
     paddingHorizontal: 10,
 

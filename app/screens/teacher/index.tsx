@@ -1,4 +1,5 @@
 import CardContainer from "@/components/CardContainer";
+import PageHeader from "@/components/PageHeader";
 import Sidebar from "@/components/Sidebar";
 import { router } from "expo-router";
 import { StyleSheet, View } from "react-native";
@@ -11,7 +12,14 @@ const ManageLearnersScreen = () => {
   return (
     <View style={styles.container}>
       <Sidebar onNavigate={handleNavigation} />
-      <CardContainer />
+      <View style={styles.pageContainer}>
+        <PageHeader
+          pageTitle="Manage Learners"
+          hasFilter={false}
+          searchPlaceholder="Search Learner"
+        />
+        <CardContainer />
+      </View>
     </View>
   );
 };
@@ -21,9 +29,8 @@ const styles = StyleSheet.create({
     flex: 1,
 
     flexDirection: "row",
-
-    gap: 10,
   },
+  pageContainer: { flex: 1, paddingHorizontal: 30, paddingVertical: 20 },
   sidebar: {
     flex: 1,
     backgroundColor: "#eee",

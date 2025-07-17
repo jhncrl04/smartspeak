@@ -12,8 +12,8 @@ import {
 
 type profile = { cardType: string; name: string; age: number; gender: string };
 
-const HORIZONTAL_PADDING = 20;
-const COLUMN_GAP = 30;
+const HORIZONTAL_PADDING = 60;
+const COLUMN_GAP = 20;
 const MIN_CARD_WIDTH = 100;
 
 const Card = (props: profile) => {

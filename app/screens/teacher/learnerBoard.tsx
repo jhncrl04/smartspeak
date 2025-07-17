@@ -26,6 +26,7 @@ const LearnerBoardScreen = () => {
         <View style={styles.pageHeaderContainer}>
           <PageHeader
             pageTitle="Assign Cards"
+            hasFilter={true}
             searchPlaceholder="Search Card"
           />
           <View style={styles.buttonContainer}>

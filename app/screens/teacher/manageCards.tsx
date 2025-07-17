@@ -15,7 +15,11 @@ const ManageCardsScreen = () => {
     <View style={styles.container}>
       <Sidebar onNavigate={handleNavigation} />
       <View style={styles.mainContentContainer}>
-        <PageHeader pageTitle="Manage Cards" searchPlaceholder="Search Card" />
+        <PageHeader
+          pageTitle="Manage Cards"
+          hasFilter={true}
+          searchPlaceholder="Search Card"
+        />
         <View style={styles.boardContainer}>
           <AddCard cardType="card" />
           <PecsCard

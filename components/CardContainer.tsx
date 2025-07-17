@@ -5,19 +5,17 @@ import Card from "./Card";
 const CardContainer = () => {
   const styles = StyleSheet.create({
     cardContainer: {
+      flex: 1,
       flexWrap: "wrap",
-      flexGrow: 1,
       flexDirection: "row",
 
       alignItems: "center",
 
-      rowGap: 20,
-      columnGap: 30,
+      gap: 20,
 
       backgroundColor: COLORS.white,
 
       paddingVertical: 20,
-      paddingHorizontal: 10,
     },
   });
 

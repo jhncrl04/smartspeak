@@ -17,6 +17,7 @@ const ManageBoardsScreen = () => {
       <View style={styles.mainContentContainer}>
         <PageHeader
           pageTitle="Manage Boards"
+          hasFilter={true}
           searchPlaceholder="Search Board"
         />
         <View style={styles.boardContainer}>
