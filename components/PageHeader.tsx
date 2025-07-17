@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from "react-native";
 import FilterButton from "./FilterButton";
 import MySearchBar from "./mySearchBar";
 
-type pageProps = { pageTitle: string };
+type pageProps = { pageTitle: string; searchPlaceholder: string };
 
 const PageHeader = (props: pageProps) => {
   return (
@@ -11,7 +11,7 @@ const PageHeader = (props: pageProps) => {
       <Text style={styles.headerTitle}>{props.pageTitle}</Text>
       <View style={styles.filterSearchContainer}>
         <FilterButton />
-        <MySearchBar />
+        <MySearchBar placeholder={props.searchPlaceholder} />
       </View>
     </View>
   );
@@ -28,8 +28,9 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontFamily: "Poppins",
+    fontWeight: "500",
 
-    color: COLORS.gray,
+    color: COLORS.black,
   },
   filterSearchContainer: {
     flexDirection: "row",

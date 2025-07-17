@@ -2,10 +2,15 @@ import COLORS from "@/constants/Colors";
 import { StyleSheet, TextInput, View } from "react-native";
 import Icon from "react-native-vector-icons/Octicons";
 
-const MySearchBar = () => {
+type searchbarProps = { placeholder: string };
+
+const MySearchBar = (props: searchbarProps) => {
   return (
     <View style={styles.searchbar}>
-      <TextInput style={styles.searchbarInput} placeholder="Search Card" />
+      <TextInput
+        style={styles.searchbarInput}
+        placeholder={props.placeholder}
+      />
       <Icon name="search" size={24} color={COLORS.gray} />
     </View>
   );
@@ -27,7 +32,8 @@ const styles = StyleSheet.create({
   },
   searchbarInput: {
     color: COLORS.gray,
-    width: "auto",
+    textAlign: "right",
+    flex: 1,
     fontSize: 16,
   },
 });

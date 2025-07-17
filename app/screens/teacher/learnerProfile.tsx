@@ -24,7 +24,10 @@ const LearnerProfile = () => {
           </View>
         </View>
         <View style={styles.pageHeaderContainer}>
-          <PageHeader pageTitle="Assign Boards" />
+          <PageHeader
+            pageTitle="Assign Boards"
+            searchPlaceholder="Search Card"
+          />
           <View style={styles.buttonContainer}>
             <PrimaryButton
               title="Remove Board"

@@ -3,7 +3,7 @@ import { SidebarProvider } from "@/context/sidebarContext";
 import { Stack } from "expo-router";
 import { StatusBar, StyleSheet } from "react-native";
 
-const TeacherLayout = () => {
+const ScreenLayout = () => {
   const styles = StyleSheet.create({
     headerContainer: {},
     title: {
@@ -20,21 +20,15 @@ const TeacherLayout = () => {
       {/* <StatusBar barStyle={"default"} /> */}
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen
-          name="index"
+          name="messages"
           options={{
-            title: "Manage Learners",
+            title: "Messages",
           }}
         />
         <Stack.Screen
-          name="learnerProfile"
+          name="settings"
           options={{
-            title: "Learner Profile",
-          }}
-        />
-        <Stack.Screen
-          name="learnerBoard"
-          options={{
-            title: "Asign Cards",
+            title: "Settings",
           }}
         />
       </Stack>
@@ -42,4 +36,4 @@ const TeacherLayout = () => {
   );
 };
 
-export default TeacherLayout;
+export default ScreenLayout;

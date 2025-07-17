@@ -35,7 +35,7 @@ const AddCard = (props: CardProps) => {
     cardWidth = availableWidth;
   }
 
-  const styles = StyleSheet.create({
+  const cardStyles = StyleSheet.create({
     pecsContainer: {
       borderRadius: 10,
       overflow: "hidden",
@@ -69,16 +69,71 @@ const AddCard = (props: CardProps) => {
     pecsCategory: { color: COLORS.semiWhite },
   });
 
+  const boardIconSize = cardWidth * 0.3;
+
+  const boardStyles = StyleSheet.create({
+    boardContainer: {
+      width: cardWidth,
+      height: cardWidth * 0.9,
+      position: "relative",
+
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    folderIcon: {
+      position: "absolute",
+      top: "50%",
+      left: "50%",
+      transform: [{ translateX: "-50%" }, { translateY: "-50%" }],
+    },
+    boardInfoContainer: {
+      paddingTop: 30,
+      justifyContent: "center",
+      alignItems: "center",
+
+      gap: 10,
+    },
+    boardIcon: {
+      width: boardIconSize,
+      height: boardIconSize,
+    },
+    boardName: {
+      fontSize: 16,
+      fontFamily: "Poppins",
+      color: COLORS.white,
+
+      width: "auto",
+    },
+  });
+
   return (
-    <View style={styles.pecsContainer}>
-      <View style={styles.iconContainer}>
-        <Icon name="plus" size={50} color={COLORS.gray} />
-      </View>
-      <View style={styles.pecsInfoContainer}>
-        <Text style={styles.pecsName}>Add Card</Text>
-        <Text style={styles.pecsCategory}>Category</Text>
-      </View>
-    </View>
+    <>
+      {props.cardType === "card" && (
+        <View style={cardStyles.pecsContainer}>
+          <View style={cardStyles.iconContainer}>
+            <Icon name="plus" size={50} color={COLORS.gray} />
+          </View>
+          <View style={cardStyles.pecsInfoContainer}>
+            <Text style={cardStyles.pecsName}>Add Card</Text>
+            <Text style={cardStyles.pecsCategory}>Category</Text>
+          </View>
+        </View>
+      )}
+      {props.cardType === "board" && (
+        <View style={boardStyles.boardContainer}>
+          <Icon
+            style={boardStyles.folderIcon}
+            name={"file-directory"}
+            size={cardWidth}
+            color={COLORS.gray}
+          />
+          <View style={boardStyles.boardInfoContainer}>
+            <Icon name="plus" size={50} color={COLORS.white} />
+            <Text style={boardStyles.boardName}>Add Board</Text>
+          </View>
+        </View>
+      )}
+    </>
   );
 };
 

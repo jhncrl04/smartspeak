@@ -1,12 +1,12 @@
 import AddCard from "@/components/AddCard";
+import Board from "@/components/Board";
 import PageHeader from "@/components/PageHeader";
-import PecsCard from "@/components/PecsCard";
 import Sidebar from "@/components/Sidebar";
 import COLORS from "@/constants/Colors";
 import { router } from "expo-router";
 import { StyleSheet, View } from "react-native";
 
-const ManageCardsScreen = () => {
+const ManageBoardsScreen = () => {
   const handleNavigation = (screen: string) => {
     router.push(screen as any);
   };
@@ -15,29 +15,16 @@ const ManageCardsScreen = () => {
     <View style={styles.container}>
       <Sidebar onNavigate={handleNavigation} />
       <View style={styles.mainContentContainer}>
-        <PageHeader pageTitle="Manage Cards" searchPlaceholder="Search Card" />
+        <PageHeader
+          pageTitle="Manage Boards"
+          searchPlaceholder="Search Board"
+        />
         <View style={styles.boardContainer}>
-          <AddCard cardType="card" />
-          <PecsCard
-            cardName="Apple"
-            cardCategory="Foods"
-            categoryColor="#ff0102"
-          />
-          <PecsCard
-            cardName="Biscuits"
-            cardCategory="Foods"
-            categoryColor="#ff0102"
-          />
-          <PecsCard
-            cardName="Church"
-            cardCategory="Places"
-            categoryColor="#005923"
-          />
-          <PecsCard
-            cardName="Water"
-            cardCategory="Drinks"
-            categoryColor="#2e2e2e"
-          />
+          <AddCard cardType="board" />
+          <Board boardName="Foods" boardBackground="#ff0102" />
+          <Board boardName="Places" boardBackground="#005923" />
+          <Board boardName="Drinks" boardBackground="#2e2e2e" />
+          <Board boardName="Activities" boardBackground="#fefae0" />
         </View>
       </View>
     </View>
@@ -78,4 +65,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ManageCardsScreen;
+export default ManageBoardsScreen;

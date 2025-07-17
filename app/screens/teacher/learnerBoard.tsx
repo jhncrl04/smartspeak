@@ -8,7 +8,7 @@ import COLORS from "@/constants/Colors";
 import { router } from "expo-router";
 import { StyleSheet, View } from "react-native";
 
-const BoardCategory = () => {
+const LearnerBoardScreen = () => {
   const handleNavigation = (screen: string) => {
     router.push(screen as any);
   };
@@ -24,7 +24,10 @@ const BoardCategory = () => {
           </View>
         </View>
         <View style={styles.pageHeaderContainer}>
-          <PageHeader pageTitle="Assign Cards" />
+          <PageHeader
+            pageTitle="Assign Cards"
+            searchPlaceholder="Search Card"
+          />
           <View style={styles.buttonContainer}>
             <PrimaryButton
               title="Remove Board"
@@ -107,4 +110,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default BoardCategory;
+export default LearnerBoardScreen;
