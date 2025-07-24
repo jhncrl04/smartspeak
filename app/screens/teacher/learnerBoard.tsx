@@ -15,7 +15,7 @@ const LearnerBoardScreen = () => {
 
   return (
     <View style={styles.container}>
-      <Sidebar onNavigate={handleNavigation} />
+      <Sidebar userRole="teacher" onNavigate={handleNavigation} />
       <View style={styles.pageContainer}>
         <View style={styles.headerContainer}>
           <LearnerProfileHeader name="Johnny Cage" age={10} />

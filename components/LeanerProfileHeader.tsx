@@ -2,7 +2,7 @@ import COLORS from "@/constants/Colors";
 import { StyleSheet, Text, View } from "react-native";
 import PrimaryButton from "./PrimaryButton";
 
-type profileProps = { name: string; age: number };
+type profileProps = { name: string; age: number; screen: string };
 
 const LearnerProfileHeader = (props: profileProps) => {
   return (
@@ -18,12 +18,21 @@ const LearnerProfileHeader = (props: profileProps) => {
       </View>
 
       <View style={styles.progressReportButtonContainer}>
-        <PrimaryButton
-          title="Send Progress Report"
-          clickHandler={() => {
-            console.log("send progress report");
-          }}
-        />
+        {props.screen === "teacher" ? (
+          <PrimaryButton
+            title="Send Progress Report"
+            clickHandler={() => {
+              console.log("send progress report");
+            }}
+          />
+        ) : (
+          <PrimaryButton
+            title="Edit child profile"
+            clickHandler={() => {
+              console.log("send progress report");
+            }}
+          />
+        )}
       </View>
     </View>
   );

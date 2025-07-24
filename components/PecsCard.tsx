@@ -23,7 +23,7 @@ const PecsCard = (props: CardProps) => {
   const { width: sidebarWidth } = useSidebarWidth();
 
   const SidebarWidthInPixel =
-    typeof sidebarWidth === "number" ? sidebarWidth : width * 0.2;
+    typeof sidebarWidth === "number" ? sidebarWidth : width * 0.25;
 
   const availableWidth = width - (HORIZONTAL_PADDING + SidebarWidthInPixel);
 

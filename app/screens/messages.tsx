@@ -12,7 +12,7 @@ const MessageScreen = () => {
 
   return (
     <View style={styles.container}>
-      <Sidebar onNavigate={handleNavigation} />
+      <Sidebar userRole="teacher" onNavigate={handleNavigation} />
       <View style={styles.pageContainer}>
         <Text style={styles.header}>Messages</Text>
         <View style={{ flexGrow: 0 }}>

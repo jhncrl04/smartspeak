@@ -1,7 +1,15 @@
 import COLORS from "@/constants/Colors";
 import { useSidebarWidth } from "@/context/sidebarContext";
-import { StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { useState } from "react";
+import {
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
+} from "react-native";
 import Icon from "react-native-vector-icons/Octicons";
+import AddPecsModal from "./ui/AddPecsModal";
 
 const HORIZONTAL_PADDING = 70;
 const COLUMN_GAP = 30;
@@ -9,6 +17,7 @@ const MIN_CARD_WIDTH = 100;
 
 type CardProps = {
   cardType: string;
+  onPress?: () => void;
 };
 
 const AddCard = (props: CardProps) => {
@@ -16,7 +25,7 @@ const AddCard = (props: CardProps) => {
   const { width: sidebarWidth } = useSidebarWidth();
 
   const SidebarWidthInPixel =
-    typeof sidebarWidth === "number" ? sidebarWidth : width * 0.2;
+    typeof sidebarWidth === "number" ? sidebarWidth : width * 0.25;
 
   const availableWidth = width - (HORIZONTAL_PADDING + SidebarWidthInPixel);
 
@@ -106,10 +115,19 @@ const AddCard = (props: CardProps) => {
     },
   });
 
+  const [modalVisible, setModalVisible] = useState(false);
+
   return (
     <>
+      <AddPecsModal
+        visible={modalVisible}
+        onClose={() => setModalVisible(false)}
+      />
       {props.cardType === "card" && (
-        <View style={cardStyles.pecsContainer}>
+        <TouchableOpacity
+          style={cardStyles.pecsContainer}
+          onPress={() => setModalVisible(true)}
+        >
           <View style={cardStyles.iconContainer}>
             <Icon name="plus" size={50} color={COLORS.gray} />
           </View>
@@ -117,7 +135,7 @@ const AddCard = (props: CardProps) => {
             <Text style={cardStyles.pecsName}>Add Card</Text>
             <Text style={cardStyles.pecsCategory}>Category</Text>
           </View>
-        </View>
+        </TouchableOpacity>
       )}
       {props.cardType === "board" && (
         <View style={boardStyles.boardContainer}>

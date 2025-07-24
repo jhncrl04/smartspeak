@@ -21,7 +21,7 @@ const Card = (props: profile) => {
   const { width: sidebarWidth } = useSidebarWidth();
 
   const SidebarWidthInPixel =
-    typeof sidebarWidth === "number" ? sidebarWidth : width * 0.2;
+    typeof sidebarWidth === "number" ? sidebarWidth : width * 0.25;
 
   const availableWidth = width - (HORIZONTAL_PADDING + SidebarWidthInPixel);
 
@@ -47,9 +47,8 @@ const Card = (props: profile) => {
     cards: {
       height: cardHeight,
       width: cardWidth,
-      backgroundColor: COLORS.pureWhite,
+      backgroundColor: COLORS.cardBg,
 
-      justifyContent: "center",
       alignItems: "center",
 
       borderRadius: 5,
@@ -60,10 +59,11 @@ const Card = (props: profile) => {
       shadowRadius: 20,
 
       overflow: "hidden",
+      justifyContent: "flex-start",
     },
     cardImageContainer: {
       width: cardWidth,
-      height: cardWidth,
+      aspectRatio: 1,
 
       backgroundColor: COLORS.shadow,
 
@@ -75,8 +75,6 @@ const Card = (props: profile) => {
       height: "100%",
       color: COLORS.black,
       fontSize: 40,
-
-      objectFit: "cover",
     },
     addCardIcon: {
       width: "auto",
@@ -86,21 +84,22 @@ const Card = (props: profile) => {
       width: "100%",
       textAlign: "center",
 
-      backgroundColor: COLORS.pureWhite,
       fontSize: 16,
       letterSpacing: 0.5,
 
       paddingVertical: 10,
     },
     cardInfoContainer: {
+      flex: 1,
+      width: "100%",
+      backgroundColor: COLORS.white,
       justifyContent: "center",
       alignItems: "center",
 
-      width: "100%",
+      gap: 5,
 
-      flexGrow: 1,
-      paddingVertical: 10,
-      paddingHorizontal: 20,
+      paddingVertical: 5,
+      paddingHorizontal: 10,
     },
     labelContainer: {
       flex: 1,

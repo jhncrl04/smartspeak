@@ -4,19 +4,19 @@ import Sidebar from "@/components/Sidebar";
 import { router } from "expo-router";
 import { StyleSheet, View } from "react-native";
 
-const ManageLearnersScreen = () => {
+const ChildManagementScreen = () => {
   const handleNavigation = (screen: string) => {
     router.push(screen as any);
   };
 
   return (
     <View style={styles.container}>
-      <Sidebar userRole="teacher" onNavigate={handleNavigation} />
+      <Sidebar userRole="guardian" onNavigate={handleNavigation} />
       <View style={styles.pageContainer}>
         <PageHeader
-          pageTitle="Manage Learners"
+          pageTitle="Manage Child"
           hasFilter={false}
-          searchPlaceholder="Search Learner"
+          searchPlaceholder="Search Child"
         />
         <CardContainer />
       </View>
@@ -37,4 +37,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ManageLearnersScreen;
+export default ChildManagementScreen;

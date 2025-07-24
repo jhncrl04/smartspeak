@@ -8,7 +8,10 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "runtimeVersion": {
+        "policy": "appVersion"
+      }
     },
     "android": {
       "googleServicesFile": "./android/app/google-services.json",
@@ -18,7 +21,14 @@
       },
       "package": "com.smartspeak.Smartspeak",
       "versionCode": 1,
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
+      ],
+      "runtimeVersion": "1.0.0"
     },
     "web": {
       "bundler": "metro",
@@ -77,6 +87,12 @@
             ]
           }
         }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Smartspeak would like to access your microphone."
+        }
       ]
     ],
     "experiments": {
@@ -87,6 +103,9 @@
       "eas": {
         "projectId": "54d13d26-16f8-47dc-b4dd-3d62360b086a"
       }
+    },
+    "updates": {
+      "url": "https://u.expo.dev/54d13d26-16f8-47dc-b4dd-3d62360b086a"
     }
   }
 }

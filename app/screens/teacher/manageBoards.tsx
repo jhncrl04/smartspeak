@@ -13,7 +13,7 @@ const ManageBoardsScreen = () => {
 
   return (
     <View style={styles.container}>
-      <Sidebar onNavigate={handleNavigation} />
+      <Sidebar userRole="teacher" onNavigate={handleNavigation} />
       <View style={styles.mainContentContainer}>
         <PageHeader
           pageTitle="Manage Boards"

@@ -1,20 +1,25 @@
 import COLORS from "@/constants/Colors";
 import { useSidebarWidth } from "@/context/sidebarContext";
 import { useState } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import MDIcon from "react-native-vector-icons/MaterialIcons";
 import Icon from "react-native-vector-icons/Octicons";
 
 type SidebarProps = {
   onNavigate: (screen: string) => void;
+  userRole: string;
 };
 
-const Sidebar = ({ onNavigate }: SidebarProps) => {
+const Sidebar = ({ onNavigate, userRole }: SidebarProps) => {
   const [expanded, setExpanded] = useState(true);
+
+  const indexScreenByRole =
+    userRole === "teacher" ? "/screens/teacher/" : "/screens/guardian/";
+  const [activeScreen, setActiveScreen] = useState(indexScreenByRole);
 
   const { setWidth } = useSidebarWidth();
 
-  const menuItems = [
+  const teachersMenuItems = [
     {
       icon: "people",
       label: "Learners",
@@ -42,16 +47,37 @@ const Sidebar = ({ onNavigate }: SidebarProps) => {
     },
   ];
 
+  const guardiansMenuItems = [
+    {
+      icon: "people",
+      label: "Child Management",
+      screen: "/screens/guardian/",
+    },
+    {
+      icon: "comment",
+      label: "Messages",
+      screen: "/screens/messages",
+    },
+    {
+      icon: "gear",
+      label: "Settings",
+      screen: "/screens/settings",
+    },
+  ];
+
+  const menuItems =
+    userRole === "teacher" ? teachersMenuItems : guardiansMenuItems;
+
   // Report width when expanded/collapsed
   const toggleSidebar = () => {
     const newExpanded = !expanded;
     setExpanded(newExpanded);
 
-    const newWidth = newExpanded ? "20%" : 60;
+    const newWidth = newExpanded ? "25%" : 60;
     setWidth(newWidth);
   };
 
-  const currentWidth = expanded ? "20%" : 60;
+  const currentWidth = expanded ? "25%" : 60;
 
   return (
     <View
@@ -62,14 +88,31 @@ const Sidebar = ({ onNavigate }: SidebarProps) => {
     >
       <View style={{ gap: 10 }}>
         {/* Expand/Collapse Button */}
-        <TouchableOpacity style={styles.toggleButton} onPress={toggleSidebar}>
-          {expanded && <Text>Profile Name</Text>}
+        <View style={styles.toggleButton}>
+          {expanded && (
+            <TouchableOpacity
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 10,
+              }}
+            >
+              <Image
+                source={require("../assets/images/creeper.png")}
+                style={styles.profile}
+              />
+              <Text>Profile Name</Text>
+            </TouchableOpacity>
+          )}
           <Icon
             name={expanded ? "chevron-left" : "chevron-right"}
             size={24}
             color={COLORS.gray}
+            onPress={toggleSidebar}
+            style={{ paddingHorizontal: 5 }}
           />
-        </TouchableOpacity>
+        </View>
 
         <View>
           {/* Menu Items */}
@@ -77,9 +120,21 @@ const Sidebar = ({ onNavigate }: SidebarProps) => {
             <TouchableOpacity
               key={item.label}
               style={styles.menuItem}
-              onPress={() => onNavigate(item.screen)}
+              onPress={() => {
+                setActiveScreen(item.screen);
+
+                onNavigate(item.screen);
+              }}
             >
-              <Icon name={item.icon} size={24} color={COLORS.gray} />
+              <View
+                style={[
+                  styles.iconContainer,
+                  activeScreen === item.screen && styles.activeIcon,
+                ]}
+              >
+                <Icon name={item.icon} size={24} color={COLORS.gray} />
+              </View>
+
               {expanded && <Text style={styles.menuText}>{item.label}</Text>}
             </TouchableOpacity>
           ))}
@@ -87,12 +142,15 @@ const Sidebar = ({ onNavigate }: SidebarProps) => {
       </View>
 
       <TouchableOpacity style={styles.menuItem}>
-        <MDIcon
-          name={"logout"}
-          size={24}
-          color={COLORS.gray}
-          style={{ transform: [{ scaleX: -1 }] }}
-        />
+        <View style={styles.iconContainer}>
+          <MDIcon
+            name={"logout"}
+            size={24}
+            color={COLORS.gray}
+            style={{ transform: [{ scaleX: -1 }] }}
+          />
+        </View>
+
         {expanded && <Text style={styles.menuText}>Log Out</Text>}
       </TouchableOpacity>
     </View>
@@ -104,13 +162,22 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.navbarBg,
     paddingVertical: 20,
     paddingHorizontal: 10,
-
     justifyContent: "space-between",
+  },
+  profile: {
+    width: 30,
+    height: 30,
+    borderRadius: "100%",
+  },
+  iconContainer: {
+    padding: 7,
+    justifyContent: "center",
+    alignItems: "center",
   },
   toggleButton: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    justifyContent: "space-between",
     paddingVertical: 10,
   },
   toggleText: {
@@ -120,10 +187,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    paddingVertical: 10,
+    paddingVertical: 5,
   },
   menuText: {
     fontSize: 16,
+  },
+  activeIcon: {
+    backgroundColor: COLORS.shadow,
+    borderRadius: "100%",
   },
 });
 
