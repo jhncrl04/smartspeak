@@ -22,7 +22,7 @@ const styles = StyleSheet.create({
 
     padding: 10,
   },
-  profile: { width: 75, height: 75, borderRadius: "100%" },
+  profile: { width: 75, height: 75, borderRadius: 75 },
   name: {},
 });
 

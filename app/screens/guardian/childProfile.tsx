@@ -36,7 +36,7 @@ const ChildProfileScreen = () => {
               <View style={styles.subContainerHeader}>
                 <Text style={styles.cardsLearnedLabel}>Cards learned</Text>
                 {/* {renderLabel()} */}
-                <MyDropdown dropdownItems={dropdownItems} />
+                <MyDropdown placeholder="Daily" dropdownItems={dropdownItems} />
               </View>
               <View style={styles.graphContainer}></View>
             </View>

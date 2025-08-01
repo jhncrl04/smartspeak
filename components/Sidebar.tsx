@@ -167,7 +167,7 @@ const styles = StyleSheet.create({
   profile: {
     width: 30,
     height: 30,
-    borderRadius: "100%",
+    borderRadius: 30,
   },
   iconContainer: {
     padding: 7,
@@ -194,7 +194,7 @@ const styles = StyleSheet.create({
   },
   activeIcon: {
     backgroundColor: COLORS.shadow,
-    borderRadius: "100%",
+    borderRadius: 100,
   },
 });
 

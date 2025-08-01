@@ -54,13 +54,13 @@ const styles = StyleSheet.create({
   profileContainer: {
     borderColor: COLORS.gray,
     borderWidth: 2,
-    borderRadius: "100%",
+    borderRadius: 125,
   },
   profile: {
     width: 125,
     height: 125,
 
-    borderRadius: "100%",
+    borderRadius: 125,
 
     backgroundColor: COLORS.shadow,
   },

@@ -1,7 +1,10 @@
+// auth
 import {
   createUserWithEmailAndPassword,
   getAuth,
 } from "@react-native-firebase/auth";
+// firestore
+
 import firestore from "@react-native-firebase/firestore";
 
 type userInfoProps = {
@@ -21,37 +24,38 @@ const NonLearnerRegistration = ({ userInfo }: NonLearnerRegistrationProps) => {
   registerUser(userInfo);
 };
 
-export const registerUser = async (user: userInfoProps) => {
-  console.log("====================================");
-  console.log(user);
-  console.log("====================================");
+export const registerUser = async (userInfo: userInfoProps) => {
+  try {
+    const user = await createUserWithEmailAndPassword(
+      getAuth(),
+      userInfo.email,
+      userInfo.password
+    );
 
-  await createUserWithEmailAndPassword(getAuth(), user.email, user.password)
-    .then(() => {
-      console.log("User account created & signed in!");
-      saveUserInfo(user);
+    await user.user.sendEmailVerification(); // ✅ fixed
 
-      return true;
-    })
-    .catch((err) => {
-      if (err.code === "auth/email-already-in-use") {
-        console.log("That email address is already in use!");
-      }
+    const uid = user.user.uid;
 
-      if (err.code === "auth/invalid-email") {
-        console.log("That email addres invalid!");
-      }
+    await saveUserInfo(userInfo, uid); // ✅ still save their info
 
-      console.error(err);
+    return true;
+  } catch (err: any) {
+    if (err.code === "auth/email-already-in-use") {
+      console.log("That email address is already in use!");
+    }
 
-      return false;
-    });
+    if (err.code === "auth/invalid-email") {
+      console.log("That email address is invalid!");
+    }
 
-  return false;
+    console.error(err);
+    return false;
+  }
 };
 
-const saveUserInfo = async (userInfo: userInfoProps) => {
+const saveUserInfo = async (userInfo: userInfoProps, uid: string) => {
   const userCollection = firestore().collection("users");
+
   const user = {
     fname: userInfo.fname,
     lname: userInfo.lname,
@@ -60,7 +64,7 @@ const saveUserInfo = async (userInfo: userInfoProps) => {
     role: userInfo.role,
   };
 
-  await userCollection.add(user);
+  await userCollection.doc(uid).set(user);
 };
 
 export default NonLearnerRegistration;

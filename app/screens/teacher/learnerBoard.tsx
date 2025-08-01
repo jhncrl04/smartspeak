@@ -18,7 +18,7 @@ const LearnerBoardScreen = () => {
       <Sidebar userRole="teacher" onNavigate={handleNavigation} />
       <View style={styles.pageContainer}>
         <View style={styles.headerContainer}>
-          <LearnerProfileHeader name="Johnny Cage" age={10} />
+          <LearnerProfileHeader screen="teacher" name="Johnny Cage" age={10} />
           <View>
             <HorizontalLine />
           </View>

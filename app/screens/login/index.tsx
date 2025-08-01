@@ -3,10 +3,43 @@ import PrimaryButton from "@/components/PrimaryButton";
 import SecondaryButton from "@/components/SecondaryButton";
 import ButtonSeparator from "@/components/ui/ButtonSeparator";
 import COLORS from "@/constants/Colors";
+import { loginAuth } from "@/services/userApi/Authentication";
+import { useAuthStore } from "@/stores/userAuthStore";
 import { router } from "expo-router";
+import { useState } from "react";
 import { StyleSheet, TextInput, View } from "react-native";
 
 const LoginScreen = () => {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const login = useAuthStore((state) => state.login);
+  const user = useAuthStore((state) => state.user);
+
+  const validateInput = async (email: string, password: string) => {
+    const userAuth = await loginAuth(email, password);
+
+    if (userAuth) {
+      const [user, userDoc] = userAuth;
+
+      if (userDoc && "role" in userDoc) {
+        const role = userDoc.role;
+
+        login({
+          fname: userDoc.fname,
+          lname: userDoc.lname,
+          email: userDoc.email,
+          phoneNumber: userDoc.phoneNumber,
+        });
+
+        // navigate to homepage based on role
+        router.push(`/screens/${role.toLowerCase()}` as any);
+      } else {
+        console.log("User document missing or role not found.");
+      }
+    }
+  };
+
   return (
     <View style={styles.container}>
       <View style={{ width: "100%" }}>
@@ -15,11 +48,15 @@ const LoginScreen = () => {
             style={styles.textbox}
             placeholder="Email"
             keyboardType="email-address"
+            value={email}
+            onChangeText={setEmail}
           />
           <TextInput
             style={styles.textbox}
             placeholder="Password"
             secureTextEntry={true}
+            value={password}
+            onChangeText={setPassword}
           />
           <ActionLink
             text="Forgot Password?"
@@ -33,7 +70,9 @@ const LoginScreen = () => {
           <View>
             <PrimaryButton
               title={"Log In"}
-              clickHandler={() => router.push("./teacher/")}
+              clickHandler={async () => {
+                await validateInput(email, password);
+              }}
             />
             <ButtonSeparator />
             <SecondaryButton

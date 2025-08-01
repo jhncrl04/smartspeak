@@ -33,7 +33,7 @@ const styles = StyleSheet.create({
   profile: {
     width: 90,
     height: 90,
-    borderRadius: "100%",
+    borderRadius: 90,
   },
   chatInfoContainer: {
     flexDirection: "column",

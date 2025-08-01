@@ -1,6 +1,7 @@
 import COLORS from "@/constants/Colors";
 import {
   Alert,
+  Image,
   Modal,
   StyleSheet,
   TextInput,
@@ -10,6 +11,8 @@ import {
 import Icon from "react-native-vector-icons/Octicons";
 import PrimaryButton from "../PrimaryButton";
 import MyDropdown from "./MyDropdown";
+
+import * as ImagePicker from "expo-image-picker";
 
 import {
   AudioModule,
@@ -35,6 +38,7 @@ type AddPecsModalProps = {
 };
 
 const AddPecsModal = ({ visible, onClose }: AddPecsModalProps) => {
+  // audio functionalities
   const [audioSource, setAudioSource] = useState("");
   const player = useAudioPlayer(audioSource);
 
@@ -58,7 +62,7 @@ const AddPecsModal = ({ visible, onClose }: AddPecsModalProps) => {
   };
 
   useEffect(() => {
-    async () => {
+    (async () => {
       const status = await AudioModule.requestRecordingPermissionsAsync();
 
       if (!status.granted) {
@@ -69,8 +73,32 @@ const AddPecsModal = ({ visible, onClose }: AddPecsModalProps) => {
         playsInSilentMode: true,
         allowsRecording: true,
       });
-    };
+    })();
   }, []);
+
+  // image upload functionalities
+  const [image, setImage] = useState("");
+  const [error, setError] = useState("");
+
+  const pickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (status !== "granted") {
+      Alert.alert(
+        "Permission Denied",
+        "Sorry, camera roll permission is needed to upload."
+      );
+    } else {
+      const result = await ImagePicker.launchImageLibraryAsync();
+
+      if (!result.canceled) {
+        const uri = result.assets[0].uri;
+
+        setImage(uri);
+        setError("");
+      }
+    }
+  };
 
   return (
     <Modal
@@ -87,9 +115,13 @@ const AddPecsModal = ({ visible, onClose }: AddPecsModalProps) => {
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
             <Icon name="x" size={20} color={COLORS.gray} />
           </TouchableOpacity>
-          <View style={styles.imageContainer}>
-            <Icon name="image" size={40} color={COLORS.gray} />
-          </View>
+          <TouchableOpacity style={styles.imageContainer} onPress={pickImage}>
+            {image !== "" ? (
+              <Image source={{ uri: image }} />
+            ) : (
+              <Icon name="image" size={40} color={COLORS.gray} />
+            )}
+          </TouchableOpacity>
           <View style={styles.mainContainer}>
             <View style={styles.inputContainer}>
               <View style={styles.cardInfo}>
