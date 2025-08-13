@@ -33,8 +33,8 @@ const SignupScreen = () => {
             }}
           />
           <PrimaryButton
-            title={"Parent"}
-            clickHandler={() => setFormRole("Parent")}
+            title={"Guardian"}
+            clickHandler={() => setFormRole("Guardian")}
           />
         </View>
       </View>

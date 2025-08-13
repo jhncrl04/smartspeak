@@ -11,8 +11,9 @@ export const loginAuth = async (email: string, password: string) => {
     );
 
     const user = userCredential.user;
-
     const userDoc = await getUserInfo(user.uid);
+
+    console.log(user.uid);
 
     return [user, userDoc];
   } catch (err) {

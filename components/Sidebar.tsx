@@ -1,5 +1,7 @@
 import COLORS from "@/constants/Colors";
 import { useSidebarWidth } from "@/context/sidebarContext";
+import { useAuthStore } from "@/stores/userAuthStore";
+import { router } from "expo-router";
 import { useState } from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import MDIcon from "react-native-vector-icons/MaterialIcons";
@@ -141,7 +143,7 @@ const Sidebar = ({ onNavigate, userRole }: SidebarProps) => {
         </View>
       </View>
 
-      <TouchableOpacity style={styles.menuItem}>
+      <TouchableOpacity style={styles.menuItem} onPress={logoutHandler}>
         <View style={styles.iconContainer}>
           <MDIcon
             name={"logout"}
@@ -155,6 +157,11 @@ const Sidebar = ({ onNavigate, userRole }: SidebarProps) => {
       </TouchableOpacity>
     </View>
   );
+};
+
+const logoutHandler = () => {
+  useAuthStore.getState().logout();
+  router.replace("/screens/login");
 };
 
 const styles = StyleSheet.create({

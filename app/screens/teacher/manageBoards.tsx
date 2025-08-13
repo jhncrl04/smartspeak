@@ -59,8 +59,7 @@ const styles = StyleSheet.create({
 
     alignItems: "center",
 
-    rowGap: 20,
-    columnGap: 30,
+    gap: 20,
 
     backgroundColor: COLORS.white,
   },

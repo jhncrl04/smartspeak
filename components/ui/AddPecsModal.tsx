@@ -23,6 +23,7 @@ import {
   useAudioRecorderState,
 } from "expo-audio";
 
+import { addCard } from "@/services/cardsService";
 import { useEffect, useState } from "react";
 
 const dropdownItems = [
@@ -100,6 +101,15 @@ const AddPecsModal = ({ visible, onClose }: AddPecsModalProps) => {
     }
   };
 
+  useEffect(() => {
+    if (!visible) {
+      setImage("");
+      setAudioSource("");
+    }
+  }, [visible]);
+
+  const [cardName, setCardName] = useState("");
+
   return (
     <Modal
       animationType="fade"
@@ -117,7 +127,7 @@ const AddPecsModal = ({ visible, onClose }: AddPecsModalProps) => {
           </TouchableOpacity>
           <TouchableOpacity style={styles.imageContainer} onPress={pickImage}>
             {image !== "" ? (
-              <Image source={{ uri: image }} />
+              <Image source={{ uri: image }} style={styles.imagePreview} />
             ) : (
               <Icon name="image" size={40} color={COLORS.gray} />
             )}
@@ -129,21 +139,23 @@ const AddPecsModal = ({ visible, onClose }: AddPecsModalProps) => {
                   style={styles.input}
                   placeholder="Name"
                   placeholderTextColor={COLORS.gray}
+                  value={cardName}
+                  onChangeText={setCardName}
                 />
-                <View style={{ minWidth: 150 }}>
+                <View style={styles.dropdownWrapper}>
                   <MyDropdown
                     dropdownItems={dropdownItems}
                     placeholder="Category"
                   />
                 </View>
               </View>
-              <View>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Recordings"
-                  placeholderTextColor={COLORS.gray}
-                />
-              </View>
+              <TextInput
+                style={styles.input}
+                placeholder="Recordings"
+                placeholderTextColor={COLORS.gray}
+                editable={false}
+                value={audioSource ? audioSource : "Recording"}
+              />
               <View style={styles.buttonContainer}>
                 <PrimaryButton
                   title="Play"
@@ -162,7 +174,25 @@ const AddPecsModal = ({ visible, onClose }: AddPecsModalProps) => {
             </View>
 
             <View>
-              <PrimaryButton title="Save" clickHandler={() => {}} />
+              <PrimaryButton
+                title="Save"
+                clickHandler={() => {
+                  if (!recorderState.isRecording) {
+                    const card = { name: cardName, categoryId: "123456" };
+                    addCard(card)
+                      .then(() => {
+                        Alert.alert("Card added successfully");
+                        onClose();
+                      })
+                      .catch((err) => {
+                        console.error("Error uploading card:", err);
+                        Alert.alert("Error", "Failed to upload card.");
+                      });
+
+                    console.log("saving");
+                  }
+                }}
+              />
             </View>
           </View>
         </View>
@@ -179,14 +209,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   imageContainer: {
-    flexGrow: 1,
-    flexShrink: 0,
     aspectRatio: 1,
 
     justifyContent: "center",
     alignItems: "center",
 
     backgroundColor: COLORS.cardBg,
+  },
+  imagePreview: {
+    width: "100%",
+    height: "100%",
+    resizeMode: "cover",
   },
   modalContainer: {
     position: "relative",
@@ -215,28 +248,43 @@ const styles = StyleSheet.create({
 
     padding: 2,
   },
-  mainContainer: {
-    paddingVertical: 40,
-    paddingHorizontal: 30,
-    gap: 20,
-  },
   inputContainer: { gap: 10 },
-  cardInfo: { flexDirection: "row", gap: 10 },
+  cardInfo: { flexDirection: "row", alignItems: "center", gap: 10 },
   buttonContainer: {
     flexDirection: "row",
     gap: 10,
 
+    minHeight: 60,
+
     width: 250,
     maxWidth: "auto",
   },
+  mainContainer: {
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 0,
+    alignSelf: "flex-start",
+
+    paddingVertical: 40,
+    paddingHorizontal: 30,
+    gap: 20,
+  },
   input: {
+    flex: 1,
     paddingVertical: 5,
     fontSize: 16,
+    lineHeight: 20,
+    minHeight: 40,
 
     borderWidth: 1,
     borderColor: COLORS.gray,
     borderRadius: 5,
     paddingHorizontal: 10,
+  },
+  dropdownWrapper: {
+    minHeight: 40,
+    minWidth: 150,
+    flexShrink: 0,
   },
 });
 

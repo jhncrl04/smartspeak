@@ -1,8 +1,8 @@
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as ScreenOrientation from "expo-screen-orientation";
+import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
-import { StatusBar } from "react-native";
 import { setCustomText } from "react-native-global-props";
 
 // SplashScreen.preventAutoHideAsync();
@@ -33,7 +33,6 @@ const RootLayout = () => {
   return (
     <>
       <StatusBar hidden={true} />
-      {/* <StatusBar barStyle={"default"} /> */}
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen
           name="index"

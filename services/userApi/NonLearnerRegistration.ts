@@ -6,6 +6,7 @@ import {
 // firestore
 
 import firestore from "@react-native-firebase/firestore";
+import { router } from "expo-router";
 
 type userInfoProps = {
   role: string;
@@ -64,7 +65,12 @@ const saveUserInfo = async (userInfo: userInfoProps, uid: string) => {
     role: userInfo.role,
   };
 
-  await userCollection.doc(uid).set(user);
+  await userCollection
+    .doc(uid)
+    .set(user)
+    .then(() => {
+      router.replace(`/screens/${userInfo.role}` as any);
+    });
 };
 
 export default NonLearnerRegistration;

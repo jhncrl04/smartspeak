@@ -4,7 +4,7 @@ import PecsCard from "@/components/PecsCard";
 import Sidebar from "@/components/Sidebar";
 import COLORS from "@/constants/Colors";
 import { router } from "expo-router";
-import { StyleSheet, View } from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
 
 const ManageCardsScreen = () => {
   const handleNavigation = (screen: string) => {
@@ -20,29 +20,31 @@ const ManageCardsScreen = () => {
           hasFilter={true}
           searchPlaceholder="Search Card"
         />
-        <View style={styles.boardContainer}>
-          <AddCard cardType="card" />
-          <PecsCard
-            cardName="Apple"
-            cardCategory="Foods"
-            categoryColor="#ff0102"
-          />
-          <PecsCard
-            cardName="Biscuits"
-            cardCategory="Foods"
-            categoryColor="#ff0102"
-          />
-          <PecsCard
-            cardName="Church"
-            cardCategory="Places"
-            categoryColor="#005923"
-          />
-          <PecsCard
-            cardName="Water"
-            cardCategory="Drinks"
-            categoryColor="#2e2e2e"
-          />
-        </View>
+        <ScrollView>
+          <View style={styles.cardContainer}>
+            <AddCard cardType="card" />
+            <PecsCard
+              cardName="Apple"
+              cardCategory="Foods"
+              categoryColor="#ff0102"
+            />
+            <PecsCard
+              cardName="Biscuits"
+              cardCategory="Foods"
+              categoryColor="#ff0102"
+            />
+            <PecsCard
+              cardName="Church"
+              cardCategory="Places"
+              categoryColor="#005923"
+            />
+            <PecsCard
+              cardName="Water"
+              cardCategory="Drinks"
+              categoryColor="#2e2e2e"
+            />
+          </View>
+        </ScrollView>
       </View>
     </View>
   );
@@ -68,15 +70,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 30,
     paddingVertical: 20,
   },
-  boardContainer: {
+  cardContainer: {
     flex: 1,
     flexWrap: "wrap",
     flexDirection: "row",
 
     alignItems: "center",
 
-    rowGap: 20,
-    columnGap: 30,
+    gap: 20,
 
     backgroundColor: COLORS.white,
   },

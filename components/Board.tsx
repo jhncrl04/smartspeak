@@ -1,43 +1,12 @@
 import COLORS from "@/constants/Colors";
-import { useSidebarWidth } from "@/context/sidebarContext";
-import {
-  Image,
-  StyleSheet,
-  Text,
-  useWindowDimensions,
-  View,
-} from "react-native";
+import { useResponsiveCardSize } from "@/helper/setCardWidth";
+import { Image, StyleSheet, Text, View } from "react-native";
 import Icon from "react-native-vector-icons/Octicons";
-
-const HORIZONTAL_PADDING = 70;
-const COLUMN_GAP = 30;
-const MIN_CARD_WIDTH = 100;
 
 type boardProp = { boardName: string; boardBackground: string };
 
 const Board = (props: boardProp) => {
-  const { width } = useWindowDimensions();
-  const { width: sidebarWidth } = useSidebarWidth();
-
-  const SidebarWidthInPixel =
-    typeof sidebarWidth === "number" ? sidebarWidth : width * 0.25;
-
-  const availableWidth = width - (HORIZONTAL_PADDING + SidebarWidthInPixel);
-
-  // Add a check for sidebar width then decrease it to the available width
-  let cardWidth: number = 200;
-  let colCount: number =
-    (availableWidth + COLUMN_GAP) / (cardWidth + COLUMN_GAP);
-  colCount = Math.ceil(colCount);
-
-  let totalGapSpace = (colCount - 1) * COLUMN_GAP;
-
-  // dynamically setting the card width acccording to screen size
-  cardWidth = (availableWidth - totalGapSpace) / colCount;
-
-  if (cardWidth < MIN_CARD_WIDTH) {
-    cardWidth = availableWidth;
-  }
+  const { cardWidth } = useResponsiveCardSize();
 
   const boardIconSize = cardWidth * 0.3;
 
@@ -45,8 +14,8 @@ const Board = (props: boardProp) => {
     boardContainer: {
       width: cardWidth,
       height: cardWidth * 0.9,
-      position: "relative",
 
+      position: "relative",
       justifyContent: "center",
       alignItems: "center",
     },

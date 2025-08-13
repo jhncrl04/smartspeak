@@ -5,6 +5,14 @@ import { router } from "expo-router";
 import { Image, StyleSheet, Text, View } from "react-native";
 
 const index = () => {
+  // const user = useAuthStore((state) => state.user);
+
+  // useEffect(() => {
+  //   if (user?.role) {
+  //     router.replace(`/screens/${user.role.toLowerCase()}` as any);
+  //   }
+  // }, [user]);
+
   return (
     <View style={styles.container}>
       <View></View>

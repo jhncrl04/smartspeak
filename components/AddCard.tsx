@@ -1,18 +1,13 @@
 import COLORS from "@/constants/Colors";
-import { useSidebarWidth } from "@/context/sidebarContext";
+import { useResponsiveCardSize } from "@/helper/setCardWidth";
 import { useState } from "react";
-import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  useWindowDimensions,
-  View,
-} from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Icon from "react-native-vector-icons/Octicons";
+import AddCategoryModal from "./ui/AddCategoryModal";
 import AddPecsModal from "./ui/AddPecsModal";
 
 const HORIZONTAL_PADDING = 70;
-const COLUMN_GAP = 30;
+const COLUMN_GAP = 10;
 const MIN_CARD_WIDTH = 100;
 
 type CardProps = {
@@ -21,34 +16,14 @@ type CardProps = {
 };
 
 const AddCard = (props: CardProps) => {
-  const { width } = useWindowDimensions();
-  const { width: sidebarWidth } = useSidebarWidth();
-
-  const SidebarWidthInPixel =
-    typeof sidebarWidth === "number" ? sidebarWidth : width * 0.25;
-
-  const availableWidth = width - (HORIZONTAL_PADDING + SidebarWidthInPixel);
-
-  // Add a check for sidebar width then decrease it to the available width
-  let cardWidth: number = 200;
-  let colCount: number =
-    (availableWidth + COLUMN_GAP) / (cardWidth + COLUMN_GAP);
-  colCount = Math.ceil(colCount);
-
-  let totalGapSpace = (colCount - 1) * COLUMN_GAP;
-
-  // dynamically setting the card width acccording to screen size
-  cardWidth = (availableWidth - totalGapSpace) / colCount;
-
-  if (cardWidth < MIN_CARD_WIDTH) {
-    cardWidth = availableWidth;
-  }
+  const { cardWidth } = useResponsiveCardSize();
 
   const cardStyles = StyleSheet.create({
     pecsContainer: {
       borderRadius: 10,
       overflow: "hidden",
       width: cardWidth,
+
       shadowColor: COLORS.shadow,
       shadowOffset: { width: 10, height: 10 },
       shadowRadius: 20,
@@ -115,18 +90,23 @@ const AddCard = (props: CardProps) => {
     },
   });
 
-  const [modalVisible, setModalVisible] = useState(false);
+  const [pecsModalVisible, setPecsModalVisible] = useState(false);
+  const [categoryModalVisible, setCategoryModalVisible] = useState(false);
 
   return (
     <>
       <AddPecsModal
-        visible={modalVisible}
-        onClose={() => setModalVisible(false)}
+        visible={pecsModalVisible}
+        onClose={() => setPecsModalVisible(false)}
+      />
+      <AddCategoryModal
+        visible={categoryModalVisible}
+        onClose={() => setCategoryModalVisible(false)}
       />
       {props.cardType === "card" && (
         <TouchableOpacity
           style={cardStyles.pecsContainer}
-          onPress={() => setModalVisible(true)}
+          onPress={() => setPecsModalVisible(true)}
         >
           <View style={cardStyles.iconContainer}>
             <Icon name="plus" size={50} color={COLORS.gray} />
@@ -138,7 +118,10 @@ const AddCard = (props: CardProps) => {
         </TouchableOpacity>
       )}
       {props.cardType === "board" && (
-        <View style={boardStyles.boardContainer}>
+        <TouchableOpacity
+          style={boardStyles.boardContainer}
+          onPress={() => setCategoryModalVisible(true)}
+        >
           <Icon
             style={boardStyles.folderIcon}
             name={"file-directory"}
@@ -149,7 +132,7 @@ const AddCard = (props: CardProps) => {
             <Icon name="plus" size={50} color={COLORS.white} />
             <Text style={boardStyles.boardName}>Add Board</Text>
           </View>
-        </View>
+        </TouchableOpacity>
       )}
     </>
   );

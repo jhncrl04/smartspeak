@@ -5,7 +5,7 @@ import COLORS from "@/constants/Colors";
 import { useSignupForm } from "@/context/signupContext";
 import { router } from "expo-router";
 import { useState } from "react";
-import { StyleSheet, Text, TextInput, View } from "react-native";
+import { ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
 const PersonalDetailsScreen = () => {
   const [errorMsg, setErrorMsg] = useState("This is an error message");
@@ -14,54 +14,59 @@ const PersonalDetailsScreen = () => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.headerContainer}>
-        <Text style={styles.stepIndicator}>Step 2 of 3</Text>
-        <Text style={styles.header}>Let's Get to Know You.</Text>
-      </View>
-      <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.textbox}
-          placeholder="First Name"
-          onChangeText={(firstName) => {
-            setFormData({ ...formData, fname: firstName });
-          }}
-          value={formData.fname}
-        />
-        <TextInput
-          style={styles.textbox}
-          placeholder="Last Name"
-          onChangeText={(lastName) => {
-            setFormData({ ...formData, lname: lastName });
-          }}
-          value={formData.lname}
-        />
-        <TextInput
-          style={styles.textbox}
-          placeholder="Phone Number"
-          keyboardType="phone-pad"
-          onChangeText={(phoneNum) => {
-            setFormData({ ...formData, phoneNum: phoneNum });
-          }}
-          value={formData.phoneNum}
-        />
-      </View>
-      <View>
-        <PrimaryButton
-          title={"Next"}
-          clickHandler={() =>
-            proceedToStepThree(
-              formData.fname,
-              formData.lname,
-              formData.phoneNum
-            )
-          }
-        />
-        <ButtonSeparator />
-        <SecondaryButton
-          title={"Continue with Google"}
-          clickHandler={() => {}}
-        />
-      </View>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.headerContainer}>
+          <Text style={styles.stepIndicator}>Step 2 of 3</Text>
+          <Text style={styles.header}>Let's Get to Know You.</Text>
+        </View>
+
+        <View style={styles.inputContainer}>
+          <TextInput
+            style={styles.textbox}
+            placeholder="First Name"
+            onChangeText={(firstName) =>
+              setFormData({ ...formData, fname: firstName })
+            }
+            value={formData.fname}
+          />
+          <TextInput
+            style={styles.textbox}
+            placeholder="Last Name"
+            onChangeText={(lastName) =>
+              setFormData({ ...formData, lname: lastName })
+            }
+            value={formData.lname}
+          />
+          <TextInput
+            style={styles.textbox}
+            placeholder="Phone Number"
+            keyboardType="phone-pad"
+            onChangeText={(phoneNum) => setFormData({ ...formData, phoneNum })}
+            value={formData.phoneNum}
+          />
+        </View>
+
+        <View>
+          <PrimaryButton
+            title={"Next"}
+            clickHandler={() =>
+              proceedToStepThree(
+                formData.fname,
+                formData.lname,
+                formData.phoneNum
+              )
+            }
+          />
+          <ButtonSeparator />
+          <SecondaryButton
+            title={"Continue with Google"}
+            clickHandler={() => {}}
+          />
+        </View>
+      </ScrollView>
     </View>
   );
 };
@@ -70,10 +75,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
 
-    paddingHorizontal: "5%",
-
     backgroundColor: COLORS.white,
-
+  },
+  scrollContent: {
+    paddingHorizontal: "5%",
+    paddingVertical: 20,
     gap: 10,
   },
   headerContainer: {

@@ -5,6 +5,7 @@ import ButtonSeparator from "@/components/ui/ButtonSeparator";
 import COLORS from "@/constants/Colors";
 import { loginAuth } from "@/services/userApi/Authentication";
 import { useAuthStore } from "@/stores/userAuthStore";
+import auth from "@react-native-firebase/auth";
 import { router } from "expo-router";
 import { useState } from "react";
 import { StyleSheet, TextInput, View } from "react-native";
@@ -20,16 +21,19 @@ const LoginScreen = () => {
     const userAuth = await loginAuth(email, password);
 
     if (userAuth) {
-      const [user, userDoc] = userAuth;
+      const [firebaseUser, userDoc] = userAuth;
 
       if (userDoc && "role" in userDoc) {
         const role = userDoc.role;
+        const currentUser = auth().currentUser;
 
         login({
           fname: userDoc.fname,
           lname: userDoc.lname,
           email: userDoc.email,
           phoneNumber: userDoc.phoneNumber,
+          role: userDoc.role,
+          uid: currentUser?.uid,
         });
 
         // navigate to homepage based on role

@@ -1,47 +1,12 @@
 import COLORS from "@/constants/Colors";
-import { useSidebarWidth } from "@/context/sidebarContext";
+import { useResponsiveCardSize } from "@/helper/setCardWidth";
 import { Entypo } from "@expo/vector-icons";
-import {
-  Image,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  useWindowDimensions,
-  View,
-} from "react-native";
+import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 type profile = { cardType: string; name: string; age: number; gender: string };
 
-const HORIZONTAL_PADDING = 60;
-const COLUMN_GAP = 20;
-const MIN_CARD_WIDTH = 100;
-
 const Card = (props: profile) => {
-  const { width } = useWindowDimensions();
-  const { width: sidebarWidth } = useSidebarWidth();
-
-  const SidebarWidthInPixel =
-    typeof sidebarWidth === "number" ? sidebarWidth : width * 0.25;
-
-  const availableWidth = width - (HORIZONTAL_PADDING + SidebarWidthInPixel);
-
-  // Add a check for sidebar width then decrease it to the available width
-  let cardWidth: number = 200;
-  let colCount: number =
-    (availableWidth + COLUMN_GAP) / (cardWidth + COLUMN_GAP);
-  colCount = Math.ceil(colCount);
-
-  let totalGapSpace = (colCount - 1) * COLUMN_GAP;
-
-  // dynamically setting the card width acccording to screen size
-  cardWidth = (availableWidth - totalGapSpace) / colCount;
-
-  if (cardWidth < MIN_CARD_WIDTH) {
-    cardWidth = availableWidth;
-  }
-
-  // setting the card height to a specific aspect ratio (40% longer than the width)
-  let cardHeight: number = cardWidth + cardWidth * 0.4;
+  const { cardWidth, cardHeight } = useResponsiveCardSize();
 
   const styles = StyleSheet.create({
     cards: {
@@ -53,8 +18,7 @@ const Card = (props: profile) => {
 
       borderRadius: 5,
       elevation: 5,
-
-      shadowColor: COLORS.shadow,
+      shadowColor: COLORS.black,
       shadowOffset: { width: 10, height: 10 },
       shadowRadius: 20,
 

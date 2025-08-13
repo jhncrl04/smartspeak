@@ -1,7 +1,8 @@
 import COLORS from "@/constants/Colors";
 import { SidebarProvider } from "@/context/sidebarContext";
 import { Stack } from "expo-router";
-import { StatusBar, StyleSheet } from "react-native";
+import { StatusBar } from "expo-status-bar";
+import { StyleSheet } from "react-native";
 
 const TeacherLayout = () => {
   const styles = StyleSheet.create({
