@@ -31,3 +31,22 @@ export const deleteCard = async (cardId: string) => {
 
   cardCollection.doc(cardId).delete();
 };
+
+export const getCards = async () => {
+  const uid = useAuthStore.getState().user?.uid;
+
+  const cardCollection = firestore().collection("cards");
+
+  const cards: any[] = [];
+
+  await cardCollection
+    .where("createdBy", "==", uid)
+    .get()
+    .then((querySnapshot) => {
+      querySnapshot.forEach((doc) => {
+        cards.push(doc.data());
+      });
+    });
+
+  return cards;
+};

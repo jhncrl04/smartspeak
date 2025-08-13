@@ -24,3 +24,22 @@ export const deleteBoard = async (boardId: string) => {
 
   boardCollection.doc(boardId).delete();
 };
+
+export const getBoard = async () => {
+  const uid = useAuthStore.getState().user?.uid;
+
+  const boardCollection = firestore().collection("boards");
+
+  const boards: any[] = [];
+
+  await boardCollection
+    .where("createdBy", "==", uid)
+    .get()
+    .then((querySnapshot) => {
+      querySnapshot.forEach((doc) => {
+        boards.push(doc.data());
+      });
+    });
+
+  return boards;
+};

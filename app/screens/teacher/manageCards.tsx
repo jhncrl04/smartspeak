@@ -3,13 +3,29 @@ import PageHeader from "@/components/PageHeader";
 import PecsCard from "@/components/PecsCard";
 import Sidebar from "@/components/Sidebar";
 import COLORS from "@/constants/Colors";
+import { getCards } from "@/services/cardsService";
 import { router } from "expo-router";
+import { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 
 const ManageCardsScreen = () => {
   const handleNavigation = (screen: string) => {
     router.push(screen as any);
   };
+
+  const [cards, setCards] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchCards = async () => {
+      try {
+        const data = await getCards();
+        setCards(data);
+      } catch (err) {
+        console.error("Error fetching boards: ", err);
+      }
+    };
+    fetchCards();
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -23,7 +39,7 @@ const ManageCardsScreen = () => {
         <ScrollView>
           <View style={styles.cardContainer}>
             <AddCard cardType="card" />
-            <PecsCard
+            {/* <PecsCard
               cardName="Apple"
               cardCategory="Foods"
               categoryColor="#ff0102"
@@ -42,7 +58,15 @@ const ManageCardsScreen = () => {
               cardName="Water"
               cardCategory="Drinks"
               categoryColor="#2e2e2e"
-            />
+            /> */}
+            {cards.map((card, index) => (
+              <PecsCard
+                key={index}
+                cardName={card.title}
+                cardCategory={card.board}
+                categoryColor="#2e2e2e"
+              />
+            ))}
           </View>
         </ScrollView>
       </View>

@@ -3,13 +3,29 @@ import Board from "@/components/Board";
 import PageHeader from "@/components/PageHeader";
 import Sidebar from "@/components/Sidebar";
 import COLORS from "@/constants/Colors";
+import { getBoard } from "@/services/boardService";
 import { router } from "expo-router";
+import { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 
 const ManageBoardsScreen = () => {
   const handleNavigation = (screen: string) => {
     router.push(screen as any);
   };
+
+  const [boards, setBoards] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchBoards = async () => {
+      try {
+        const data = await getBoard();
+        setBoards(data);
+      } catch (err) {
+        console.error("Error fetching boards: ", err);
+      }
+    };
+    fetchBoards();
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -22,10 +38,18 @@ const ManageBoardsScreen = () => {
         />
         <View style={styles.boardContainer}>
           <AddCard cardType="board" />
-          <Board boardName="Foods" boardBackground="#ff0102" />
+          {/* <Board boardName="Foods" boardBackground="#ff0102" />
           <Board boardName="Places" boardBackground="#005923" />
           <Board boardName="Drinks" boardBackground="#2e2e2e" />
-          <Board boardName="Activities" boardBackground="#fefae0" />
+          <Board boardName="Activities" boardBackground="#fefae0" /> */}
+
+          {boards.map((board, index) => (
+            <Board
+              key={index}
+              boardName={board.title}
+              boardBackground={board.backgroundColor}
+            />
+          ))}
         </View>
       </View>
     </View>
