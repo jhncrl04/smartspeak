@@ -20,13 +20,9 @@ const AddCard = (props: CardProps) => {
 
   const cardStyles = StyleSheet.create({
     pecsContainer: {
-      borderRadius: 10,
+      borderRadius: 5,
       overflow: "hidden",
       width: cardWidth,
-
-      shadowColor: COLORS.shadow,
-      shadowOffset: { width: 10, height: 10 },
-      shadowRadius: 20,
     },
     iconContainer: {
       justifyContent: "center",
@@ -37,7 +33,7 @@ const AddCard = (props: CardProps) => {
       height: cardWidth,
     },
     pecsInfoContainer: {
-      paddingVertical: 15,
+      paddingVertical: 10,
       justifyContent: "center",
       alignItems: "center",
       backgroundColor: COLORS.gray,
@@ -45,10 +41,10 @@ const AddCard = (props: CardProps) => {
     pecsName: {
       fontFamily: "Poppins",
       fontWeight: 500,
-      fontSize: 18,
+      fontSize: 16,
 
       color: COLORS.white,
-      lineHeight: 18,
+      lineHeight: 17,
     },
     pecsCategory: { color: COLORS.semiWhite },
   });

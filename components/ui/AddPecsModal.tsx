@@ -24,14 +24,8 @@ import {
 } from "expo-audio";
 
 import { addCard } from "@/services/cardsService";
+import { getCategories } from "@/services/categoryService";
 import { useEffect, useState } from "react";
-
-const dropdownItems = [
-  { label: "Foods", value: "foods" },
-  { label: "Places", value: "places" },
-  { label: "Activities", value: "activities" },
-  { label: "Objects", value: "objects" },
-];
 
 type AddPecsModalProps = {
   visible: boolean;
@@ -110,6 +104,30 @@ const AddPecsModal = ({ visible, onClose }: AddPecsModalProps) => {
 
   const [cardName, setCardName] = useState("");
 
+  const dropdownItems: any[] = [];
+
+  const [categories, setCategories] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const data = await getCategories();
+        setCategories(data);
+      } catch (err) {
+        console.error("Error fetching boards: ", err);
+      }
+    };
+    fetchCategories();
+  }, []);
+
+  categories.forEach((category) => {
+    const categoryDetail = { label: category.categoryName, value: category.id };
+
+    dropdownItems.push(categoryDetail);
+  });
+
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
+
   return (
     <Modal
       animationType="fade"
@@ -146,6 +164,8 @@ const AddPecsModal = ({ visible, onClose }: AddPecsModalProps) => {
                   <MyDropdown
                     dropdownItems={dropdownItems}
                     placeholder="Category"
+                    value={selectedCategory}
+                    onChange={(val) => setSelectedCategory(val)}
                   />
                 </View>
               </View>
@@ -178,7 +198,10 @@ const AddPecsModal = ({ visible, onClose }: AddPecsModalProps) => {
                 title="Save"
                 clickHandler={() => {
                   if (!recorderState.isRecording) {
-                    const card = { name: cardName, categoryId: "123456" };
+                    const card = {
+                      name: cardName,
+                      categoryId: selectedCategory,
+                    };
                     addCard(card)
                       .then(() => {
                         Alert.alert("Card added successfully");

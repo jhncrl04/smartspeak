@@ -1,6 +1,8 @@
-import CardContainer from "@/components/CardContainer";
+import AddLearnerCard from "@/components/AddLearnerCard";
+import LearnerCard from "@/components/LearnerCard";
 import PageHeader from "@/components/PageHeader";
 import Sidebar from "@/components/Sidebar";
+import COLORS from "@/constants/Colors";
 import { router } from "expo-router";
 import { StyleSheet, View } from "react-native";
 
@@ -18,7 +20,17 @@ const ChildManagementScreen = () => {
           hasFilter={false}
           searchPlaceholder="Search Child"
         />
-        <CardContainer />
+        <View style={styles.cardContainer}>
+          <AddLearnerCard />
+          <LearnerCard
+            cardType="profile"
+            name="Creeper"
+            age={12}
+            gender="Male"
+          />
+          <LearnerCard cardType="profile" name="Steve" age={12} gender="Male" />
+          <LearnerCard cardType="profile" name="Azule" age={12} gender="Male" />
+        </View>
       </View>
     </View>
   );
@@ -34,6 +46,19 @@ const styles = StyleSheet.create({
   sidebar: {
     flex: 1,
     backgroundColor: "#eee",
+  },
+  cardContainer: {
+    flex: 1,
+    flexWrap: "wrap",
+    flexDirection: "row",
+
+    alignItems: "center",
+
+    gap: 20,
+
+    backgroundColor: COLORS.white,
+
+    paddingVertical: 20,
   },
 });
 

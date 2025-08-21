@@ -1,22 +1,18 @@
 import COLORS from "@/constants/Colors";
 import { useState } from "react";
-import { StyleSheet, Text } from "react-native";
+import { StyleSheet } from "react-native";
 import { Dropdown } from "react-native-element-dropdown";
 
 type item = { label: string; value: string };
-type DropdownProps = { dropdownItems: item[]; placeholder: string };
+type DropdownProps = {
+  dropdownItems: item[];
+  placeholder: string;
+  value: string;
+  onChange: (value: string) => void;
+};
 
 const MyDropdown = (props: DropdownProps) => {
-  const [value, setValue] = useState(null);
   const [isFocus, setIsFocus] = useState(false);
-
-  const renderLabel = () => {
-    if (value || isFocus) {
-      return <Text>Daily</Text>;
-    }
-
-    return null;
-  };
 
   return (
     <>
@@ -31,11 +27,11 @@ const MyDropdown = (props: DropdownProps) => {
         labelField="label"
         valueField="value"
         placeholder={!isFocus ? props.placeholder : "..."}
-        value={value}
+        value={props.value}
         onFocus={() => setIsFocus(true)}
         onBlur={() => setIsFocus(false)}
         onChange={(item) => {
-          setValue(item.value);
+          props.onChange(item.value);
           setIsFocus(false);
         }}
       />

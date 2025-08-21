@@ -1,5 +1,4 @@
 import COLORS from "@/constants/Colors";
-import { useSidebarWidth } from "@/context/sidebarContext";
 import { useResponsiveCardSize } from "@/helper/setCardWidth";
 import { Image, StyleSheet, Text, View } from "react-native";
 
@@ -10,12 +9,11 @@ type CardProps = {
 };
 
 const PecsCard = (props: CardProps) => {
-  const { width: sidebarWidth } = useSidebarWidth();
   const { cardWidth } = useResponsiveCardSize();
 
   const styles = StyleSheet.create({
     pecsContainer: {
-      borderRadius: 10,
+      borderRadius: 5,
       overflow: "hidden",
       width: cardWidth,
       shadowColor: COLORS.shadow,
@@ -24,7 +22,7 @@ const PecsCard = (props: CardProps) => {
     },
     pecsImage: { width: cardWidth, height: cardWidth },
     pecsInfoContainer: {
-      paddingVertical: 15,
+      paddingVertical: 10,
       justifyContent: "center",
       alignItems: "center",
       backgroundColor: props.categoryColor,
@@ -32,10 +30,10 @@ const PecsCard = (props: CardProps) => {
     pecsName: {
       fontFamily: "Poppins",
       fontWeight: 500,
-      fontSize: 18,
+      fontSize: 16,
 
       color: COLORS.white,
-      lineHeight: 18,
+      lineHeight: 17,
     },
     pecsCategory: { color: COLORS.semiWhite },
   });

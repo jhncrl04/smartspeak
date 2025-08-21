@@ -39,32 +39,12 @@ const ManageCardsScreen = () => {
         <ScrollView>
           <View style={styles.cardContainer}>
             <AddCard cardType="card" />
-            {/* <PecsCard
-              cardName="Apple"
-              cardCategory="Foods"
-              categoryColor="#ff0102"
-            />
-            <PecsCard
-              cardName="Biscuits"
-              cardCategory="Foods"
-              categoryColor="#ff0102"
-            />
-            <PecsCard
-              cardName="Church"
-              cardCategory="Places"
-              categoryColor="#005923"
-            />
-            <PecsCard
-              cardName="Water"
-              cardCategory="Drinks"
-              categoryColor="#2e2e2e"
-            /> */}
             {cards.map((card, index) => (
               <PecsCard
                 key={index}
                 cardName={card.title}
-                cardCategory={card.board}
-                categoryColor="#2e2e2e"
+                cardCategory={card.categoryTitle}
+                categoryColor={card.backgroundColor}
               />
             ))}
           </View>

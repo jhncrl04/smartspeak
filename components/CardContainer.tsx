@@ -1,6 +1,6 @@
 import COLORS from "@/constants/Colors";
 import { StyleSheet, View } from "react-native";
-import Card from "./Card";
+import LearnerCard from "./LearnerCard";
 
 const CardContainer = () => {
   const styles = StyleSheet.create({
@@ -21,10 +21,10 @@ const CardContainer = () => {
 
   return (
     <View style={styles.cardContainer}>
-      <Card cardType="addProfile" name="" age={0} gender="" />
-      <Card cardType="profile" name="Creeper" age={12} gender="Male" />
-      <Card cardType="profile" name="Steve" age={12} gender="Male" />
-      <Card cardType="profile" name="Azule" age={12} gender="Male" />
+      <LearnerCard cardType="addProfile" name="" age={0} gender="" />
+      <LearnerCard cardType="profile" name="Creeper" age={12} gender="Male" />
+      <LearnerCard cardType="profile" name="Steve" age={12} gender="Male" />
+      <LearnerCard cardType="profile" name="Azule" age={12} gender="Male" />
     </View>
   );
 };

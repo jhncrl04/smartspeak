@@ -33,11 +33,11 @@ export const registerUser = async (userInfo: userInfoProps) => {
       userInfo.password
     );
 
-    await user.user.sendEmailVerification(); // ✅ fixed
+    await user.user.sendEmailVerification();
 
     const uid = user.user.uid;
 
-    await saveUserInfo(userInfo, uid); // ✅ still save their info
+    await saveUserInfo(userInfo, uid);
 
     return true;
   } catch (err: any) {

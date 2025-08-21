@@ -1,5 +1,4 @@
 import { useAuthStore } from "@/stores/userAuthStore";
-import auth from "@react-native-firebase/auth";
 import firestore from "@react-native-firebase/firestore";
 
 type cardProps = {
@@ -7,46 +6,59 @@ type cardProps = {
   categoryId: string;
 };
 
+const cardCollection = firestore().collection("cards");
+
 export const addCard = async (cardInfo: cardProps) => {
   const uid = useAuthStore.getState().user?.uid;
 
-  const cardCollection = firestore().collection("cards");
   const currentDate = new Date();
 
   const newCard = {
     title: cardInfo.name,
-    board: cardInfo.categoryId,
+    categoryId: cardInfo.categoryId,
     createdAt: currentDate,
     createdBy: uid,
   };
-
-  console.log(newCard);
-  console.log(auth().currentUser);
 
   await cardCollection.add(newCard);
 };
 
 export const deleteCard = async (cardId: string) => {
-  const cardCollection = firestore().collection("cards");
-
   cardCollection.doc(cardId).delete();
+};
+
+type cardType = {
+  cardName: string;
+  categoryTitle: string;
+  categoryColor: string;
 };
 
 export const getCards = async () => {
   const uid = useAuthStore.getState().user?.uid;
 
-  const cardCollection = firestore().collection("cards");
+  const categoryCollection = firestore().collection("pecsCategories");
 
-  const cards: any[] = [];
-
-  await cardCollection
+  const querySnapshot = await cardCollection
     .where("createdBy", "==", uid)
-    .get()
-    .then((querySnapshot) => {
-      querySnapshot.forEach((doc) => {
-        cards.push(doc.data());
-      });
-    });
+    .get();
+
+  const cards = await Promise.all(
+    querySnapshot.docs.map(async (doc) => {
+      const card = doc.data();
+
+      // fetch related board
+      const categorySnapshot = await categoryCollection
+        .doc(card.categoryId)
+        .get();
+      const category = categorySnapshot.data();
+
+      return {
+        ...card,
+        backgroundColor: category?.backgroundColor || null,
+        categoryTitle: category?.categoryName || null,
+      };
+    })
+  );
 
   return cards;
 };

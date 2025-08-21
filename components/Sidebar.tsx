@@ -34,7 +34,7 @@ const Sidebar = ({ onNavigate, userRole }: SidebarProps) => {
     },
     {
       icon: "copy",
-      label: "Boards",
+      label: "Categories",
       screen: "/screens/teacher/manageBoards",
     },
     {

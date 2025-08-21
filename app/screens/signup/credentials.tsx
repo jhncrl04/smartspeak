@@ -3,7 +3,7 @@ import COLORS from "@/constants/Colors";
 import { useSignupForm } from "@/context/signupContext";
 import { registerUser } from "@/services/userApi/NonLearnerRegistration";
 import { useState } from "react";
-import { StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, StyleSheet, Text, TextInput, View } from "react-native";
 
 type userDataType = {
   role: string;
@@ -71,7 +71,7 @@ const SignUpCredentialScreens = () => {
   );
 };
 
-const finishRegistration = (
+const finishRegistration = async (
   email: string,
   password: string,
   confirmPassword: string,
@@ -88,22 +88,24 @@ const finishRegistration = (
     console.log("====================================");
     console.log("a textfield is empty");
     console.log("====================================");
-    return false;
+    return;
   }
 
   if (password !== confirmPassword) {
     console.log("====================================");
     console.log("password don't match");
     console.log("====================================");
-    return false;
+    return;
   }
 
-  registerUser(userData);
+  const isRegisterSuccess = await registerUser(userData);
+  if (isRegisterSuccess) {
+    console.log("====================================");
+    console.log("register successfully");
+    console.log("====================================");
 
-  console.log("====================================");
-  console.log("register successfully");
-  console.log("====================================");
-  return true;
+    Alert.alert("Registration Successful");
+  }
 };
 
 const styles = StyleSheet.create({

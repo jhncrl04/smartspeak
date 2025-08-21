@@ -14,7 +14,7 @@ import Icon from "react-native-vector-icons/Octicons";
 import ColorPicker, { Panel5 } from "reanimated-color-picker";
 import PrimaryButton from "../PrimaryButton";
 
-import { addBoard } from "@/services/boardService";
+import { addCategory } from "@/services/categoryService";
 import * as ImagePicker from "expo-image-picker";
 import { runOnJS } from "react-native-reanimated";
 
@@ -24,7 +24,7 @@ type modalProps = {
 };
 
 const AddCategoryModal = ({ visible, onClose }: modalProps) => {
-  const [boardName, setBoardName] = useState("");
+  const [categoryName, setCategoryName] = useState("");
   const [selectedColor, setSelectedColor] = useState("#fff");
 
   const onSelectColor = ({ hex }: any) => {
@@ -89,9 +89,9 @@ const AddCategoryModal = ({ visible, onClose }: modalProps) => {
           </TouchableOpacity>
           <View style={styles.mainContainer}>
             <TextInput
-              value={boardName}
-              onChangeText={setBoardName}
-              placeholder="Board Name"
+              value={categoryName}
+              onChangeText={setCategoryName}
+              placeholder="Category Name"
               style={styles.input}
             />
             <View style={styles.colorPickerContainer}>
@@ -108,20 +108,23 @@ const AddCategoryModal = ({ visible, onClose }: modalProps) => {
               <PrimaryButton
                 title="Add"
                 clickHandler={() => {
-                  if (boardName !== "") {
-                    const board = { name: boardName, color: selectedColor };
+                  if (categoryName !== "") {
+                    const category = {
+                      name: categoryName,
+                      color: selectedColor,
+                    };
 
-                    addBoard(board)
+                    addCategory(category)
                       .then(() => {
-                        Alert.alert("Board added successfully");
+                        Alert.alert("Category added successfully");
                         onClose();
                       })
                       .catch((err) => {
-                        console.error("Error uploading board: ", err);
-                        Alert.alert("Error", "Failed to upload board.");
+                        console.error("Error uploading category: ", err);
+                        Alert.alert("Error", "Failed to upload category.");
                       });
 
-                    console.log("saving7");
+                    console.log("saving");
                   }
                 }}
               />

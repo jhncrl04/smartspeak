@@ -3,7 +3,7 @@ import Board from "@/components/Board";
 import PageHeader from "@/components/PageHeader";
 import Sidebar from "@/components/Sidebar";
 import COLORS from "@/constants/Colors";
-import { getBoard } from "@/services/boardService";
+import { getCategories } from "@/services/categoryService";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
@@ -13,18 +13,18 @@ const ManageBoardsScreen = () => {
     router.push(screen as any);
   };
 
-  const [boards, setBoards] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
 
   useEffect(() => {
-    const fetchBoards = async () => {
+    const fetchCategories = async () => {
       try {
-        const data = await getBoard();
-        setBoards(data);
+        const data = await getCategories();
+        setCategories(data);
       } catch (err) {
-        console.error("Error fetching boards: ", err);
+        console.error("Error fetching categories: ", err);
       }
     };
-    fetchBoards();
+    fetchCategories();
   }, []);
 
   return (
@@ -32,22 +32,18 @@ const ManageBoardsScreen = () => {
       <Sidebar userRole="teacher" onNavigate={handleNavigation} />
       <View style={styles.mainContentContainer}>
         <PageHeader
-          pageTitle="Manage Boards"
+          pageTitle="Manage Categories"
           hasFilter={true}
-          searchPlaceholder="Search Board"
+          searchPlaceholder="Search Category"
         />
         <View style={styles.boardContainer}>
           <AddCard cardType="board" />
-          {/* <Board boardName="Foods" boardBackground="#ff0102" />
-          <Board boardName="Places" boardBackground="#005923" />
-          <Board boardName="Drinks" boardBackground="#2e2e2e" />
-          <Board boardName="Activities" boardBackground="#fefae0" /> */}
 
-          {boards.map((board, index) => (
+          {categories.map((categories, index) => (
             <Board
               key={index}
-              boardName={board.title}
-              boardBackground={board.backgroundColor}
+              boardName={categories.categoryName}
+              boardBackground={categories.backgroundColor}
             />
           ))}
         </View>

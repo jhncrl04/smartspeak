@@ -5,7 +5,7 @@ import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 type profile = { cardType: string; name: string; age: number; gender: string };
 
-const Card = (props: profile) => {
+const LearnerCard = (props: profile) => {
   const { cardWidth, cardHeight } = useResponsiveCardSize();
 
   const styles = StyleSheet.create({
@@ -69,24 +69,18 @@ const Card = (props: profile) => {
       flex: 1,
       flexDirection: "row",
       alignItems: "center",
-
-      width: "100%",
     },
     cardLabels: {
-      flexShrink: 0,
-      textAlign: "left",
-      fontSize: 12,
+      flex: 1,
 
-      width: "35%",
+      fontSize: 12,
 
       color: COLORS.gray,
     },
     profileInfo: {
-      flexShrink: 0,
+      flex: 1,
 
-      width: "65%",
-
-      fontSize: 16,
+      fontSize: 14,
       color: COLORS.black,
 
       textAlign: "left",
@@ -112,7 +106,7 @@ const Card = (props: profile) => {
             {props.name}
           </Text>
         </View>
-        <View style={styles.labelContainer}>
+        {/* <View style={styles.labelContainer}>
           <Text style={styles.cardLabels}>Age</Text>
           <Text
             numberOfLines={1}
@@ -121,7 +115,7 @@ const Card = (props: profile) => {
           >
             {props.age.toString()}
           </Text>
-        </View>
+        </View> */}
         <View style={styles.labelContainer}>
           <Text style={styles.cardLabels}>Gender</Text>
           <Text
@@ -150,4 +144,4 @@ const Card = (props: profile) => {
   );
 };
 
-export default Card;
+export default LearnerCard;

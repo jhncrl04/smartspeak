@@ -11,8 +11,9 @@ import { useState } from "react";
 import { StyleSheet, TextInput, View } from "react-native";
 
 const LoginScreen = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  // added a value for testing, remove when done
+  const [email, setEmail] = useState("johncarloservidad1@gmail.com");
+  const [password, setPassword] = useState("Johncarlo1");
 
   const login = useAuthStore((state) => state.login);
   const user = useAuthStore((state) => state.user);
