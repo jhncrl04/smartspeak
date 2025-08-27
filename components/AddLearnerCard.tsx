@@ -4,8 +4,13 @@ import { Entypo } from "@expo/vector-icons";
 import { useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import AddChildModal from "./ui/AddChildModal";
+import AddLearnerModal from "./ui/AddLearnerModal";
 
-const AddLearnerCard = () => {
+type screenType = "guardian" | "teacher";
+
+type addLearnerProps = { screen: screenType };
+
+const AddLearnerCard = (props: addLearnerProps) => {
   const { cardWidth, cardHeight } = useResponsiveCardSize();
 
   const styles = StyleSheet.create({
@@ -71,10 +76,18 @@ const AddLearnerCard = () => {
 
   return (
     <>
-      <AddChildModal
-        visible={modalVisible}
-        onClose={() => setModalVisible(false)}
-      />
+      {props.screen === "guardian" && (
+        <AddChildModal
+          visible={modalVisible}
+          onClose={() => setModalVisible(false)}
+        />
+      )}
+      {props.screen === "teacher" && (
+        <AddLearnerModal
+          visible={modalVisible}
+          onClose={() => setModalVisible(false)}
+        />
+      )}
       <TouchableOpacity
         style={styles.cards}
         onPress={() => setModalVisible(true)}

@@ -1,7 +1,8 @@
 import { useAuthStore } from "@/stores/userAuthStore";
 import firestore from "@react-native-firebase/firestore";
+import * as FileSystem from "expo-file-system";
 
-type categoryProps = { name: string; color: string };
+type categoryProps = { name: string; color: string; image: string };
 
 const categoryCollection = firestore().collection("pecsCategories");
 
@@ -10,11 +11,24 @@ export const addCategory = async (categoryInfo: categoryProps) => {
 
   const currentDate = new Date();
 
+  let base64Image = "";
+  if (categoryInfo.image) {
+    try {
+      base64Image = await FileSystem.readAsStringAsync(categoryInfo.image, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      base64Image = `data:image/jpeg;base64,${base64Image}`;
+    } catch (err) {
+      console.error("Error converting image to base64:", err);
+    }
+  }
+
   const newCategory = {
     categoryName: categoryInfo.name,
     backgroundColor: categoryInfo.color,
     createdAt: currentDate,
     createdBy: uid,
+    image: base64Image,
   };
 
   await categoryCollection.add(newCategory);

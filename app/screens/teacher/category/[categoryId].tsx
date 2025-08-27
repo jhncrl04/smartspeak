@@ -2,36 +2,41 @@ import AddCard from "@/components/AddCard";
 import PecsCard from "@/components/PecsCard";
 import Sidebar from "@/components/Sidebar";
 import COLORS from "@/constants/Colors";
-import { getCards } from "@/services/cardsService";
+import { getCardsWithCategory } from "@/services/cardsService";
 import { router } from "expo-router";
+import { useLocalSearchParams } from "expo-router/build/hooks";
 import { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 
-const ManageCardsScreen = () => {
+const ManageThisCategoryScreen = () => {
   const handleNavigation = (screen: string) => {
     router.push(screen as any);
   };
 
+  const { categoryId } = useLocalSearchParams();
+
   const [cards, setCards] = useState<any[]>([]);
+  const [categoryName, setCategoryName] = useState<string>("");
 
   useEffect(() => {
     const fetchCards = async () => {
       try {
-        const data = await getCards();
+        const [data, name] = await getCardsWithCategory(categoryId as string);
         setCards(data);
+        setCategoryName(name);
       } catch (err) {
-        console.error("Error fetching boards: ", err);
+        console.error("Error fetching cards: ", err);
       }
     };
     fetchCards();
-  }, []);
+  }, [categoryId]);
 
   return (
     <View style={styles.container}>
       <Sidebar userRole="teacher" onNavigate={handleNavigation} />
       <View style={styles.mainContentContainer}>
         {/* <PageHeader
-          pageTitle="Manage Cards"
+          pageTitle={`Manage ${categoryName} Cards`}
           hasFilter={true}
           searchPlaceholder="Search Card"
         /> */}
@@ -87,4 +92,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ManageCardsScreen;
+export default ManageThisCategoryScreen;

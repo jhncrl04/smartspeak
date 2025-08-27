@@ -1,7 +1,7 @@
 import PrimaryButton from "@/components/PrimaryButton";
 import COLORS from "@/constants/Colors";
 import { useSignupForm } from "@/context/signupContext";
-import { registerUser } from "@/services/userApi/NonLearnerRegistration";
+import { registerAdultUser } from "@/services/userApi/Registration";
 import { useState } from "react";
 import { Alert, StyleSheet, Text, TextInput, View } from "react-native";
 
@@ -12,6 +12,7 @@ type userDataType = {
   phoneNum: string;
   email: string;
   password: string;
+  creationDate: Date;
 };
 
 const SignUpCredentialScreens = () => {
@@ -98,7 +99,7 @@ const finishRegistration = async (
     return;
   }
 
-  const isRegisterSuccess = await registerUser(userData);
+  const isRegisterSuccess = await registerAdultUser(userData);
   if (isRegisterSuccess) {
     console.log("====================================");
     console.log("register successfully");

@@ -7,6 +7,7 @@ type FormDataType = {
   phoneNum: string;
   email: string;
   password: string;
+  creationDate: Date;
 };
 
 type FormContextType = {
@@ -22,6 +23,7 @@ const defaultValue: FormContextType = {
     phoneNum: "",
     email: "",
     password: "",
+    creationDate: new Date(),
   },
   setFormData: () => {},
 };

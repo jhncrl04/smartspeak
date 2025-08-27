@@ -1,9 +1,12 @@
 import LearnerProfileHeader from "@/components/LeanerProfileHeader";
+import PageHeader from "@/components/PageHeader";
 import PrimaryButton from "@/components/PrimaryButton";
 import Sidebar from "@/components/Sidebar";
 import HorizontalLine from "@/components/ui/HorizontalLine";
 import COLORS from "@/constants/Colors";
-import { router } from "expo-router";
+import { getStudentInfo } from "@/services/userService";
+import { router, useLocalSearchParams } from "expo-router";
+import { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 
 const LearnerProfile = () => {
@@ -11,22 +14,47 @@ const LearnerProfile = () => {
     router.push(screen as any);
   };
 
+  const { userId } = useLocalSearchParams();
+
+  const [userInfo, setUserInfo] = useState<any>(null);
+
+  useEffect(() => {
+    if (!userId) return; // guard against undefined
+    const fetchUserInfo = async () => {
+      try {
+        const data = await getStudentInfo(userId as string);
+        setUserInfo(data);
+      } catch (err) {
+        console.error("Error fetching student info: ", err);
+      }
+    };
+
+    fetchUserInfo();
+  }, [userId]);
+
   return (
     <View style={styles.container}>
       <Sidebar userRole="teacher" onNavigate={handleNavigation} />
       <View style={styles.pageContainer}>
         <View style={styles.headerContainer}>
-          <LearnerProfileHeader name="Johnny Cage" age={10} screen="teacher" />
+          <LearnerProfileHeader
+            name={`${userInfo.fname} ${userInfo.lname}`}
+            age={10}
+            screen="teacher"
+          />
           <View>
             <HorizontalLine />
           </View>
         </View>
         <View style={styles.pageHeaderContainer}>
-          {/* <PageHeader
+          <PageHeader
             pageTitle="Assign Boards"
+            onSearch={() => {}}
+            collectionToSearch="cards"
+            query="card"
             hasFilter={true}
             searchPlaceholder="Search Card"
-          /> */}
+          />
           <View style={styles.buttonContainer}>
             <PrimaryButton
               title="Remove Board"
@@ -38,12 +66,7 @@ const LearnerProfile = () => {
             />
           </View>
         </View>
-        <View style={styles.boardContainer}>
-          {/* <Board boardName="Foods" boardBackground="#ff0102" />
-          <Board boardName="Places" boardBackground="#005923" />
-          <Board boardName="Drinks" boardBackground="#2e2e2e" />
-          <Board boardName="Activities" boardBackground="#fefae0" /> */}
-        </View>
+        <View style={styles.boardContainer}></View>
       </View>
     </View>
   );

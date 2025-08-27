@@ -169,7 +169,7 @@ const AddPecsModal = ({ visible, onClose }: AddPecsModalProps) => {
                   />
                 </View>
               </View>
-              <TextInput
+              {/* <TextInput
                 style={styles.input}
                 placeholder="Recordings"
                 placeholderTextColor={COLORS.gray}
@@ -190,7 +190,7 @@ const AddPecsModal = ({ visible, onClose }: AddPecsModalProps) => {
                     recorderState.isRecording ? stopRecording : record
                   }
                 />
-              </View>
+              </View> */}
             </View>
 
             <View>
@@ -201,6 +201,7 @@ const AddPecsModal = ({ visible, onClose }: AddPecsModalProps) => {
                     const card = {
                       name: cardName,
                       categoryId: selectedCategory,
+                      image: image,
                     };
                     addCard(card)
                       .then(() => {

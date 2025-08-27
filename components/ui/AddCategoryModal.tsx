@@ -112,6 +112,7 @@ const AddCategoryModal = ({ visible, onClose }: modalProps) => {
                     const category = {
                       name: categoryName,
                       color: selectedColor,
+                      image: image,
                     };
 
                     addCategory(category)

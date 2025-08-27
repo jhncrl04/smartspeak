@@ -6,6 +6,7 @@ type CardProps = {
   cardName: string;
   cardCategory: string;
   categoryColor: string;
+  image: string;
 };
 
 const PecsCard = (props: CardProps) => {
@@ -40,10 +41,7 @@ const PecsCard = (props: CardProps) => {
 
   return (
     <View style={styles.pecsContainer}>
-      <Image
-        style={styles.pecsImage}
-        source={require("../assets/images/creeper.png")}
-      />
+      <Image style={styles.pecsImage} source={{ uri: props.image }} />
       <View style={styles.pecsInfoContainer}>
         <Text style={styles.pecsName}>{props.cardName}</Text>
         <Text style={styles.pecsCategory}>{props.cardCategory}</Text>

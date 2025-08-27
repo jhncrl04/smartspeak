@@ -56,6 +56,16 @@ const Sidebar = ({ onNavigate, userRole }: SidebarProps) => {
       screen: "/screens/guardian/",
     },
     {
+      icon: "image",
+      label: "Cards",
+      screen: "/screens/guardian/manageCards",
+    },
+    {
+      icon: "copy",
+      label: "Categories",
+      screen: "/screens/guardian/manageBoards",
+    },
+    {
       icon: "comment",
       label: "Messages",
       screen: "/screens/messages",

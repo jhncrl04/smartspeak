@@ -1,4 +1,5 @@
 import AddCard from "@/components/AddCard";
+import PageHeader from "@/components/PageHeader";
 import PecsCard from "@/components/PecsCard";
 import Sidebar from "@/components/Sidebar";
 import COLORS from "@/constants/Colors";
@@ -30,11 +31,11 @@ const ManageCardsScreen = () => {
     <View style={styles.container}>
       <Sidebar userRole="teacher" onNavigate={handleNavigation} />
       <View style={styles.mainContentContainer}>
-        {/* <PageHeader
+        <PageHeader
           pageTitle="Manage Cards"
           hasFilter={true}
           searchPlaceholder="Search Card"
-        /> */}
+        />
         <ScrollView>
           <View style={styles.cardContainer}>
             <AddCard cardType="card" />

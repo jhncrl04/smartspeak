@@ -1,9 +1,18 @@
 import COLORS from "@/constants/Colors";
 import { useResponsiveCardSize } from "@/helper/setCardWidth";
 import { Entypo } from "@expo/vector-icons";
+import { router } from "expo-router";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-type profile = { cardType: string; name: string; age: number; gender: string };
+type cardType = "profile" | "add card";
+
+type profile = {
+  cardType: cardType;
+  name: string;
+  age: number;
+  gender: string;
+  userId: string;
+};
 
 const LearnerCard = (props: profile) => {
   const { cardWidth, cardHeight } = useResponsiveCardSize();
@@ -88,7 +97,12 @@ const LearnerCard = (props: profile) => {
   });
 
   return props.cardType === "profile" ? (
-    <TouchableOpacity style={styles.cards}>
+    <TouchableOpacity
+      style={styles.cards}
+      onPress={() => {
+        router.push(`../screens/teacher/user/${props.userId}` as any);
+      }}
+    >
       <View style={styles.cardImageContainer}>
         <Image
           source={require("../assets/images/creeper.png")}
@@ -129,18 +143,20 @@ const LearnerCard = (props: profile) => {
       </View>
     </TouchableOpacity>
   ) : (
-    <TouchableOpacity style={styles.cards}>
-      <View style={styles.cardImageContainer}>
-        <Entypo
-          name="plus"
-          size={24}
-          style={[styles.cardImage, styles.addCardIcon]}
-        />
-      </View>
-      <View style={styles.cardInfoContainer}>
-        <Text style={styles.addCardLabel}>Add Learner</Text>
-      </View>
-    </TouchableOpacity>
+    <>
+      <TouchableOpacity style={styles.cards}>
+        <View style={styles.cardImageContainer}>
+          <Entypo
+            name="plus"
+            size={24}
+            style={[styles.cardImage, styles.addCardIcon]}
+          />
+        </View>
+        <View style={styles.cardInfoContainer}>
+          <Text style={styles.addCardLabel}>Add Learner</Text>
+        </View>
+      </TouchableOpacity>
+    </>
   );
 };
 

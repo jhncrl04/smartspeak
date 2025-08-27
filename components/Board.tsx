@@ -1,9 +1,15 @@
 import COLORS from "@/constants/Colors";
 import { useResponsiveCardSize } from "@/helper/setCardWidth";
-import { Image, StyleSheet, Text, View } from "react-native";
+import { router } from "expo-router";
+import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Icon from "react-native-vector-icons/Octicons";
 
-type boardProp = { boardName: string; boardBackground: string };
+type boardProp = {
+  categoryId: string;
+  image: string;
+  boardName: string;
+  boardBackground: string;
+};
 
 const Board = (props: boardProp) => {
   const { cardWidth } = useResponsiveCardSize();
@@ -46,7 +52,12 @@ const Board = (props: boardProp) => {
   });
 
   return (
-    <View style={styles.boardContainer}>
+    <TouchableOpacity
+      style={styles.boardContainer}
+      onPress={() => {
+        router.push(`/screens/teacher/category/${props.categoryId}` as any);
+      }}
+    >
       <Icon
         style={styles.folderIcon}
         name={"file-directory"}
@@ -54,13 +65,10 @@ const Board = (props: boardProp) => {
         color={props.boardBackground}
       />
       <View style={styles.boardInfoContainer}>
-        <Image
-          style={styles.boardIcon}
-          source={require("../assets/images/creeper.png")}
-        />
+        <Image style={styles.boardIcon} source={{ uri: props.image }} />
         <Text style={styles.boardName}>{props.boardName}</Text>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 

@@ -67,7 +67,7 @@ const AddCard = (props: CardProps) => {
       transform: [{ translateX: "-50%" }, { translateY: "-50%" }],
     },
     boardInfoContainer: {
-      paddingTop: 30,
+      paddingTop: 20,
       justifyContent: "center",
       alignItems: "center",
 
@@ -78,7 +78,7 @@ const AddCard = (props: CardProps) => {
       height: boardIconSize,
     },
     boardName: {
-      fontSize: 16,
+      fontSize: 14,
       fontFamily: "Poppins",
       color: COLORS.white,
 
@@ -125,8 +125,8 @@ const AddCard = (props: CardProps) => {
             color={COLORS.gray}
           />
           <View style={boardStyles.boardInfoContainer}>
-            <Icon name="plus" size={50} color={COLORS.white} />
-            <Text style={boardStyles.boardName}>Add Board</Text>
+            <Icon name="plus" size={40} color={COLORS.white} />
+            <Text style={boardStyles.boardName}>Add Category</Text>
           </View>
         </TouchableOpacity>
       )}

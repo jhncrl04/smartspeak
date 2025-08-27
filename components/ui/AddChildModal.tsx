@@ -1,10 +1,13 @@
 import PrimaryButton from "@/components/PrimaryButton";
 import SecondaryButton from "@/components/SecondaryButton";
 import COLORS from "@/constants/Colors";
+import { registerChild } from "@/services/userApi/Registration";
+import { useAuthStore } from "@/stores/userAuthStore";
 import * as ImagePicker from "expo-image-picker";
 import { AnimatePresence, MotiView } from "moti";
 import { useState } from "react";
 import {
+  Alert,
   Image,
   Modal,
   StyleSheet,
@@ -13,7 +16,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import DatePicker from "react-native-date-picker";
 import Icon from "react-native-vector-icons/Octicons";
 
 type Props = {
@@ -24,21 +26,29 @@ type Props = {
 type formDataType = {
   fname: string;
   lname: string;
-  dob: string;
+  dateOfBirth: string;
   gender: string;
   email: string;
   password: string;
+  role: string;
+  guardianId: string | undefined;
+  creationDate: Date;
 };
 
-const PersonalDetailsScreen = ({ visible, onClose }: Props) => {
+const AddChildModal = ({ visible, onClose }: Props) => {
   const [formData, setFormData] = useState({
     fname: "",
     lname: "",
-    dob: "",
+    dateOfBirth: "",
     gender: "",
     email: "",
     password: "",
+    role: "",
+    guardianId: "",
+    creationDate: new Date(),
   });
+
+  const [confirmPass, setConfirmPass] = useState("");
 
   const [step, setStep] = useState(1);
   const [date, setDate] = useState(new Date());
@@ -61,8 +71,54 @@ const PersonalDetailsScreen = ({ visible, onClose }: Props) => {
   };
 
   const goToStep = (nextStep: number) => {
+    if (nextStep === 2) {
+      if (
+        formData.email === "" ||
+        formData.password === "" ||
+        confirmPass === ""
+      ) {
+        Alert.alert("Missing credentials. Fill all the inputs.");
+        return;
+      }
+
+      if (formData.password !== confirmPass) {
+        Alert.alert("Password don't match. Please enter your password.");
+        return;
+      }
+    }
+
+    if (nextStep === 3) {
+      if (
+        formData.fname === "" ||
+        formData.lname === "" ||
+        formData.dateOfBirth === "" ||
+        formData.gender === ""
+      ) {
+        Alert.alert("Missing inputs. Please fill all the inputs.");
+
+        return;
+      }
+    }
+
     setDirection(nextStep > step ? "right" : "left");
     setStep(nextStep);
+  };
+
+  const submitRegistration = async (userData: formDataType) => {
+    const user = { ...userData };
+    user.role = "Learner";
+
+    const currentId = useAuthStore.getState().user?.uid;
+
+    user.guardianId = currentId;
+
+    const isRegistrationComplete = await registerChild(user);
+
+    if (isRegistrationComplete) {
+      console.log("Form submitted ✅");
+      setStep(1);
+      onClose();
+    }
   };
 
   return (
@@ -107,6 +163,7 @@ const PersonalDetailsScreen = ({ visible, onClose }: Props) => {
                 <Text style={styles.title}>Account Setup</Text>
                 <TextInput
                   placeholder="Email"
+                  keyboardType="email-address"
                   value={formData.email}
                   onChangeText={(text) =>
                     setFormData({ ...formData, email: text })
@@ -125,10 +182,8 @@ const PersonalDetailsScreen = ({ visible, onClose }: Props) => {
                 <TextInput
                   placeholder="Confirm Password"
                   secureTextEntry
-                  value={formData.password}
-                  onChangeText={(text) =>
-                    setFormData({ ...formData, password: text })
-                  }
+                  value={confirmPass}
+                  onChangeText={(text) => setConfirmPass(text)}
                   style={styles.input}
                 />
               </MotiView>
@@ -171,7 +226,15 @@ const PersonalDetailsScreen = ({ visible, onClose }: Props) => {
                 </View>
 
                 {/* Date of Birth with Date Picker */}
-                <DatePicker mode="date" date={date} onDateChange={setDate} />
+                {/* <DatePicker mode="date" date={date} onDateChange={setDate} /> */}
+                <TextInput
+                  placeholder="Date of Birth"
+                  value={formData.dateOfBirth}
+                  onChangeText={(text) =>
+                    setFormData({ ...formData, dateOfBirth: text })
+                  }
+                  style={styles.input}
+                />
 
                 <TextInput
                   placeholder="Gender"
@@ -255,9 +318,7 @@ const PersonalDetailsScreen = ({ visible, onClose }: Props) => {
                 <PrimaryButton
                   title="Submit"
                   clickHandler={() => {
-                    console.log("Form submitted ✅");
-                    setStep(1);
-                    onClose();
+                    submitRegistration(formData);
                   }}
                 />
               </View>
@@ -268,8 +329,6 @@ const PersonalDetailsScreen = ({ visible, onClose }: Props) => {
     </Modal>
   );
 };
-
-export default PersonalDetailsScreen;
 
 const styles = StyleSheet.create({
   modalContainer: {
@@ -304,10 +363,11 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
     justifyContent: "space-between",
+
+    gap: 10,
   },
   halfInput: {
     flex: 1,
-    marginHorizontal: 4,
   },
   input: {
     borderWidth: 1,
@@ -356,3 +416,5 @@ const styles = StyleSheet.create({
     marginHorizontal: 5,
   },
 });
+
+export default AddChildModal;

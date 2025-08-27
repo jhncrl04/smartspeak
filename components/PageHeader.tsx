@@ -2,10 +2,16 @@ import COLORS from "@/constants/Colors";
 import { StyleSheet, Text, View } from "react-native";
 import MySearchBar from "./mySearchBar";
 
+type collectionType = "users" | "cards" | "pecsCategories";
+type queryType = "newLearner" | "myStudent" | "card" | "category";
+
 type pageProps = {
   pageTitle: string;
   searchPlaceholder: string;
   hasFilter: boolean;
+  onSearch: (results: any[]) => void;
+  collectionToSearch: collectionType;
+  query: queryType;
 };
 
 const PageHeader = (props: pageProps) => {
@@ -14,7 +20,12 @@ const PageHeader = (props: pageProps) => {
       <Text style={styles.headerTitle}>{props.pageTitle}</Text>
       <View style={styles.filterSearchContainer}>
         {/* {props.hasFilter && <FilterButton />} */}
-        <MySearchBar placeholder={props.searchPlaceholder} />
+        <MySearchBar
+          placeholder={props.searchPlaceholder}
+          onSearch={props.onSearch}
+          collectionToSearch={props.collectionToSearch}
+          query={props.query}
+        />
       </View>
     </View>
   );
