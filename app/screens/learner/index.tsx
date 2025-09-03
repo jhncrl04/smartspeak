@@ -28,7 +28,7 @@ const db = getFirestore();
 
 export default function HomeScreen() {
   let [fontsLoaded] = useFonts({
-    Poppins: require("../../assets/fonts/Poppins-Regular.ttf"),
+    Poppins: require("../../../assets/fonts/Poppins-Regular.ttf"),
   });
   if (!fontsLoaded) {
     return <AppLoading />;
