@@ -13,7 +13,7 @@ type SidebarProps = {
 };
 
 const Sidebar = ({ onNavigate, userRole }: SidebarProps) => {
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
 
   const indexScreenByRole =
     userRole === "teacher" ? "/screens/teacher/" : "/screens/guardian/";

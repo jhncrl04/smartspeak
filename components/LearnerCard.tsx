@@ -11,7 +11,7 @@ type profile = {
   name: string;
   age: number;
   gender: string;
-  userId: string;
+  learnerId: string;
 };
 
 const LearnerCard = (props: profile) => {
@@ -100,7 +100,7 @@ const LearnerCard = (props: profile) => {
     <TouchableOpacity
       style={styles.cards}
       onPress={() => {
-        router.push(`../screens/teacher/user/${props.userId}` as any);
+        router.push(`../screens/teacher/user/${props.learnerId}` as any);
       }}
     >
       <View style={styles.cardImageContainer}>

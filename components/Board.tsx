@@ -1,6 +1,5 @@
 import COLORS from "@/constants/Colors";
 import { useResponsiveCardSize } from "@/helper/setCardWidth";
-import { router } from "expo-router";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Icon from "react-native-vector-icons/Octicons";
 
@@ -9,6 +8,7 @@ type boardProp = {
   image: string;
   boardName: string;
   boardBackground: string;
+  actionHandler: () => void;
 };
 
 const Board = (props: boardProp) => {
@@ -54,9 +54,7 @@ const Board = (props: boardProp) => {
   return (
     <TouchableOpacity
       style={styles.boardContainer}
-      onPress={() => {
-        router.push(`/screens/teacher/category/${props.categoryId}` as any);
-      }}
+      onPress={props.actionHandler}
     >
       <Icon
         style={styles.folderIcon}

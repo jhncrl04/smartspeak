@@ -1,9 +1,12 @@
+import ActionLink from "@/components/ActionLink";
+import AddCard from "@/components/AddCard";
+import Board from "@/components/Board";
 import LearnerProfileHeader from "@/components/LeanerProfileHeader";
 import PageHeader from "@/components/PageHeader";
-import PrimaryButton from "@/components/PrimaryButton";
 import Sidebar from "@/components/Sidebar";
 import HorizontalLine from "@/components/ui/HorizontalLine";
 import COLORS from "@/constants/Colors";
+import { listenAssignedCategories } from "@/services/categoryService";
 import { getStudentInfo } from "@/services/userService";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
@@ -32,13 +35,29 @@ const LearnerProfile = () => {
     fetchUserInfo();
   }, [userId]);
 
+  const [categories, setCategories] = useState<any[]>();
+
+  // get assign categories on students
+  useEffect(() => {
+    if (!userId) return;
+
+    // subscribe to changes
+    const unsubscribe = listenAssignedCategories(userId as string, (cats) => {
+      setCategories(cats);
+    });
+
+    // cleanup on unmount
+    return () => unsubscribe();
+  }, [userId]);
+
   return (
     <View style={styles.container}>
       <Sidebar userRole="teacher" onNavigate={handleNavigation} />
       <View style={styles.pageContainer}>
         <View style={styles.headerContainer}>
+          <ActionLink text="Return" clickHandler={router.back} />
           <LearnerProfileHeader
-            name={`${userInfo.fname} ${userInfo.lname}`}
+            name={`${userInfo?.fname} ${userInfo?.lname}`}
             age={10}
             screen="teacher"
           />
@@ -48,14 +67,14 @@ const LearnerProfile = () => {
         </View>
         <View style={styles.pageHeaderContainer}>
           <PageHeader
-            pageTitle="Assign Boards"
+            pageTitle="Assign Category"
             onSearch={() => {}}
-            collectionToSearch="cards"
-            query="card"
+            collectionToSearch="pecsCategories"
+            query="category"
             hasFilter={true}
-            searchPlaceholder="Search Card"
+            searchPlaceholder="Search Category"
           />
-          <View style={styles.buttonContainer}>
+          {/* <View style={styles.buttonContainer}>
             <PrimaryButton
               title="Remove Board"
               clickHandler={() => console.log("remove board")}
@@ -64,9 +83,30 @@ const LearnerProfile = () => {
               title="Add Board"
               clickHandler={() => console.log("add board")}
             />
-          </View>
+          </View> */}
         </View>
-        <View style={styles.boardContainer}></View>
+        <View style={styles.boardContainer}>
+          <AddCard
+            cardType="board"
+            action="assign"
+            learnerId={userId as string}
+          />
+          {categories?.map((category, index) => (
+            <Board
+              boardName={category.categoryName}
+              boardBackground={category.backgroundColor}
+              categoryId={category.id}
+              image={category.image}
+              actionHandler={() => {
+                router.push({
+                  pathname: "/screens/teacher/user/category/[categoryId]",
+                  params: { categoryId: category.id, userId: userId as string },
+                });
+              }}
+              key={index}
+            />
+          ))}
+        </View>
       </View>
     </View>
   );
@@ -85,19 +125,20 @@ const styles = StyleSheet.create({
 
     backgroundColor: COLORS.white,
 
-    gap: 15,
+    gap: 5,
 
     paddingVertical: 10,
     paddingHorizontal: 30,
   },
   headerContainer: {
-    gap: 20,
+    gap: 10,
   },
   pageHeaderContainer: {
-    gap: 15,
+    gap: 5,
   },
   buttonContainer: {
-    width: "60%",
+    width: "45%",
+    height: 40,
 
     flexDirection: "row",
     gap: 10,
@@ -109,8 +150,7 @@ const styles = StyleSheet.create({
 
     alignItems: "center",
 
-    rowGap: 20,
-    columnGap: 30,
+    gap: 20,
 
     backgroundColor: COLORS.white,
 

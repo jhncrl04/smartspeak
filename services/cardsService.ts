@@ -1,5 +1,5 @@
 import { useAuthStore } from "@/stores/userAuthStore";
-import firestore from "@react-native-firebase/firestore";
+import firestore, { arrayUnion } from "@react-native-firebase/firestore";
 import * as FileSystem from "expo-file-system";
 
 type cardProps = {
@@ -117,4 +117,177 @@ export const getCardsWithCategory = async (
   );
 
   return [cards, categoryName];
+};
+
+type Card = {
+  backgroundColor: string | null;
+  categoryTitle: string | null;
+  [key: string]: any; // keep extra fields from Firestore
+};
+
+export const getAssignedCards = async (
+  learnerId: string,
+  categoryId: string | string[]
+): Promise<[Card[], string]> => {
+  const uid = useAuthStore.getState().user?.uid;
+  const categoryCollection = firestore().collection("pecsCategories");
+
+  let query = cardCollection.where("createdBy", "==", uid);
+
+  if (Array.isArray(categoryId)) {
+    query = query.where("categoryId", "in", categoryId);
+  } else {
+    query = query.where("categoryId", "==", categoryId);
+  }
+
+  const querySnapshot = await query.get();
+
+  let categoryName = "";
+  let categoryData: any = null;
+
+  if (!Array.isArray(categoryId)) {
+    const categorySnapshot = await categoryCollection.doc(categoryId).get();
+    categoryData = categorySnapshot.data();
+    categoryName = categoryData?.categoryName || "";
+  }
+
+  const cards = (
+    await Promise.all(
+      querySnapshot.docs.map(async (doc) => {
+        const card = doc.data();
+
+        let cardCategory = categoryData;
+        if (Array.isArray(categoryId)) {
+          const categorySnapshot = await categoryCollection
+            .doc(card.categoryId)
+            .get();
+          cardCategory = categorySnapshot.data();
+        }
+
+        if (card.assignedTo?.includes(learnerId)) {
+          return {
+            ...card,
+            backgroundColor: cardCategory?.backgroundColor || null,
+            categoryTitle: cardCategory?.categoryName || null,
+          } as Card;
+        }
+        return null;
+      })
+    )
+  ).filter(Boolean) as Card[];
+
+  return [cards, categoryName];
+};
+
+export const getUnassignedCards = async (
+  learnerId: string,
+  categoryId: string | string[]
+): Promise<[Card[], string]> => {
+  const uid = useAuthStore.getState().user?.uid;
+  const categoryCollection = firestore().collection("pecsCategories");
+
+  let query = cardCollection.where("createdBy", "==", uid);
+
+  if (Array.isArray(categoryId)) {
+    query = query.where("categoryId", "in", categoryId);
+  } else {
+    query = query.where("categoryId", "==", categoryId);
+  }
+
+  const querySnapshot = await query.get();
+
+  let categoryName = "";
+  let categoryData: any = null;
+
+  if (!Array.isArray(categoryId)) {
+    const categorySnapshot = await categoryCollection.doc(categoryId).get();
+    categoryData = categorySnapshot.data();
+    categoryName = categoryData?.categoryName || "";
+  }
+
+  const cards = (
+    await Promise.all(
+      querySnapshot.docs.map(async (doc) => {
+        const card = doc.data();
+
+        card.id = doc.id;
+
+        let cardCategory = categoryData;
+        if (Array.isArray(categoryId)) {
+          const categorySnapshot = await categoryCollection
+            .doc(card.categoryId)
+            .get();
+          cardCategory = categorySnapshot.data();
+        }
+
+        if (!card.assignedTo?.includes(learnerId)) {
+          return {
+            ...card,
+            backgroundColor: cardCategory?.backgroundColor || null,
+            categoryTitle: cardCategory?.categoryName || null,
+          } as Card;
+        }
+        return null;
+      })
+    )
+  ).filter(Boolean) as Card[];
+
+  return [cards, categoryName];
+};
+
+export const assignCard = async (cardId: string, learnerId?: string) => {
+  try {
+    await cardCollection
+      .doc(cardId)
+      .update({ assignedTo: arrayUnion(learnerId) });
+  } catch (err) {
+    console.error("Error assigning card: ", err);
+  }
+};
+
+export const listenAssignedCard = (
+  learnerId: string,
+  callback: (cards: any[]) => void
+) => {
+  const uid = useAuthStore.getState().user?.uid;
+  if (!uid) return () => {};
+
+  const categoryCollection = firestore().collection("pecsCategories");
+
+  return cardCollection
+    .where("createdBy", "==", uid)
+    .onSnapshot(async (snapshot) => {
+      const cards: any[] = [];
+
+      // ⚡️ get all categoryIds in this snapshot (to avoid multiple queries)
+      const categoryIds = Array.from(
+        new Set(snapshot.docs.map((doc) => doc.data().categoryId))
+      );
+
+      // fetch categories in parallel
+      const categoryDocs = await Promise.all(
+        categoryIds.map((id) => categoryCollection.doc(id).get())
+      );
+
+      const categoryMap: Record<string, any> = {};
+      categoryDocs.forEach((doc) => {
+        if (doc) categoryMap[doc.id] = doc.data();
+      });
+
+      snapshot.forEach((doc) => {
+        const card = doc.data();
+        card.id = doc.id;
+
+        if (card.assignedTo?.includes(learnerId)) {
+          const category = categoryMap[card.categoryId];
+          cards.push({
+            ...card,
+            backgroundColor: category?.backgroundColor || null,
+            categoryTitle: category?.categoryName || null,
+          });
+        }
+      });
+
+      callback(cards);
+    });
 };

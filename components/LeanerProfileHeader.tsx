@@ -1,5 +1,5 @@
 import COLORS from "@/constants/Colors";
-import { StyleSheet, Text, View } from "react-native";
+import { Image, StyleSheet, Text, View } from "react-native";
 import PrimaryButton from "./PrimaryButton";
 
 type profileProps = { name: string; age: number; screen: string };
@@ -9,7 +9,10 @@ const LearnerProfileHeader = (props: profileProps) => {
     <View style={styles.headerContainer}>
       <View style={styles.pfpNameContainer}>
         <View style={styles.profileContainer}>
-          <View style={styles.profile}></View>
+          <Image
+            style={styles.profile}
+            source={require("../assets/images/creeper.png")}
+          />
         </View>
         <View style={styles.nameAgeContainer}>
           <Text style={styles.name}>{props.name}</Text>
@@ -47,20 +50,20 @@ const styles = StyleSheet.create({
   },
   pfpNameContainer: {
     flexDirection: "row",
-    gap: 15,
+    gap: 10,
 
     alignItems: "flex-end",
   },
   profileContainer: {
     borderColor: COLORS.gray,
     borderWidth: 2,
-    borderRadius: 125,
+    borderRadius: 100,
   },
   profile: {
-    width: 125,
-    height: 125,
+    width: 100,
+    height: 100,
 
-    borderRadius: 125,
+    borderRadius: 100,
 
     backgroundColor: COLORS.shadow,
   },
@@ -74,7 +77,7 @@ const styles = StyleSheet.create({
     fontWeight: "400",
     lineHeight: 25,
 
-    fontSize: 20,
+    fontSize: 18,
   },
   age: {
     color: COLORS.gray,
@@ -82,7 +85,7 @@ const styles = StyleSheet.create({
   },
   progressReportButtonContainer: {
     height: "30%",
-    width: "40%",
+    width: "35%",
   },
 });
 

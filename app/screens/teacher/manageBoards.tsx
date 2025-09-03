@@ -1,5 +1,6 @@
 import AddCard from "@/components/AddCard";
 import Board from "@/components/Board";
+import PageHeader from "@/components/PageHeader";
 import Sidebar from "@/components/Sidebar";
 import COLORS from "@/constants/Colors";
 import { getCategories } from "@/services/categoryService";
@@ -30,13 +31,16 @@ const ManageBoardsScreen = () => {
     <View style={styles.container}>
       <Sidebar userRole="teacher" onNavigate={handleNavigation} />
       <View style={styles.mainContentContainer}>
-        {/* <PageHeader
+        <PageHeader
           pageTitle="Manage Categories"
           hasFilter={true}
           searchPlaceholder="Search Category"
-        /> */}
+          collectionToSearch="pecsCategories"
+          onSearch={() => {}}
+          query="category"
+        />
         <View style={styles.boardContainer}>
-          <AddCard cardType="board" />
+          <AddCard cardType="board" action="add" />
 
           {categories.map((category, index) => (
             <Board
@@ -45,6 +49,11 @@ const ManageBoardsScreen = () => {
               image={category.image}
               boardName={category.categoryName}
               boardBackground={category.backgroundColor}
+              actionHandler={() => {
+                router.push(
+                  `/screens/teacher/category/${category.categoryId}` as any
+                );
+              }}
             />
           ))}
         </View>

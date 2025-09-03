@@ -5,7 +5,12 @@ import { StyleSheet, TextInput, View } from "react-native";
 import Icon from "react-native-vector-icons/Octicons";
 
 type collectionType = "users" | "cards" | "pecsCategories";
-type queryType = "newLearner" | "myStudent" | "card" | "category";
+type queryType =
+  | "newLearner"
+  | "myStudent"
+  | "card"
+  | "category"
+  | "assignCategory";
 
 type searchbarProps = {
   placeholder: string;

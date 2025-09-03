@@ -48,7 +48,7 @@ const ManageLearnersScreen = () => {
               age={1}
               gender={result.gender}
               cardType="profile"
-              userId={result.id}
+              learnerId={result.id}
               key={index}
             />
           ))}

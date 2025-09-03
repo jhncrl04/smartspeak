@@ -42,7 +42,7 @@ const ManageThisCategoryScreen = () => {
         /> */}
         <ScrollView>
           <View style={styles.cardContainer}>
-            <AddCard cardType="card" />
+            <AddCard cardType="card" action="add" />
             {cards.map((card, index) => (
               <PecsCard
                 key={index}
