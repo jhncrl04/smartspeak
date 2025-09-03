@@ -79,7 +79,7 @@ export default function HomeScreen() {
   // New states for tap unlock feature
   const [tapCount, setTapCount] = useState<number>(0);
   const [showSettingsModal, setShowSettingsModal] = useState<boolean>(false);
-  const tapTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const tapTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const dragPosition = useRef(new Animated.ValueXY()).current;
 
@@ -111,7 +111,7 @@ export default function HomeScreen() {
   // Function to handle account settings
   const handleAccountSettings = () => {
     setShowSettingsModal(false);
-    router.push("/profile");
+    router.push("../screens/learner/profile");
   };
 
   // Function to handle logout

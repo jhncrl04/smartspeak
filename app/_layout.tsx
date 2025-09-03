@@ -40,8 +40,6 @@ const RootLayout = () => {
             title: "Landing Page",
           }}
         />
-        <Stack.Screen name="(learner)" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" />
       </Stack>
     </>
   );

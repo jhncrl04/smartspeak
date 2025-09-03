@@ -31,6 +31,8 @@ const ScreenLayout = () => {
             title: "Settings",
           }}
         />
+        <Stack.Screen name="learner" />
+        <Stack.Screen name="+not-found" />
       </Stack>
     </SidebarProvider>
   );
