@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "110744669497",
+    "project_id": "smartspeak-dev-db",
+    "storage_bucket": "smartspeak-dev-db.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:110744669497:android:463b7d959446f5eff56ce8",
+        "android_client_info": {
+          "package_name": "com.smartspeak.Smartspeak"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "110744669497-n5cttql60va3eqa02pbtfms9t0psokug.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.smartspeak.Smartspeak",
+            "certificate_hash": "1cb6faa00dc5522821c2b985e1dbd7fe1fc560dc"
+          }
+        },
+        {
+          "client_id": "110744669497-h590v9ucv0heo8lmujegmt4ko5j4qh7q.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCsVAeKDYkCO-vfFbmOB80PkvRmItNrAo8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "110744669497-h590v9ucv0heo8lmujegmt4ko5j4qh7q.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
