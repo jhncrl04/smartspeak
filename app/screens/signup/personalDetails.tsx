@@ -1,5 +1,4 @@
 import PrimaryButton from "@/components/PrimaryButton";
-import SecondaryButton from "@/components/SecondaryButton";
 import ButtonSeparator from "@/components/ui/ButtonSeparator";
 import COLORS from "@/constants/Colors";
 import { useSignupForm } from "@/context/signupContext";
@@ -28,24 +27,26 @@ const PersonalDetailsScreen = () => {
             style={styles.textbox}
             placeholder="First Name"
             onChangeText={(firstName) =>
-              setFormData({ ...formData, fname: firstName })
+              setFormData({ ...formData, first_name: firstName })
             }
-            value={formData.fname}
+            value={formData.first_name}
           />
           <TextInput
             style={styles.textbox}
             placeholder="Last Name"
             onChangeText={(lastName) =>
-              setFormData({ ...formData, lname: lastName })
+              setFormData({ ...formData, last_name: lastName })
             }
-            value={formData.lname}
+            value={formData.last_name}
           />
           <TextInput
             style={styles.textbox}
             placeholder="Phone Number"
             keyboardType="phone-pad"
-            onChangeText={(phoneNum) => setFormData({ ...formData, phoneNum })}
-            value={formData.phoneNum}
+            onChangeText={(phoneNum) =>
+              setFormData({ ...formData, phone_number: phoneNum })
+            }
+            value={formData.phone_number}
           />
         </View>
 
@@ -54,17 +55,17 @@ const PersonalDetailsScreen = () => {
             title={"Next"}
             clickHandler={() =>
               proceedToStepThree(
-                formData.fname,
-                formData.lname,
-                formData.phoneNum
+                formData.first_name,
+                formData.last_name,
+                formData.phone_number
               )
             }
           />
           <ButtonSeparator />
-          <SecondaryButton
+          {/* <SecondaryButton
             title={"Continue with Google"}
             clickHandler={() => {}}
-          />
+          /> */}
         </View>
       </ScrollView>
     </View>

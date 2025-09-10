@@ -15,61 +15,30 @@ import MyDropdown from "./MyDropdown";
 import * as ImagePicker from "expo-image-picker";
 
 import {
-  RecordingPresets,
-  useAudioPlayer,
-  useAudioRecorder,
-  useAudioRecorderState,
-} from "expo-audio";
-
-import { addCard } from "@/services/cardsService";
+  deleteCard,
+  getCardInfoWithId,
+  unassignCard,
+  updateCard,
+} from "@/services/cardsService";
 import { getCategories } from "@/services/categoryService";
 import { useEffect, useState } from "react";
+import SecondaryButton from "../SecondaryButton";
 
-type AddPecsModalProps = {
+type Props = {
   visible: boolean;
   onClose: () => void;
-  categoryId?: string;
+  cardId: string;
+  learnerId: string;
+  action: string;
 };
 
-const AddPecsModal = ({ visible, onClose, categoryId }: AddPecsModalProps) => {
-  // audio functionalities
-  const [audioSource, setAudioSource] = useState("");
-  const player = useAudioPlayer(audioSource);
-
-  const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
-  const recorderState = useAudioRecorderState(audioRecorder);
-
-  // const record = async () => {
-  //   await audioRecorder.prepareToRecordAsync();
-  //   audioRecorder.record();
-  // };
-
-  // const stopRecording = async () => {
-  //   await audioRecorder.stop();
-
-  //   if (audioRecorder.uri) {
-  //     setAudioSource(audioRecorder.uri);
-  //     console.log("Recording URI:", audioRecorder.uri);
-  //   } else {
-  //     console.warn("Recording URI not available yet.");
-  //   }
-  // };
-
-  // useEffect(() => {
-  //   (async () => {
-  //     const status = await AudioModule.requestRecordingPermissionsAsync();
-
-  //     if (!status.granted) {
-  //       Alert.alert("Permission to access microphone was denied");
-  //     }
-
-  //     setAudioModeAsync({
-  //       playsInSilentMode: true,
-  //       allowsRecording: true,
-  //     });
-  //   })();
-  // }, []);
-
+const ViewCardModal = ({
+  visible,
+  onClose,
+  cardId,
+  learnerId,
+  action,
+}: Props) => {
   // image upload functionalities
   const [image, setImage] = useState("");
   const [error, setError] = useState("");
@@ -94,17 +63,9 @@ const AddPecsModal = ({ visible, onClose, categoryId }: AddPecsModalProps) => {
     }
   };
 
-  useEffect(() => {
-    if (!visible) {
-      setImage("");
-      setAudioSource("");
-    }
-  }, [visible]);
-
   const [cardName, setCardName] = useState("");
 
   const dropdownItems: any[] = [];
-
   const [categories, setCategories] = useState<any[]>([]);
 
   useEffect(() => {
@@ -117,11 +78,6 @@ const AddPecsModal = ({ visible, onClose, categoryId }: AddPecsModalProps) => {
       }
     };
     fetchCategories();
-
-    if (categoryId) {
-      setIsDropdownDisabled(true);
-      setSelectedCategory(categoryId);
-    }
   }, []);
 
   categories.forEach((category) => {
@@ -132,10 +88,41 @@ const AddPecsModal = ({ visible, onClose, categoryId }: AddPecsModalProps) => {
 
     dropdownItems.push(categoryDetail);
   });
-
   const [selectedCategory, setSelectedCategory] = useState<string>("");
 
-  const [isDropdownDisabled, setIsDropdownDisabled] = useState(false);
+  const [card, setCard] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchCardInfo = async () => {
+      try {
+        const cardData = await getCardInfoWithId(cardId);
+        if (cardData) {
+          setCard(cardData);
+          setCardName(cardData.card_name || "");
+          setImage(cardData.image || "");
+          setSelectedCategory(cardData.category_id || "");
+        }
+      } catch (err) {
+        console.error("Error fetching card info with id: ", err);
+      }
+    };
+
+    if (cardId) {
+      fetchCardInfo();
+    }
+  }, [cardId]);
+
+  const handleAction = (cardId: string, action: string) => {
+    if (action === "Unassign") {
+      unassignCard(learnerId, cardId);
+    } else if (action === "Delete") {
+      deleteCard(cardId);
+    } else if (action === "Update") {
+      updateCard(cardId, cardName, image);
+    }
+
+    onClose();
+  };
 
   return (
     <Modal
@@ -171,7 +158,7 @@ const AddPecsModal = ({ visible, onClose, categoryId }: AddPecsModalProps) => {
                 />
                 <View style={styles.dropdownWrapper}>
                   <MyDropdown
-                    isDisabled={isDropdownDisabled}
+                    isDisabled={true}
                     dropdownItems={dropdownItems}
                     placeholder="Category"
                     value={selectedCategory}
@@ -179,58 +166,20 @@ const AddPecsModal = ({ visible, onClose, categoryId }: AddPecsModalProps) => {
                   />
                 </View>
               </View>
-              {/* <TextInput
-                style={styles.input}
-                placeholder="Recordings"
-                placeholderTextColor={COLORS.gray}
-                editable={false}
-                value={audioSource ? audioSource : "Recording"}
-              />
-              <View style={styles.buttonContainer}>
-                <PrimaryButton
-                  title="Play"
-                  clickHandler={() => {
-                    player.play();
-                  }}
-                />
-                <PrimaryButton title="Upload" clickHandler={() => {}} />
-                <PrimaryButton
-                  title={recorderState.isRecording ? "Stop" : "Record"}
-                  clickHandler={
-                    recorderState.isRecording ? stopRecording : record
-                  }
-                />
-              </View> */}
             </View>
 
-            <View>
+            <View style={styles.buttonContainer}>
               <PrimaryButton
-                title="Save"
+                title="Update"
                 clickHandler={() => {
-                  if (
-                    image !== "" &&
-                    cardName !== "" &&
-                    selectedCategory !== ""
-                  ) {
-                    const card = {
-                      name: cardName,
-                      category_id: selectedCategory,
-                      image: image,
-                    };
-                    addCard(card)
-                      .then(() => {
-                        Alert.alert("Card added successfully");
-                        onClose();
-                      })
-                      .catch((err) => {
-                        console.error("Error uploading card:", err);
-                        Alert.alert("Error", "Failed to upload card.");
-                      });
+                  handleAction(cardId, "Update");
+                }}
+              />
 
-                    console.log("saving");
-                  } else {
-                    Alert.alert("Card detail missing.");
-                  }
+              <SecondaryButton
+                title={action}
+                clickHandler={() => {
+                  handleAction(cardId, action);
                 }}
               />
             </View>
@@ -291,13 +240,9 @@ const styles = StyleSheet.create({
   inputContainer: { gap: 10 },
   cardInfo: { flexDirection: "row", alignItems: "center", gap: 10 },
   buttonContainer: {
-    flexDirection: "row",
     gap: 10,
 
     minHeight: 60,
-
-    width: 250,
-    maxWidth: "auto",
   },
   mainContainer: {
     flexGrow: 1,
@@ -327,5 +272,4 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
 });
-
-export default AddPecsModal;
+export default ViewCardModal;

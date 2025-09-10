@@ -10,12 +10,12 @@ import { router } from "expo-router";
 
 type adultUserProps = {
   role: string;
-  fname: string;
-  lname: string;
-  phoneNum: string;
+  first_name: string;
+  last_name: string;
+  phone_number: string;
   email: string;
   password: string;
-  creationDate: Date;
+  creation_date: Date;
 };
 
 type adultRegistrationProps = {
@@ -57,14 +57,15 @@ export const registerAdultUser = async (userInfo: adultUserProps) => {
 
 type childUserProps = {
   role: string;
-  fname: string;
-  lname: string;
-  dateOfBirth: string;
+  first_name: string;
+  last_name: string;
+  date_of_birth: string;
   email: string;
   password: string;
+  profile: string;
   gender: string;
-  guardianId: string | undefined;
-  creationDate: Date;
+  guardian_id: string | undefined;
+  creation_date: Date;
 };
 
 export const registerChild = async (userInfo: childUserProps) => {
@@ -109,8 +110,8 @@ const saveUserInfo = async (
   if (userInfo.role === "Learner") {
     const childUser = userInfo as childUserProps;
 
-    if (childUser.guardianId) {
-      updateChildrenList(uid, childUser.guardianId);
+    if (childUser.guardian_id) {
+      updateChildrenList(uid, childUser.guardian_id);
     }
   } else {
     router.replace(`/screens/${userInfo.role}` as any);

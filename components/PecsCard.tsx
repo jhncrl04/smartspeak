@@ -1,8 +1,15 @@
 import COLORS from "@/constants/Colors";
 import { useResponsiveCardSize } from "@/helper/setCardWidth";
-import { Image, StyleSheet, Text, View } from "react-native";
+import { useState } from "react";
+import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import ViewCardModal from "./ui/ViewCardModal";
+
+type actionType = "Unassign" | "Delete";
 
 type CardProps = {
+  learnerId?: string;
+  action?: actionType;
+  cardId: string;
   cardName: string;
   cardCategory: string;
   categoryColor: string;
@@ -39,14 +46,28 @@ const PecsCard = (props: CardProps) => {
     pecsCategory: { color: COLORS.semiWhite },
   });
 
+  const [modalVisible, setModalVisible] = useState(false);
+
   return (
-    <View style={styles.pecsContainer}>
-      <Image style={styles.pecsImage} source={{ uri: props.image }} />
-      <View style={styles.pecsInfoContainer}>
-        <Text style={styles.pecsName}>{props.cardName}</Text>
-        <Text style={styles.pecsCategory}>{props.cardCategory}</Text>
-      </View>
-    </View>
+    <>
+      <ViewCardModal
+        action={props.action as string}
+        learnerId={props.learnerId as string}
+        onClose={() => setModalVisible(false)}
+        visible={modalVisible}
+        cardId={props.cardId}
+      />
+      <TouchableOpacity
+        style={styles.pecsContainer}
+        onPress={() => setModalVisible(true)}
+      >
+        <Image style={styles.pecsImage} source={{ uri: props.image }} />
+        <View style={styles.pecsInfoContainer}>
+          <Text style={styles.pecsName}>{props.cardName}</Text>
+          <Text style={styles.pecsCategory}>{props.cardCategory}</Text>
+        </View>
+      </TouchableOpacity>
+    </>
   );
 };
 

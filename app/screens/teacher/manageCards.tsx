@@ -1,8 +1,9 @@
 import AddCard from "@/components/AddCard";
+import PageHeader from "@/components/PageHeader";
 import PecsCard from "@/components/PecsCard";
 import Sidebar from "@/components/Sidebar";
 import COLORS from "@/constants/Colors";
-import { getCards } from "@/services/cardsService";
+import { listenToCards } from "@/services/cardsService";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
@@ -15,36 +16,37 @@ const ManageCardsScreen = () => {
   const [cards, setCards] = useState<any[]>([]);
 
   useEffect(() => {
-    const fetchCards = async () => {
-      try {
-        const data = await getCards();
-        setCards(data);
-      } catch (err) {
-        console.error("Error fetching boards: ", err);
-      }
-    };
-    fetchCards();
+    const unsubscribe = listenToCards((cards) => {
+      setCards(cards); // update your state
+    });
+
+    return () => unsubscribe(); // clean up listener on unmount
   }, []);
 
   return (
     <View style={styles.container}>
       <Sidebar userRole="teacher" onNavigate={handleNavigation} />
       <View style={styles.mainContentContainer}>
-        {/* <PageHeader
+        <PageHeader
+          collectionToSearch="cards"
+          onSearch={() => {}}
+          query="card"
           pageTitle="Manage Cards"
           hasFilter={true}
           searchPlaceholder="Search Card"
-        /> */}
+        />
         <ScrollView>
           <View style={styles.cardContainer}>
-            <AddCard cardType="card" />
+            <AddCard action="add" cardType="card" />
             {cards.map((card, index) => (
               <PecsCard
+                action="Delete"
                 key={index}
-                cardName={card.cardName}
-                cardCategory={card.categoryTitle}
-                categoryColor={card.backgroundColor}
+                cardName={card.card_name}
+                cardCategory={card.category_title}
+                categoryColor={card.background_color}
                 image={card.image}
+                cardId={card.id}
               />
             ))}
           </View>

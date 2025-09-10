@@ -53,7 +53,7 @@ const AddLearnerModal = ({ visible, onClose }: Props) => {
               <View style={styles.profileContainer}>
                 {results?.map((result, index) => (
                   <AddChildPreview
-                    learnerName={`${result.fname} ${result.lname}`}
+                    learnerName={`${result.firstname} ${result.last_name}`}
                     learnerProfile={result?.profile}
                     learnerId={result.id}
                     key={index}

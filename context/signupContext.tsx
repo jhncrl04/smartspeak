@@ -2,12 +2,12 @@ import React, { createContext, useContext, useState } from "react";
 
 type FormDataType = {
   role: string;
-  fname: string;
-  lname: string;
-  phoneNum: string;
+  first_name: string;
+  last_name: string;
+  phone_number: string;
   email: string;
   password: string;
-  creationDate: Date;
+  creation_date: Date;
 };
 
 type FormContextType = {
@@ -18,12 +18,12 @@ type FormContextType = {
 const defaultValue: FormContextType = {
   formData: {
     role: "",
-    fname: "",
-    lname: "",
-    phoneNum: "",
+    first_name: "",
+    last_name: "",
+    phone_number: "",
     email: "",
     password: "",
-    creationDate: new Date(),
+    creation_date: new Date(),
   },
   setFormData: () => {},
 };

@@ -9,6 +9,7 @@ type DropdownProps = {
   placeholder: string;
   value: string;
   onChange: (value: string) => void;
+  isDisabled?: boolean;
 };
 
 const MyDropdown = (props: DropdownProps) => {
@@ -17,9 +18,20 @@ const MyDropdown = (props: DropdownProps) => {
   return (
     <>
       <Dropdown
-        style={[styles.dropdown, isFocus && { borderColor: COLORS.accent }]}
-        placeholderStyle={styles.placeholderStyle}
-        selectedTextStyle={styles.selectedTextStyle}
+        style={[
+          styles.dropdown,
+          isFocus && !props.isDisabled && { borderColor: COLORS.accent },
+          props.isDisabled && styles.disabledDropdown,
+        ]}
+        placeholderStyle={[
+          styles.placeholderStyle,
+          props.isDisabled && styles.disabledText,
+        ]}
+        disable={props.isDisabled ? true : false}
+        selectedTextStyle={[
+          styles.selectedTextStyle,
+          props.isDisabled && styles.disabledText,
+        ]}
         iconStyle={styles.iconStyle}
         data={props.dropdownItems}
         maxHeight={300}
@@ -43,16 +55,15 @@ const styles = StyleSheet.create({
   dropdown: {
     paddingHorizontal: 10,
     paddingVertical: 5,
-
     flex: 1,
     minWidth: 100,
-
     borderColor: COLORS.gray,
     borderWidth: 0.5,
     borderRadius: 5,
   },
-  icon: {
-    marginRight: 5,
+  disabledDropdown: {
+    backgroundColor: COLORS.lightGray,
+    borderColor: COLORS.lightGray,
   },
   placeholderStyle: {
     color: COLORS.gray,
@@ -61,9 +72,13 @@ const styles = StyleSheet.create({
   selectedTextStyle: {
     fontSize: 14,
   },
+  disabledText: {
+    color: COLORS.gray,
+  },
   iconStyle: {
     width: 20,
     height: 20,
   },
 });
+
 export default MyDropdown;

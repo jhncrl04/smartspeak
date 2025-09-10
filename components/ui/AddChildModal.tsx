@@ -1,6 +1,7 @@
 import PrimaryButton from "@/components/PrimaryButton";
 import SecondaryButton from "@/components/SecondaryButton";
 import COLORS from "@/constants/Colors";
+import imageToBase64 from "@/helper/imageToBase64";
 import { registerChild } from "@/services/userApi/Registration";
 import { useAuthStore } from "@/stores/userAuthStore";
 import * as ImagePicker from "expo-image-picker";
@@ -24,28 +25,30 @@ type Props = {
 };
 
 type formDataType = {
-  fname: string;
-  lname: string;
-  dateOfBirth: string;
+  first_name: string;
+  last_name: string;
+  date_of_birth: string;
   gender: string;
   email: string;
   password: string;
   role: string;
-  guardianId: string | undefined;
-  creationDate: Date;
+  profile: string;
+  guardian_id: string | undefined;
+  creation_date: Date;
 };
 
 const AddChildModal = ({ visible, onClose }: Props) => {
   const [formData, setFormData] = useState({
-    fname: "",
-    lname: "",
-    dateOfBirth: "",
+    first_name: "",
+    last_name: "",
+    date_of_birth: "",
     gender: "",
     email: "",
     password: "",
     role: "",
-    guardianId: "",
-    creationDate: new Date(),
+    profile: "",
+    guardian_id: "",
+    creation_date: new Date(),
   });
 
   const [confirmPass, setConfirmPass] = useState("");
@@ -67,6 +70,9 @@ const AddChildModal = ({ visible, onClose }: Props) => {
 
     if (!result.canceled) {
       setImage(result.assets[0].uri);
+
+      const base64Image = await imageToBase64(image);
+      setFormData({ ...formData, profile: base64Image });
     }
   };
 
@@ -89,9 +95,9 @@ const AddChildModal = ({ visible, onClose }: Props) => {
 
     if (nextStep === 3) {
       if (
-        formData.fname === "" ||
-        formData.lname === "" ||
-        formData.dateOfBirth === "" ||
+        formData.first_name === "" ||
+        formData.last_name === "" ||
+        formData.date_of_birth === "" ||
         formData.gender === ""
       ) {
         Alert.alert("Missing inputs. Please fill all the inputs.");
@@ -110,7 +116,7 @@ const AddChildModal = ({ visible, onClose }: Props) => {
 
     const currentId = useAuthStore.getState().user?.uid;
 
-    user.guardianId = currentId;
+    user.guardian_id = currentId;
 
     const isRegistrationComplete = await registerChild(user);
 
@@ -209,17 +215,17 @@ const AddChildModal = ({ visible, onClose }: Props) => {
                 <View style={styles.row}>
                   <TextInput
                     placeholder="First Name"
-                    value={formData.fname}
+                    value={formData.first_name}
                     onChangeText={(text) =>
-                      setFormData({ ...formData, fname: text })
+                      setFormData({ ...formData, first_name: text })
                     }
                     style={[styles.input, styles.halfInput]}
                   />
                   <TextInput
                     placeholder="Last Name"
-                    value={formData.lname}
+                    value={formData.last_name}
                     onChangeText={(text) =>
-                      setFormData({ ...formData, lname: text })
+                      setFormData({ ...formData, last_name: text })
                     }
                     style={[styles.input, styles.halfInput]}
                   />
@@ -229,9 +235,9 @@ const AddChildModal = ({ visible, onClose }: Props) => {
                 {/* <DatePicker mode="date" date={date} onDateChange={setDate} /> */}
                 <TextInput
                   placeholder="Date of Birth"
-                  value={formData.dateOfBirth}
+                  value={formData.date_of_birth}
                   onChangeText={(text) =>
-                    setFormData({ ...formData, dateOfBirth: text })
+                    setFormData({ ...formData, date_of_birth: text })
                   }
                   style={styles.input}
                 />

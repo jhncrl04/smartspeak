@@ -17,10 +17,7 @@ const AddChildPreview = ({
   return (
     <View style={styles.profilePreview}>
       <View style={styles.profileInfoContainer}>
-        <Image
-          source={require("../../assets/images/creeper.png")}
-          style={styles.profileImage}
-        />
+        <Image source={{ uri: learnerProfile }} style={styles.profileImage} />
         <Text style={styles.profileName}>{learnerName}</Text>
       </View>
       <View style={styles.buttonContainer}>

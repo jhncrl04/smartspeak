@@ -6,8 +6,10 @@ type buttonDetail = { title: string; clickHandler: () => void };
 const SecondaryButton = (props: buttonDetail) => {
   const styles = StyleSheet.create({
     buttonContainer: {
+      flexGrow: 1,
+
       borderColor: COLORS.accent,
-      borderWidth: 1,
+      borderWidth: 1.5,
       borderRadius: 5,
 
       height: "auto",
@@ -19,7 +21,7 @@ const SecondaryButton = (props: buttonDetail) => {
     buttonText: {
       fontSize: 14,
       fontFamily: "Poppins",
-      fontWeight: "500",
+      fontWeight: "700",
       color: COLORS.accent,
     },
   });

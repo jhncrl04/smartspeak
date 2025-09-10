@@ -80,9 +80,9 @@ const AssignCardModal = ({
                   <AssignCardPreview
                     learnerId={learnerId as string}
                     cardId={result.id}
-                    cardName={result.cardName}
+                    cardName={result.card_name}
                     cardCategory={categoryName}
-                    categoryColor={result.backgroundColor}
+                    categoryColor={result.background_color}
                     image={result.image}
                     key={index}
                   />

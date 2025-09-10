@@ -15,10 +15,10 @@ const AuthInitializer = ({ children }: { children: React.ReactNode }) => {
 
           if (userDoc) {
             setUser({
-              fname: userDoc.fname,
-              lname: userDoc.lname,
+              fname: userDoc.first_name,
+              lname: userDoc.last_name,
               email: userDoc.email,
-              phoneNumber: userDoc.phoneNumber,
+              phoneNumber: userDoc.phone_number,
               role: userDoc.role,
               uid: firebaseUser.uid,
             });

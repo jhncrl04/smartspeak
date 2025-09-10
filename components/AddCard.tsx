@@ -24,12 +24,17 @@ const AddCard = (props: CardProps) => {
   const handlePress = () => setModalVisible(true);
   const closeModal = () => setModalVisible(false);
 
-  /** ✅ Check which modal to render */
   const renderModal = () => {
     if (!modalVisible) return null;
 
     if (props.cardType === "card" && props.action === "add") {
-      return <AddPecsModal visible={modalVisible} onClose={closeModal} />;
+      return (
+        <AddPecsModal
+          visible={modalVisible}
+          onClose={closeModal}
+          categoryId={props.categoryId}
+        />
+      );
     }
 
     if (props.cardType === "card" && props.action === "assign") {
@@ -60,7 +65,6 @@ const AddCard = (props: CardProps) => {
     return null;
   };
 
-  // --- your existing styles here ---
   const cardStyles = StyleSheet.create({
     pecsContainer: {
       borderRadius: 5,

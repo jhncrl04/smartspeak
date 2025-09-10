@@ -10,7 +10,7 @@ import { listenAssignedCategories } from "@/services/categoryService";
 import { getStudentInfo } from "@/services/userService";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
 
 const LearnerProfile = () => {
   const handleNavigation = (screen: string) => {
@@ -51,30 +51,32 @@ const LearnerProfile = () => {
   }, [userId]);
 
   return (
-    <View style={styles.container}>
-      <Sidebar userRole="teacher" onNavigate={handleNavigation} />
-      <View style={styles.pageContainer}>
-        <View style={styles.headerContainer}>
-          <ActionLink text="Return" clickHandler={router.back} />
-          <LearnerProfileHeader
-            name={`${userInfo?.fname} ${userInfo?.lname}`}
-            age={10}
-            screen="teacher"
-          />
-          <View>
-            <HorizontalLine />
-          </View>
-        </View>
-        <View style={styles.pageHeaderContainer}>
-          <PageHeader
-            pageTitle="Assign Category"
-            onSearch={() => {}}
-            collectionToSearch="pecsCategories"
-            query="category"
-            hasFilter={true}
-            searchPlaceholder="Search Category"
-          />
-          {/* <View style={styles.buttonContainer}>
+    <>
+      <View style={styles.container}>
+        <Sidebar userRole="teacher" onNavigate={handleNavigation} />
+        <ScrollView showsVerticalScrollIndicator={false}>
+          <View style={styles.pageContainer}>
+            <View style={styles.headerContainer}>
+              <ActionLink text="Return" clickHandler={router.back} />
+              <LearnerProfileHeader
+                name={`${userInfo?.fname} ${userInfo?.lname}`}
+                age={10}
+                screen="teacher"
+              />
+              <View>
+                <HorizontalLine />
+              </View>
+            </View>
+            <View style={styles.pageHeaderContainer}>
+              <PageHeader
+                pageTitle="Assign Category"
+                onSearch={() => {}}
+                collectionToSearch="pecsCategories"
+                query="category"
+                hasFilter={true}
+                searchPlaceholder="Search Category"
+              />
+              {/* <View style={styles.buttonContainer}>
             <PrimaryButton
               title="Remove Board"
               clickHandler={() => console.log("remove board")}
@@ -84,31 +86,36 @@ const LearnerProfile = () => {
               clickHandler={() => console.log("add board")}
             />
           </View> */}
-        </View>
-        <View style={styles.boardContainer}>
-          <AddCard
-            cardType="board"
-            action="assign"
-            learnerId={userId as string}
-          />
-          {categories?.map((category, index) => (
-            <Board
-              boardName={category.categoryName}
-              boardBackground={category.backgroundColor}
-              categoryId={category.id}
-              image={category.image}
-              actionHandler={() => {
-                router.push({
-                  pathname: "/screens/teacher/user/category/[categoryId]",
-                  params: { categoryId: category.id, userId: userId as string },
-                });
-              }}
-              key={index}
-            />
-          ))}
-        </View>
+            </View>
+            <View style={styles.boardContainer}>
+              <AddCard
+                cardType="board"
+                action="assign"
+                learnerId={userId as string}
+              />
+              {categories?.map((category, index) => (
+                <Board
+                  boardName={category.category_name}
+                  boardBackground={category.background_color}
+                  categoryId={category.id}
+                  image={category.image}
+                  actionHandler={() => {
+                    router.push({
+                      pathname: "/screens/teacher/user/category/[categoryId]",
+                      params: {
+                        categoryId: category.id,
+                        userId: userId as string,
+                      },
+                    });
+                  }}
+                  key={index}
+                />
+              ))}
+            </View>
+          </View>
+        </ScrollView>
       </View>
-    </View>
+    </>
   );
 };
 

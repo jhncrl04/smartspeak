@@ -28,6 +28,7 @@ export const Colors = {
 const COLORS = {
   black: "#434343",
   gray: "#434343b3",
+  lightGray: "#d3d3d3ff",
   white: "#F5F5F5",
   cardBg: "#e9e9e9ff",
   semiWhite: "#f5f5f5cc",

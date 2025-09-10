@@ -3,7 +3,7 @@ import Board from "@/components/Board";
 import PageHeader from "@/components/PageHeader";
 import Sidebar from "@/components/Sidebar";
 import COLORS from "@/constants/Colors";
-import { getCategories } from "@/services/categoryService";
+import { listenCategories } from "@/services/categoryService";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
@@ -16,15 +16,11 @@ const ManageBoardsScreen = () => {
   const [categories, setCategories] = useState<any[]>([]);
 
   useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const data = await getCategories();
-        setCategories(data);
-      } catch (err) {
-        console.error("Error fetching categories: ", err);
-      }
-    };
-    fetchCategories();
+    const unsubscribe = listenCategories((categories) => {
+      setCategories(categories);
+    });
+
+    return () => unsubscribe();
   }, []);
 
   return (
@@ -47,12 +43,10 @@ const ManageBoardsScreen = () => {
               key={index}
               categoryId={category.id}
               image={category.image}
-              boardName={category.categoryName}
-              boardBackground={category.backgroundColor}
+              boardName={category.category_name}
+              boardBackground={category.background_color}
               actionHandler={() => {
-                router.push(
-                  `/screens/teacher/category/${category.categoryId}` as any
-                );
+                router.push(`/screens/teacher/category/${category.id}` as any);
               }}
             />
           ))}

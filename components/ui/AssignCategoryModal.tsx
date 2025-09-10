@@ -67,7 +67,7 @@ const AssignCategoryModal = ({ visible, onClose, learnerId }: Props) => {
               <View style={styles.categoryContainer}>
                 {results?.map((result, index) => (
                   <AssignCategoryPreview
-                    categoryName={result.categoryName}
+                    categoryName={result.category_name}
                     categoryImage={result?.image}
                     categoryId={result.id}
                     learnerId={learnerId}

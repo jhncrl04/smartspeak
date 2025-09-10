@@ -12,6 +12,7 @@ type profile = {
   age: number;
   gender: string;
   learnerId: string;
+  image: string | null;
 };
 
 const LearnerCard = (props: profile) => {
@@ -96,6 +97,8 @@ const LearnerCard = (props: profile) => {
     },
   });
 
+  console.log(props);
+
   return props.cardType === "profile" ? (
     <TouchableOpacity
       style={styles.cards}
@@ -105,7 +108,11 @@ const LearnerCard = (props: profile) => {
     >
       <View style={styles.cardImageContainer}>
         <Image
-          source={require("../assets/images/creeper.png")}
+          source={
+            props.image
+              ? { uri: props.image }
+              : require("../assets/images/creeper.png")
+          }
           style={styles.cardImage}
         />
       </View>

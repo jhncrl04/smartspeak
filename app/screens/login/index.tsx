@@ -1,7 +1,5 @@
 import ActionLink from "@/components/ActionLink";
 import PrimaryButton from "@/components/PrimaryButton";
-import SecondaryButton from "@/components/SecondaryButton";
-import ButtonSeparator from "@/components/ui/ButtonSeparator";
 import COLORS from "@/constants/Colors";
 import { loginAuth } from "@/services/userApi/Authentication";
 import { useAuthStore } from "@/stores/userAuthStore";
@@ -29,16 +27,18 @@ const LoginScreen = () => {
         const currentUser = auth().currentUser;
 
         login({
-          fname: userDoc.fname,
-          lname: userDoc.lname,
+          fname: userDoc.first_name,
+          lname: userDoc.last_name,
           email: userDoc.email,
-          phoneNumber: userDoc.phoneNumber,
-          role: userDoc.role,
-          uid: currentUser?.uid,
+          phoneNumber: userDoc.phone_number,
+          profile: userDoc.profile_pic,
+          role: role,
+          uid: firebaseUser?.uid,
         });
 
-        // navigate to homepage based on role
-        router.push(`/screens/${role.toLowerCase()}` as any);
+        console.log(firebaseUser?.uid);
+
+        router.replace(`/screens/${role.toLowerCase()}` as any);
       } else {
         console.log("User document missing or role not found.");
       }
@@ -79,11 +79,11 @@ const LoginScreen = () => {
                 await validateInput(email, password);
               }}
             />
-            <ButtonSeparator />
+            {/* <ButtonSeparator />
             <SecondaryButton
               title={"Continue With Google"}
               clickHandler={() => {}}
-            />
+            /> */}
           </View>
         </View>
       </View>

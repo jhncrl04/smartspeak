@@ -6,7 +6,10 @@ import PecsCard from "@/components/PecsCard";
 import Sidebar from "@/components/Sidebar";
 import HorizontalLine from "@/components/ui/HorizontalLine";
 import COLORS from "@/constants/Colors";
-import { getAssignedCards, listenAssignedCard } from "@/services/cardsService";
+import {
+  getAssignedCards,
+  listenAssignedCardWithCategory,
+} from "@/services/cardsService";
 import { getStudentInfo } from "@/services/userService";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
@@ -56,59 +59,68 @@ const LearnerProfileCategory = () => {
     fetchCategoryName();
 
     // subscribe to assigned cards
-    const unsubscribe = listenAssignedCard(userId as string, (cards) => {
-      setCards(cards);
-    });
+    const unsubscribe = listenAssignedCardWithCategory(
+      userId as string,
+      categoryId as string,
+      (cards) => {
+        setCards(cards);
+      }
+    );
 
     return () => unsubscribe();
   }, [userId, categoryId]);
 
   return (
-    <View style={styles.container}>
-      <Sidebar userRole="teacher" onNavigate={handleNavigation} />
-      <ScrollView showsVerticalScrollIndicator={false}>
-        <View style={styles.pageContainer}>
-          <View style={styles.headerContainer}>
-            <ActionLink text="Return" clickHandler={router.back} />
-            <LearnerProfileHeader
-              name={`${userInfo?.fname} ${userInfo?.lname}`}
-              age={10}
-              screen="teacher"
-            />
-            <View>
-              <HorizontalLine />
+    <>
+      <View style={styles.container}>
+        <Sidebar userRole="teacher" onNavigate={handleNavigation} />
+        <ScrollView showsVerticalScrollIndicator={false}>
+          <View style={styles.pageContainer}>
+            <View style={styles.headerContainer}>
+              <ActionLink text="Return" clickHandler={router.back} />
+              <LearnerProfileHeader
+                name={`${userInfo?.fname} ${userInfo?.lname}`}
+                age={10}
+                screen="teacher"
+              />
+              <View>
+                <HorizontalLine />
+              </View>
+            </View>
+            <View style={styles.pageHeaderContainer}>
+              <PageHeader
+                pageTitle={`${categoryName} Cards`}
+                onSearch={() => {}}
+                collectionToSearch="cards"
+                query="card"
+                hasFilter={true}
+                searchPlaceholder="Search card"
+              />
+            </View>
+            <View style={styles.boardContainer}>
+              <AddCard
+                cardType="card"
+                action="assign"
+                learnerId={userId as string}
+                categoryId={categoryId as string}
+              />
+              {cards?.map((card, index) => (
+                <PecsCard
+                  action="Unassign"
+                  learnerId={userId as string}
+                  cardId={card.id}
+                  cardCategory={categoryName}
+                  cardName={card.card_name}
+                  categoryColor={card.background_color}
+                  image={card.image}
+                  key={index}
+                />
+              ))}
             </View>
           </View>
-          <View style={styles.pageHeaderContainer}>
-            <PageHeader
-              pageTitle={`${categoryName} Cards`}
-              onSearch={() => {}}
-              collectionToSearch="cards"
-              query="card"
-              hasFilter={true}
-              searchPlaceholder="Search card"
-            />
-          </View>
-          <View style={styles.boardContainer}>
-            <AddCard
-              cardType="card"
-              action="assign"
-              learnerId={userId as string}
-              categoryId={categoryId as string}
-            />
-            {cards?.map((card, index) => (
-              <PecsCard
-                cardCategory={categoryName}
-                cardName={card.cardName}
-                categoryColor={card.backgroundColor}
-                image={card.image}
-                key={index}
-              />
-            ))}
-          </View>
-        </View>
-      </ScrollView>
-    </View>
+        </ScrollView>
+      </View>
+    </>
   );
 };
 

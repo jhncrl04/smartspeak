@@ -37,12 +37,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
 
     justifyContent: "space-between",
-    alignItems: "center",
+    alignItems: "flex-end",
   },
   headerTitle: {
     fontSize: 20,
     fontFamily: "Poppins",
     fontWeight: "500",
+
+    lineHeight: 24,
 
     color: COLORS.black,
   },

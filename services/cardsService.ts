@@ -1,10 +1,15 @@
+import imageToBase64 from "@/helper/imageToBase64";
 import { useAuthStore } from "@/stores/userAuthStore";
-import firestore, { arrayUnion } from "@react-native-firebase/firestore";
+import firestore, {
+  arrayRemove,
+  arrayUnion,
+} from "@react-native-firebase/firestore";
 import * as FileSystem from "expo-file-system";
+import { Alert } from "react-native";
 
 type cardProps = {
   name: string;
-  categoryId: string;
+  category_id: string;
   image: string;
 };
 
@@ -13,7 +18,7 @@ const cardCollection = firestore().collection("cards");
 export const addCard = async (cardInfo: cardProps) => {
   const uid = useAuthStore.getState().user?.uid;
 
-  const currentDate = new Date();
+  const current_date = new Date();
 
   let base64Image = "";
   if (cardInfo.image) {
@@ -27,55 +32,105 @@ export const addCard = async (cardInfo: cardProps) => {
     }
   }
 
-  const newCard = {
-    cardName: cardInfo.name,
-    categoryId: cardInfo.categoryId,
-    createdAt: currentDate,
-    createdBy: uid,
+  const new_card = {
+    card_name: cardInfo.name,
+    category_id: cardInfo.category_id,
+    created_at: current_date,
+    created_by: uid,
     image: base64Image,
   };
 
-  await cardCollection.add(newCard);
+  await cardCollection.add(new_card);
 };
 
 export const deleteCard = async (cardId: string) => {
-  cardCollection.doc(cardId).delete();
+  const cardRef = cardCollection.doc(cardId);
+  const card = (await cardRef.get()).data();
+
+  if (card?.assigned_to?.length !== 0) {
+    Alert.alert(
+      "Continue card deletion?",
+      "Card is currently assigned to a student\nDo you wish to continue deleting this card?",
+      [
+        {
+          text: "Yes",
+          onPress: async () => {
+            await cardRef.delete();
+            Alert.alert("Card deleted");
+          },
+          style: "destructive",
+        },
+        {
+          text: "No",
+          style: "cancel",
+        },
+      ],
+      { cancelable: true }
+    );
+  } else {
+    await cardRef.delete();
+    Alert.alert("Card deleted");
+  }
 };
 
 type cardType = {
-  cardName: string;
-  categoryTitle: string;
-  categoryColor: string;
+  card_name: string;
+  category_title: string;
+  category_color: string;
 };
 
-export const getCards = async () => {
+export const listenToCards = (onCardsUpdate: (cards: any[]) => void) => {
   const uid = useAuthStore.getState().user?.uid;
-
+  const cardQuery = firestore()
+    .collection("cards")
+    .where("created_by", "==", uid);
   const categoryCollection = firestore().collection("pecsCategories");
 
-  const querySnapshot = await cardCollection
-    .where("createdBy", "==", uid)
-    .get();
+  const unsubscribe = cardQuery.onSnapshot(async (querySnapshot) => {
+    const cards = await Promise.all(
+      querySnapshot.docs.map(async (doc) => {
+        const card = doc.data();
+        card.id = doc.id;
 
-  const cards = await Promise.all(
-    querySnapshot.docs.map(async (doc) => {
-      const card = doc.data();
+        // fetch related category
+        const categorySnapshot = await categoryCollection
+          .doc(card.category_id)
+          .get();
+        const category = categorySnapshot.data();
 
-      // fetch related board
-      const categorySnapshot = await categoryCollection
-        .doc(card.categoryId)
-        .get();
-      const category = categorySnapshot.data();
+        return {
+          ...card,
+          background_color: category?.background_color || null,
+          category_title: category?.category_name || null,
+        };
+      })
+    );
 
-      return {
-        ...card,
-        backgroundColor: category?.backgroundColor || null,
-        categoryTitle: category?.categoryName || null,
-      };
-    })
-  );
+    onCardsUpdate(cards);
+  });
 
-  return cards;
+  return unsubscribe; // Call this when you want to stop listening
+};
+
+export const updateCard = async (
+  cardId: string,
+  cardName: string,
+  cardImage: string
+) => {
+  try {
+    const cardRef = cardCollection.doc(cardId);
+
+    const image = await imageToBase64(cardImage);
+
+    await cardRef.update({
+      card_name: cardName,
+      image: image,
+    });
+
+    console.log("Card updated successfully");
+  } catch (err) {
+    console.error("Error updating card:", err);
+  }
 };
 
 export const getCardsWithCategory = async (
@@ -85,12 +140,12 @@ export const getCardsWithCategory = async (
 
   const categoryCollection = firestore().collection("pecsCategories");
 
-  let query = cardCollection.where("createdBy", "==", uid);
+  let query = cardCollection.where("created_by", "==", uid);
 
   if (Array.isArray(categoryId)) {
-    query = query.where("categoryId", "in", categoryId);
+    query = query.where("category_id", "in", categoryId);
   } else {
-    query = query.where("categoryId", "==", categoryId);
+    query = query.where("category_id", "==", categoryId);
   }
 
   const querySnapshot = await query.get();
@@ -102,16 +157,16 @@ export const getCardsWithCategory = async (
       const card = doc.data();
 
       const categorySnapshot = await categoryCollection
-        .doc(card.categoryId)
+        .doc(card.category_id)
         .get();
       const category = categorySnapshot.data();
 
-      categoryName = category?.categoryName;
+      categoryName = category?.category_name;
 
       return {
         ...card,
-        backgroundColor: category?.backgroundColor || null,
-        categoryTitle: category?.categoryName || null,
+        background_color: category?.background_color || null,
+        category_title: category?.category_name || null,
       };
     })
   );
@@ -119,9 +174,52 @@ export const getCardsWithCategory = async (
   return [cards, categoryName];
 };
 
+export const listenCardsWithCategory = (
+  categoryId: string | string[],
+  callback: (cards: any[], categoryName: string) => void
+) => {
+  const uid = useAuthStore.getState().user?.uid;
+  if (!uid) return () => {};
+
+  const categoryCollection = firestore().collection("pecsCategories");
+
+  let query = cardCollection.where("created_by", "==", uid);
+
+  if (Array.isArray(categoryId)) {
+    query = query.where("category_id", "in", categoryId);
+  } else {
+    query = query.where("category_id", "==", categoryId);
+  }
+
+  return query.onSnapshot(async (snapshot) => {
+    let categoryName = "";
+    const cards = await Promise.all(
+      snapshot.docs.map(async (doc) => {
+        const card = doc.data();
+
+        const categorySnapshot = await categoryCollection
+          .doc(card.category_id)
+          .get();
+        const category = categorySnapshot.data();
+
+        if (!categoryName) categoryName = category?.category_name || "";
+
+        return {
+          ...card,
+          id: doc.id,
+          background_color: category?.background_color || null,
+          category_title: category?.category_name || null,
+        };
+      })
+    );
+
+    callback(cards, categoryName);
+  });
+};
+
 type Card = {
-  backgroundColor: string | null;
-  categoryTitle: string | null;
+  background_color: string | null;
+  category_title: string | null;
   [key: string]: any; // keep extra fields from Firestore
 };
 
@@ -132,12 +230,12 @@ export const getAssignedCards = async (
   const uid = useAuthStore.getState().user?.uid;
   const categoryCollection = firestore().collection("pecsCategories");
 
-  let query = cardCollection.where("createdBy", "==", uid);
+  let query = cardCollection.where("created_by", "==", uid);
 
   if (Array.isArray(categoryId)) {
-    query = query.where("categoryId", "in", categoryId);
+    query = query.where("category_id", "in", categoryId);
   } else {
-    query = query.where("categoryId", "==", categoryId);
+    query = query.where("category_id", "==", categoryId);
   }
 
   const querySnapshot = await query.get();
@@ -148,7 +246,7 @@ export const getAssignedCards = async (
   if (!Array.isArray(categoryId)) {
     const categorySnapshot = await categoryCollection.doc(categoryId).get();
     categoryData = categorySnapshot.data();
-    categoryName = categoryData?.categoryName || "";
+    categoryName = categoryData?.category_name || "";
   }
 
   const cards = (
@@ -159,16 +257,16 @@ export const getAssignedCards = async (
         let cardCategory = categoryData;
         if (Array.isArray(categoryId)) {
           const categorySnapshot = await categoryCollection
-            .doc(card.categoryId)
+            .doc(card.category_id)
             .get();
           cardCategory = categorySnapshot.data();
         }
 
-        if (card.assignedTo?.includes(learnerId)) {
+        if (card.assigned_to?.includes(learnerId)) {
           return {
             ...card,
-            backgroundColor: cardCategory?.backgroundColor || null,
-            categoryTitle: cardCategory?.categoryName || null,
+            background_color: cardCategory?.background_color || null,
+            category_title: cardCategory?.category_name || null,
           } as Card;
         }
         return null;
@@ -186,12 +284,12 @@ export const getUnassignedCards = async (
   const uid = useAuthStore.getState().user?.uid;
   const categoryCollection = firestore().collection("pecsCategories");
 
-  let query = cardCollection.where("createdBy", "==", uid);
+  let query = cardCollection.where("created_by", "==", uid);
 
   if (Array.isArray(categoryId)) {
-    query = query.where("categoryId", "in", categoryId);
+    query = query.where("category_id", "in", categoryId);
   } else {
-    query = query.where("categoryId", "==", categoryId);
+    query = query.where("category_id", "==", categoryId);
   }
 
   const querySnapshot = await query.get();
@@ -202,7 +300,7 @@ export const getUnassignedCards = async (
   if (!Array.isArray(categoryId)) {
     const categorySnapshot = await categoryCollection.doc(categoryId).get();
     categoryData = categorySnapshot.data();
-    categoryName = categoryData?.categoryName || "";
+    categoryName = categoryData?.category_name || "";
   }
 
   const cards = (
@@ -215,16 +313,16 @@ export const getUnassignedCards = async (
         let cardCategory = categoryData;
         if (Array.isArray(categoryId)) {
           const categorySnapshot = await categoryCollection
-            .doc(card.categoryId)
+            .doc(card.category_id)
             .get();
           cardCategory = categorySnapshot.data();
         }
 
-        if (!card.assignedTo?.includes(learnerId)) {
+        if (!card.assigned_to?.includes(learnerId)) {
           return {
             ...card,
-            backgroundColor: cardCategory?.backgroundColor || null,
-            categoryTitle: cardCategory?.categoryName || null,
+            background_color: cardCategory?.background_color || null,
+            category_title: cardCategory?.category_name || null,
           } as Card;
         }
         return null;
@@ -239,7 +337,7 @@ export const assignCard = async (cardId: string, learnerId?: string) => {
   try {
     await cardCollection
       .doc(cardId)
-      .update({ assignedTo: arrayUnion(learnerId) });
+      .update({ assigned_to: arrayUnion(learnerId) });
   } catch (err) {
     console.error("Error assigning card: ", err);
   }
@@ -255,7 +353,7 @@ export const listenAssignedCard = (
   const categoryCollection = firestore().collection("pecsCategories");
 
   return cardCollection
-    .where("createdBy", "==", uid)
+    .where("created_by", "==", uid)
     .onSnapshot(async (snapshot) => {
       const cards: any[] = [];
 
@@ -278,16 +376,82 @@ export const listenAssignedCard = (
         const card = doc.data();
         card.id = doc.id;
 
-        if (card.assignedTo?.includes(learnerId)) {
-          const category = categoryMap[card.categoryId];
+        if (card.assigned_to?.includes(learnerId)) {
+          const category = categoryMap[card.category_id];
+
+          console.log(category);
+
           cards.push({
             ...card,
-            backgroundColor: category?.backgroundColor || null,
-            categoryTitle: category?.categoryName || null,
+            background_color: category?.background_color || null,
+            category_title: category?.category_name || null,
           });
         }
       });
 
       callback(cards);
     });
+};
+
+export const listenAssignedCardWithCategory = (
+  learnerId: string,
+  categoryId: string,
+  callback: (cards: any[]) => void
+) => {
+  const uid = useAuthStore.getState().user?.uid;
+  if (!uid) return () => {};
+
+  const categoryRef = firestore().collection("pecsCategories").doc(categoryId);
+
+  // fetch category once
+  let categoryCache: any = null;
+  categoryRef.get().then((doc) => {
+    categoryCache = doc.data();
+  });
+
+  return cardCollection
+    .where("created_by", "==", uid)
+    .where("category_id", "==", categoryId)
+    .onSnapshot((snapshot) => {
+      const cards: any[] = [];
+
+      snapshot.forEach((doc) => {
+        const card = doc.data();
+        card.id = doc.id;
+
+        if (card.assigned_to?.includes(learnerId)) {
+          cards.push({
+            ...card,
+            background_color: categoryCache?.background_color || null,
+            category_title: categoryCache?.category_name || null,
+          });
+        }
+      });
+
+      callback(cards);
+    });
+};
+
+export const getCardInfoWithId = async (cardId: string) => {
+  const uid = useAuthStore.getState().user?.uid;
+  const categoryCollection = firestore().collection("pecsCategories");
+
+  let cardSnapshot = await cardCollection.doc(cardId).get();
+  let card = cardSnapshot?.data();
+
+  if (card) {
+    return card;
+  }
+
+  return null;
+};
+
+export const unassignCard = async (learnerId: string, cardId: string) => {
+  try {
+    await cardCollection
+      .doc(cardId)
+      .update({ assigned_to: arrayRemove(learnerId) });
+  } catch (err) {
+    console.error("Error unassigning card: ", err);
+  }
 };

@@ -117,7 +117,7 @@ export default function HomeScreen() {
 
           <TouchableOpacity
             style={styles.ChangeProfileBtn}
-            onPress={() => router.push("/profile")}
+            onPress={() => router.push("/screens/learner/profile")}
           >
             <Text style={styles.BtnText}>Upload New Photo</Text>
           </TouchableOpacity>
@@ -273,7 +273,7 @@ export default function HomeScreen() {
         <View style={styles.categoryContainer}>
           <TouchableOpacity
             style={styles.categoryInfosActive}
-            onPress={() => router.push("/profile")}
+            onPress={() => router.push("/screens/learner/profile")}
           >
             <Image
               source={require("@/assets/images/user2.png")}
@@ -290,7 +290,7 @@ export default function HomeScreen() {
 
           <TouchableOpacity
             style={styles.categoryInfos}
-            onPress={() => router.push("/changepass")}
+            onPress={() => router.push("/screens/changepass")}
           >
             <Image
               source={require("@/assets/images/lock.png")}

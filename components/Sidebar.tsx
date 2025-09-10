@@ -13,10 +13,13 @@ type SidebarProps = {
 };
 
 const Sidebar = ({ onNavigate, userRole }: SidebarProps) => {
+  const user = useAuthStore((state) => state.user);
+
   const [expanded, setExpanded] = useState(false);
 
   const indexScreenByRole =
     userRole === "teacher" ? "/screens/teacher/" : "/screens/guardian/";
+
   const [activeScreen, setActiveScreen] = useState(indexScreenByRole);
 
   const { setWidth } = useSidebarWidth();
@@ -114,7 +117,13 @@ const Sidebar = ({ onNavigate, userRole }: SidebarProps) => {
                 source={require("../assets/images/creeper.png")}
                 style={styles.profile}
               />
-              <Text>Profile Name</Text>
+              <Text
+                style={{
+                  fontFamily: "Poppins",
+                  fontWeight: "500",
+                  fontSize: 16,
+                }}
+              >{`${user?.fname}`}</Text>
             </TouchableOpacity>
           )}
           <Icon

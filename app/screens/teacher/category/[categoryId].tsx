@@ -1,8 +1,11 @@
+import ActionLink from "@/components/ActionLink";
 import AddCard from "@/components/AddCard";
+import PageHeader from "@/components/PageHeader";
 import PecsCard from "@/components/PecsCard";
 import Sidebar from "@/components/Sidebar";
+import EditCategoryModal from "@/components/ui/EditCategoryModal";
 import COLORS from "@/constants/Colors";
-import { getCardsWithCategory } from "@/services/cardsService";
+import { listenCardsWithCategory } from "@/services/cardsService";
 import { router } from "expo-router";
 import { useLocalSearchParams } from "expo-router/build/hooks";
 import { useEffect, useState } from "react";
@@ -19,43 +22,72 @@ const ManageThisCategoryScreen = () => {
   const [categoryName, setCategoryName] = useState<string>("");
 
   useEffect(() => {
-    const fetchCards = async () => {
-      try {
-        const [data, name] = await getCardsWithCategory(categoryId as string);
-        setCards(data);
-        setCategoryName(name);
-      } catch (err) {
-        console.error("Error fetching cards: ", err);
+    if (!categoryId) return;
+
+    const unsubscribe = listenCardsWithCategory(
+      categoryId,
+      (cards, categoryName) => {
+        setCards(cards);
+        setCategoryName(categoryName);
       }
-    };
-    fetchCards();
+    );
+
+    return () => unsubscribe();
   }, [categoryId]);
 
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+
   return (
-    <View style={styles.container}>
-      <Sidebar userRole="teacher" onNavigate={handleNavigation} />
-      <View style={styles.mainContentContainer}>
-        {/* <PageHeader
-          pageTitle={`Manage ${categoryName} Cards`}
-          hasFilter={true}
-          searchPlaceholder="Search Card"
-        /> */}
-        <ScrollView>
-          <View style={styles.cardContainer}>
-            <AddCard cardType="card" action="add" />
-            {cards.map((card, index) => (
-              <PecsCard
-                key={index}
-                cardName={card.cardName}
-                cardCategory={card.categoryTitle}
-                categoryColor={card.backgroundColor}
-                image={card.image}
+    <>
+      <EditCategoryModal
+        visible={isEditModalVisible}
+        onClose={() => setIsEditModalVisible(false)}
+        categoryId={categoryId as string}
+      />
+      <View style={styles.container}>
+        <Sidebar userRole="teacher" onNavigate={handleNavigation} />
+        <View style={styles.mainContentContainer}>
+          <View style={styles.header}>
+            <View style={styles.actionLinkContainer}>
+              <ActionLink text="Return" clickHandler={router.back} />
+              <ActionLink
+                text="Edit"
+                clickHandler={() => setIsEditModalVisible(true)}
               />
-            ))}
+            </View>
+            <PageHeader
+              collectionToSearch="cards"
+              onSearch={() => {}}
+              query="card"
+              pageTitle={`Manage ${categoryName} Cards`}
+              hasFilter={true}
+              searchPlaceholder="Search Card"
+            />
           </View>
-        </ScrollView>
+
+          <ScrollView>
+            <View style={styles.cardContainer}>
+              <AddCard
+                cardType="card"
+                action="add"
+                categoryId={categoryId as string}
+              />
+              {cards.map((card, index) => (
+                <PecsCard
+                  action="Delete"
+                  cardId={card.id}
+                  key={index}
+                  cardName={card.card_name}
+                  cardCategory={card.category_title}
+                  categoryColor={card.background_color}
+                  image={card.image}
+                />
+              ))}
+            </View>
+          </ScrollView>
+        </View>
       </View>
-    </View>
+    </>
   );
 };
 
@@ -71,13 +103,19 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#eee",
   },
+  header: {},
+  actionLinkContainer: {
+    flexDirection: "row",
+    gap: 20,
+    width: 50,
+  },
   mainContentContainer: {
     flex: 1,
 
-    gap: 20,
+    gap: 10,
 
     paddingHorizontal: 30,
-    paddingVertical: 20,
+    paddingVertical: 10,
   },
   cardContainer: {
     flex: 1,
@@ -85,6 +123,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
 
     alignItems: "center",
+
+    paddingVertical: 10,
 
     gap: 20,
 

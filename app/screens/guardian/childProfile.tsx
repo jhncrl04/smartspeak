@@ -1,8 +1,6 @@
 import LearnerProfileHeader from "@/components/LeanerProfileHeader";
-import PecsCard from "@/components/PecsCard";
 import Sidebar from "@/components/Sidebar";
 import HorizontalLine from "@/components/ui/HorizontalLine";
-import MyDropdown from "@/components/ui/MyDropdown";
 import COLORS from "@/constants/Colors";
 import { router } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
@@ -35,8 +33,6 @@ const ChildProfileScreen = () => {
             <View style={styles.subContainer}>
               <View style={styles.subContainerHeader}>
                 <Text style={styles.cardsLearnedLabel}>Cards learned</Text>
-                {/* {renderLabel()} */}
-                <MyDropdown placeholder="Daily" dropdownItems={dropdownItems} />
               </View>
               <View style={styles.graphContainer}></View>
             </View>
@@ -44,33 +40,7 @@ const ChildProfileScreen = () => {
               <View style={styles.subContainerHeader}>
                 <Text style={styles.cardsLearnedLabel}>Most Used Cards</Text>
               </View>
-              <View style={styles.mostUsedCardsContainer}>
-                <PecsCard
-                  cardCategory="Foods"
-                  cardName="Banana"
-                  categoryColor="#b1b45aff"
-                />
-                <PecsCard
-                  cardCategory="Foods"
-                  cardName="Banana"
-                  categoryColor="#b1b45aff"
-                />
-                <PecsCard
-                  cardCategory="Foods"
-                  cardName="Banana"
-                  categoryColor="#b1b45aff"
-                />
-                <PecsCard
-                  cardCategory="Foods"
-                  cardName="Banana"
-                  categoryColor="#b1b45aff"
-                />
-                <PecsCard
-                  cardCategory="Foods"
-                  cardName="Banana"
-                  categoryColor="#b1b45aff"
-                />
-              </View>
+              <View style={styles.mostUsedCardsContainer}></View>
             </View>
           </View>
 

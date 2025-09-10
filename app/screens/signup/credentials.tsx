@@ -7,12 +7,12 @@ import { Alert, StyleSheet, Text, TextInput, View } from "react-native";
 
 type userDataType = {
   role: string;
-  fname: string;
-  lname: string;
-  phoneNum: string;
+  first_name: string;
+  last_name: string;
+  phone_number: string;
   email: string;
   password: string;
-  creationDate: Date;
+  creation_date: Date;
 };
 
 const SignUpCredentialScreens = () => {

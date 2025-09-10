@@ -1,5 +1,4 @@
 import { ThemedView } from "@/components/ThemedView";
-import "@/firebaseConfig";
 import AppLoading from "expo-app-loading";
 import { useFonts } from "expo-font";
 import { router } from "expo-router";
@@ -24,9 +23,10 @@ import {
   heightPercentageToDP as hp,
   widthPercentageToDP as wp,
 } from "react-native-responsive-screen";
-const db = getFirestore();
 
 export default function HomeScreen() {
+  const db = getFirestore();
+
   let [fontsLoaded] = useFonts({
     Poppins: require("../../../assets/fonts/Poppins-Regular.ttf"),
   });
@@ -250,7 +250,7 @@ export default function HomeScreen() {
         setAllCards(cardsData);
       } catch (error) {
         console.error("Error fetching data from Firebase:", error);
-        alert("Error loading data from Firebase: " + error.message);
+        alert("Error loading data from Firebase: " + error);
       } finally {
         setLoading(false);
       }
@@ -746,7 +746,7 @@ export default function HomeScreen() {
             contentContainerStyle={[styles.cardsContainer]}
             getItemLayout={getItemLayout}
             removeClippedSubviews={false}
-            initialNumToRender={cardsPerRow * 3}
+            NumToRender={cardsPerRow * 3}
             maxToRenderPerBatch={cardsPerRow * 2}
             windowSize={5}
           />
