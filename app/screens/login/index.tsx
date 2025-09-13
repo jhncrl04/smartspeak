@@ -47,7 +47,7 @@ const LoginScreen = () => {
 
   return (
     <View style={styles.container}>
-      <View style={{ width: "100%" }}>
+      <View style={{ flex: 1, width: "100%" }}>
         <View style={styles.loginForm}>
           <TextInput
             style={styles.textbox}
@@ -104,6 +104,8 @@ const styles = StyleSheet.create({
 
     gap: 10,
     justifyContent: "center",
+
+    paddingVertical: 20,
   },
   textbox: {
     borderColor: COLORS.gray,

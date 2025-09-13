@@ -23,7 +23,12 @@ const ChildProfileScreen = () => {
 
       <View style={styles.pageContainer}>
         <View style={styles.headerContainer}>
-          <LearnerProfileHeader name="Johnny Cage" age={10} screen="guardian" />
+          <LearnerProfileHeader
+            profile=""
+            name="Johnny Cage"
+            age={10}
+            screen="guardian"
+          />
           <View>
             <HorizontalLine />
           </View>

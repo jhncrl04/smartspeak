@@ -97,8 +97,6 @@ const LearnerCard = (props: profile) => {
     },
   });
 
-  console.log(props);
-
   return props.cardType === "profile" ? (
     <TouchableOpacity
       style={styles.cards}

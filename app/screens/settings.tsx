@@ -14,7 +14,10 @@ import {
   View,
 } from "react-native";
 
-import { uploadProfilePic } from "@/services/userService";
+import {
+  updateCurrentUserInfo,
+  uploadProfilePic,
+} from "@/services/userService";
 import { useAuthStore } from "@/stores/userAuthStore";
 import * as ImagePicker from "expo-image-picker";
 
@@ -70,6 +73,27 @@ const SettingScreen = () => {
           Alert.alert("Upload Failed", "Something went wrong.");
         }
       }
+    }
+  };
+
+  const handleInfoUpdate = async (
+    fname: string,
+    lname: string,
+    phoneNumber: string
+  ) => {
+    try {
+      await updateCurrentUserInfo(fname, lname, phoneNumber);
+
+      updateUser({
+        fname,
+        lname,
+        phoneNumber,
+        email,
+      });
+
+      Alert.alert("Success", "Profile updated!");
+    } catch (err) {
+      console.error("Error updating user info: ", err);
     }
   };
 
@@ -164,13 +188,7 @@ const SettingScreen = () => {
                 <PrimaryButton
                   title="Save Changes"
                   clickHandler={() => {
-                    updateUser({
-                      fname,
-                      lname,
-                      phoneNumber,
-                      email,
-                    });
-                    Alert.alert("Success", "Profile updated!");
+                    handleInfoUpdate(fname, lname, phoneNumber);
                   }}
                 />
               </View>

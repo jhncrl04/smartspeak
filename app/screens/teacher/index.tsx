@@ -45,6 +45,7 @@ const ManageLearnersScreen = () => {
             <AddLearnerCard screen="teacher" />
             {results?.map((result, index) => (
               <LearnerCard
+                image={result.profile_pic}
                 name={result.fname}
                 age={1}
                 gender={result.gender}

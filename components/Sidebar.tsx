@@ -114,7 +114,11 @@ const Sidebar = ({ onNavigate, userRole }: SidebarProps) => {
               }}
             >
               <Image
-                source={require("../assets/images/creeper.png")}
+                source={
+                  user?.profile
+                    ? { uri: user.profile }
+                    : require("../assets/images/creeper.png")
+                }
                 style={styles.profile}
               />
               <Text

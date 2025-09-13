@@ -1,4 +1,7 @@
 import { ThemedView } from "@/components/ThemedView";
+import "@/firebaseConfig";
+import { useAuthStore } from "@/stores/userAuthStore";
+import auth from "@react-native-firebase/auth";
 import AppLoading from "expo-app-loading";
 import { useFonts } from "expo-font";
 import { router } from "expo-router";
@@ -18,21 +21,45 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { PanGestureHandler } from "react-native-gesture-handler";
 import {
   heightPercentageToDP as hp,
   widthPercentageToDP as wp,
 } from "react-native-responsive-screen";
 
-export default function HomeScreen() {
-  const db = getFirestore();
+const db = getFirestore();
 
-  let [fontsLoaded] = useFonts({
+export default function HomeScreen() {
+  // Get user data from auth store
+  const user = useAuthStore((state) => state.user);
+
+  // LOGOUT FUNCTION
+  const logout = useAuthStore((state) => state.logout);
+
+  const [fontsLoaded] = useFonts({
     Poppins: require("../../../assets/fonts/Poppins-Regular.ttf"),
   });
-  if (!fontsLoaded) {
-    return <AppLoading />;
-  }
+
+  // Function to handle logout
+  const handleLogout = async () => {
+    setShowSettingsModal(false);
+
+    try {
+      // Sign out from Firebase Auth
+      await auth().signOut();
+
+      // Clear user data from Zustand store (use the logout function already declared at component level)
+      logout(); // ✅ Use the logout function that's already available
+
+      // Navigate back to login screen
+      router.replace("/"); // Use replace instead of push to prevent going back
+
+      console.log("User logged out successfully");
+    } catch (error) {
+      console.error("Error during logout:", error);
+      // Show error to user if needed
+      alert("Error logging out. Please try again.");
+    }
+  };
 
   useEffect(() => {
     const lockOrientation = async () => {
@@ -42,9 +69,6 @@ export default function HomeScreen() {
     };
     lockOrientation();
   }, []);
-  if (!fontsLoaded) {
-    return null;
-  }
 
   const { width, height } = Dimensions.get("window");
   const isTablet = width > 968;
@@ -61,13 +85,12 @@ export default function HomeScreen() {
 
   type CategoryType = {
     id: string;
-    categoryName: string;
+    category_name: string;
     image: string;
     active: boolean;
   };
 
   const [sentenceCards, setSentenceCards] = useState<CardType[]>([]);
-  const [draggedCard, setDraggedCard] = useState<string | null>(null);
   const [allCards, setAllCards] = useState<CardType[]>([]);
   const [displayedCards, setDisplayedCards] = useState<CardType[]>([]);
   const [categories, setCategories] = useState<CategoryType[]>([]);
@@ -81,7 +104,44 @@ export default function HomeScreen() {
   const [showSettingsModal, setShowSettingsModal] = useState<boolean>(false);
   const tapTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const dragPosition = useRef(new Animated.ValueXY()).current;
+  // New states for notification
+  const [showNotification, setShowNotification] = useState<boolean>(false);
+  const notificationOpacity = useRef(new Animated.Value(0)).current;
+  const notificationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
+
+  // Animation for card tap feedback
+  const cardTapScale = useRef(new Animated.Value(1)).current;
+
+  // Function to show notification
+  const showNotificationMessage = () => {
+    // Clear any existing timeout
+    if (notificationTimeoutRef.current) {
+      clearTimeout(notificationTimeoutRef.current);
+    }
+
+    setShowNotification(true);
+
+    // Fade in animation
+    Animated.timing(notificationOpacity, {
+      toValue: 1,
+      duration: 300,
+      useNativeDriver: false,
+    }).start();
+
+    // Auto hide after 2 seconds
+    notificationTimeoutRef.current = setTimeout(() => {
+      // Fade out animation
+      Animated.timing(notificationOpacity, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: false,
+      }).start(() => {
+        setShowNotification(false);
+      });
+    }, 2000);
+  };
 
   // Function to handle profile image taps
   const handleProfileTap = () => {
@@ -114,25 +174,17 @@ export default function HomeScreen() {
     router.push("../screens/learner/profile");
   };
 
-  // Function to handle logout
-  const handleLogout = () => {
-    setShowSettingsModal(false);
-    // Add your logout logic here
-    alert("Logout functionality would be implemented here");
-  };
-
   // Clean up timeout on unmount
   useEffect(() => {
     return () => {
       if (tapTimeoutRef.current) {
         clearTimeout(tapTimeoutRef.current);
       }
+      if (notificationTimeoutRef.current) {
+        clearTimeout(notificationTimeoutRef.current);
+      }
     };
   }, []);
-
-  const handleUserPress = () => {
-    alert("User profile pressed!");
-  };
 
   // Function to play card name when added to sentence strip
   const playCardName = async (cardText: string) => {
@@ -177,64 +229,159 @@ export default function HomeScreen() {
     }
   };
 
-  // Fetch data from Firebase
+  // NEW: Function to handle card tap - adds card to sentence
+  const handleCardTap = async (card: CardType) => {
+    // Check if sentence strip is full (max 8 cards)
+    if (sentenceCards.length >= 8) {
+      console.log("Sentence strip is full");
+      return;
+    }
+
+    // Add visual feedback animation
+    Animated.sequence([
+      Animated.timing(cardTapScale, {
+        toValue: 1.1,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(cardTapScale, {
+        toValue: 1,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // Add card to sentence strip
+    setSentenceCards((prev) => [...prev, card]);
+
+    // Play the card name when added to sentence strip
+    await playCardName(card.text);
+
+    console.log("Card added to sentence:", card.text);
+  };
+
+  // UPDATED: Fetch data from Firebase with user-based filtering
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
 
-        // Fetch categories first
+        // Get current user ID from auth store - FIXED
+        const currentUserId = user?.uid;
+
+        if (!currentUserId) {
+          console.error("No current user ID found");
+          setLoading(false);
+          return;
+        }
+
+        console.log("Current user ID:", currentUserId);
+
+        // Fetch categories with user filtering
         const categoriesSnapshot = await getDocs(
           collection(db, "pecsCategories")
         );
-        const categoriesData: CategoryType[] = [];
+        const allCategoriesData: CategoryType[] = [];
 
         categoriesSnapshot.docs.forEach((categoryDoc) => {
           const categoryData = categoryDoc.data();
-          categoriesData.push({
-            id: categoryDoc.id,
-            categoryName: categoryData.categoryName || "Unknown Category",
-            image: categoryData.image || "",
-            active: false,
-          });
+
+          console.log("Category data:", categoryData); // Debug log
+
+          // Check if category should be visible to current user
+          const shouldShowCategory =
+            // Admin created (no assigned_to field) - show to all users
+            !categoryData.assigned_to ||
+            // Assigned to current user specifically
+            categoryData.assigned_to === currentUserId;
+
+          console.log(
+            `Category ${categoryData.category_name}: shouldShow=${shouldShowCategory}, assigned_to=${categoryData.assigned_to}`
+          );
+
+          if (shouldShowCategory) {
+            allCategoriesData.push({
+              id: categoryDoc.id,
+              category_name: categoryData.category_name || "Unknown Category",
+              image: categoryData.image || "",
+              active: false,
+            });
+          }
         });
 
-        // Fetch all cards from the cards collection
+        console.log("Filtered categories for user:", allCategoriesData);
+
+        // Fetch cards with user filtering
         const cardsSnapshot = await getDocs(collection(db, "cards"));
         const cardsData: CardType[] = [];
 
         cardsSnapshot.docs.forEach((cardDoc) => {
           const cardData = cardDoc.data();
 
-          // Debug: log each card's data
-          console.log("Card data:", cardData);
+          console.log("Card data:", cardData); // Debug log
 
-          cardsData.push({
-            id: cardDoc.id,
-            image: cardData.image || "",
-            text: cardData.cardName || cardData.text || "No text",
-            categoryId: cardData.categoryName || "", // This should match the category name exactly
-          });
+          // Check if card should be visible to current user
+          const shouldShowCard =
+            // Admin created (no assigned_to field) - show to all users
+            !cardData.assigned_to ||
+            // Assigned to current user specifically
+            cardData.assigned_to === currentUserId;
+
+          console.log(
+            `Card ${cardData.card_name}: shouldShow=${shouldShowCard}, assigned_to=${cardData.assigned_to}`
+          );
+
+          if (shouldShowCard) {
+            cardsData.push({
+              id: cardDoc.id,
+              image: cardData.image || "",
+              text: cardData.card_name || cardData.text || "No text",
+              categoryId: cardData.category_name || "", // Make sure this field exists in your cards
+            });
+          }
         });
 
-        console.log("All categories loaded:", categoriesData);
-        console.log("All cards loaded:", cardsData);
+        console.log("Filtered cards for user:", cardsData);
 
-        // Check what category names exist in cards
+        // Filter categories that have at least one card (from the filtered cards)
+        const categoriesWithCards = allCategoriesData.filter((category) => {
+          const hasCards = cardsData.some((card) => {
+            // Try exact match first, then case-insensitive match
+            const exactMatch = card.categoryId === category.category_name;
+            const caseInsensitiveMatch =
+              card.categoryId.toLowerCase() ===
+              category.category_name.toLowerCase();
+            return exactMatch || caseInsensitiveMatch;
+          });
+
+          console.log(
+            `Category "${category.category_name}" has cards:`,
+            hasCards
+          );
+          return hasCards;
+        });
+
+        console.log("Categories with cards for user:", categoriesWithCards);
+
+        // Check what category names exist in filtered cards
         const uniqueCardCategories = [
           ...new Set(cardsData.map((card) => card.categoryId)),
         ];
-        console.log("Unique card categories:", uniqueCardCategories);
+        console.log("Unique card categories for user:", uniqueCardCategories);
 
-        // Set first category as active by default
-        if (categoriesData.length > 0) {
-          categoriesData[0].active = true;
-          setSelectedCategory(categoriesData[0].id);
+        // Set first category as active by default (only if there are categories with cards)
+        if (categoriesWithCards.length > 0) {
+          categoriesWithCards[0].active = true;
+          setSelectedCategory(categoriesWithCards[0].id);
 
           // Filter cards for the first category
-          const firstCategoryName = categoriesData[0].categoryName;
+          const firstCategoryName = categoriesWithCards[0].category_name;
           const firstCategoryCards = cardsData.filter((card) => {
-            const matches = card.categoryId === firstCategoryName;
+            const exactMatch = card.categoryId === firstCategoryName;
+            const caseInsensitiveMatch =
+              card.categoryId.toLowerCase() === firstCategoryName.toLowerCase();
+            const matches = exactMatch || caseInsensitiveMatch;
+
             console.log(
               `Card "${card.text}" category "${card.categoryId}" matches "${firstCategoryName}":`,
               matches
@@ -242,24 +389,34 @@ export default function HomeScreen() {
             return matches;
           });
 
-          console.log("First category cards:", firstCategoryCards);
+          console.log("First category cards for user:", firstCategoryCards);
           setDisplayedCards(firstCategoryCards);
+        } else {
+          console.log("No categories with cards found for user");
+          setDisplayedCards([]);
         }
 
-        setCategories(categoriesData);
+        // Use filtered categories instead of all categories
+        setCategories(categoriesWithCards);
         setAllCards(cardsData);
       } catch (error) {
         console.error("Error fetching data from Firebase:", error);
-        alert("Error loading data from Firebase: " + error);
+        alert("Error loading data from Firebase: " + error.message);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchData();
-  }, []);
+    // Only fetch data if user exists
+    if (user?.uid) {
+      fetchData();
+    } else {
+      console.log("No user found, not fetching data");
+      setLoading(false);
+    }
+  }, [user]); // Add user as dependency to refetch when user changes
 
-  // Filter cards when category changes
+  // UPDATED: Filter cards when category changes
   const handleCategoryPress = (categoryId: string) => {
     console.log("Category pressed:", categoryId);
 
@@ -280,13 +437,13 @@ export default function HomeScreen() {
       return;
     }
 
-    console.log("Selected category name:", selectedCategory.categoryName);
+    console.log("Selected category name:", selectedCategory.category_name);
 
-    // Filter cards that match this category name
+    // Filter cards that match this category name (from already filtered allCards)
     const filteredCards = allCards.filter((card) => {
-      const matches = card.categoryId === selectedCategory.categoryName;
+      const matches = card.categoryId === selectedCategory.category_name;
       console.log(
-        `Card "${card.text}" (category: "${card.categoryId}") matches "${selectedCategory.categoryName}":`,
+        `Card "${card.text}" (category: "${card.categoryId}") matches "${selectedCategory.category_name}":`,
         matches
       );
       return matches;
@@ -294,7 +451,7 @@ export default function HomeScreen() {
 
     console.log(
       "Filtered cards for category:",
-      selectedCategory.categoryName,
+      selectedCategory.category_name,
       filteredCards
     );
     setDisplayedCards(filteredCards);
@@ -305,85 +462,10 @@ export default function HomeScreen() {
       const caseInsensitiveFiltered = allCards.filter(
         (card) =>
           card.categoryId.toLowerCase() ===
-          selectedCategory.categoryName.toLowerCase()
+          selectedCategory.category_name.toLowerCase()
       );
       console.log("Case-insensitive matches:", caseInsensitiveFiltered);
       setDisplayedCards(caseInsensitiveFiltered);
-    }
-  };
-
-  const onGestureEvent = Animated.event(
-    [
-      {
-        nativeEvent: {
-          translationX: dragPosition.x,
-          translationY: dragPosition.y,
-        },
-      },
-    ],
-    { useNativeDriver: false }
-  );
-
-  interface PanGestureHandlerStateChangeEvent {
-    nativeEvent: {
-      state: number;
-      translationX: number;
-      translationY: number;
-      absoluteX: number;
-      absoluteY: number;
-    };
-  }
-
-  const onHandlerStateChange = async (
-    event: PanGestureHandlerStateChangeEvent,
-    card: CardType
-  ): Promise<void> => {
-    if (event.nativeEvent.state === 5) {
-      const { translationX, translationY, absoluteX, absoluteY } =
-        event.nativeEvent;
-
-      // Get sentence strip bounds more accurately
-      const sentenceStripTop = hp(6);
-      const sentenceStripBottom = hp(6) + (isTablet ? hp(18) : hp(22));
-      const sentenceStripLeft = wp(2.5);
-      const sentenceStripRight = width - wp(2.5);
-
-      // Check if dropped within sentence strip area
-      const isInSentenceStrip =
-        absoluteY >= sentenceStripTop &&
-        absoluteY <= sentenceStripBottom &&
-        absoluteX >= sentenceStripLeft &&
-        absoluteX <= sentenceStripRight;
-
-      if (isInSentenceStrip && sentenceCards.length < 8) {
-        setSentenceCards((prev) => [...prev, card]);
-
-        // Play the card name when added to sentence strip
-        await playCardName(card.text);
-
-        // Visual feedback - could add a success animation here
-        console.log("Card added to sentence:", card.text);
-      } else if (sentenceCards.length >= 8) {
-        // Could show feedback that sentence strip is full
-        console.log("Sentence strip is full");
-      }
-
-      // Reset position with smooth animation
-      Animated.spring(dragPosition, {
-        toValue: { x: 0, y: 0 },
-        useNativeDriver: false,
-        tension: 100,
-        friction: 8,
-      }).start();
-
-      setDraggedCard(null);
-    } else if (event.nativeEvent.state === 2) {
-      // BEGAN state
-      setDraggedCard(card.id);
-
-      // Prepare drag by extracting any offset so translation uses fresh values
-      // This avoids accessing internal _value fields on Animated.ValueXY
-      dragPosition.extractOffset();
     }
   };
 
@@ -442,7 +524,8 @@ export default function HomeScreen() {
         alert("Error playing audio. Please try again.");
       }
     } else if (sentenceCards.length === 0) {
-      alert("Please add cards to create a sentence first.");
+      // Show notification instead of alert
+      showNotificationMessage();
     }
   };
 
@@ -464,6 +547,7 @@ export default function HomeScreen() {
     };
   }, []);
 
+  // UPDATED: Simplified card render function - now just uses TouchableOpacity
   const renderCard = ({
     item,
     index,
@@ -471,78 +555,58 @@ export default function HomeScreen() {
     item: CardType;
     index: number;
   }): JSX.Element => {
-    const isDragged = draggedCard === item.id;
-
     return (
-      <PanGestureHandler
-        onGestureEvent={onGestureEvent}
-        onHandlerStateChange={(event) => onHandlerStateChange(event, item)}
-        minDist={2} // Minimum distance before drag starts
+      <TouchableOpacity
+        style={[
+          styles.card,
+          {
+            width: cardWidth,
+            height: cardHeight,
+          },
+        ]}
+        onPress={() => handleCardTap(item)}
+        activeOpacity={0.7}
       >
-        <Animated.View
-          style={[
-            styles.card,
-            {
-              width: cardWidth,
-              height: cardHeight,
-              transform: isDragged
-                ? [
-                    ...dragPosition.getTranslateTransform(),
-                    { scale: isDragged ? 1.05 : 1 }, // Slight scale when dragging
-                  ]
-                : [],
-              zIndex: isDragged ? 1000 : 1,
-              elevation: isDragged ? 15 : 5,
-              opacity: isDragged ? 0.9 : 1, // Slight transparency when dragging
-            },
-          ]}
-        >
-          <View style={styles.cardContent}>
-            <View
-              style={[
-                styles.imageContainer,
-                {
-                  width: cardWidth,
-                  height: cardHeight * 0.7, // 70% of card height for image
-                },
-              ]}
-            >
-              <Image
-                source={
-                  item.image
-                    ? { uri: item.image }
-                    : require("@/assets/images/User.png")
-                }
-                style={styles.imageCard}
-              />
-            </View>
-            <View
-              style={[
-                styles.textContainer,
-                {
-                  width: cardWidth,
-                  height: cardHeight * 0.3, // 30% of card height for text
-                },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.cardText,
-                  {
-                    fontSize: Math.min(cardWidth * 0.1, 16), // Responsive font size
-                  },
-                ]}
-                numberOfLines={2} // Allow maximum 2 lines
-                adjustsFontSizeToFit={true} // Auto adjust font size to fit
-                minimumFontScale={0.6} // Minimum scale for font size
-                textBreakStrategy="balanced" // Better text wrapping
-              >
-                {item.text}
-              </Text>
-            </View>
+        <View style={styles.cardContent}>
+          <View
+            style={[
+              styles.imageContainer,
+              {
+                width: cardWidth,
+                height: cardHeight * 0.7, // 70% of card height for image
+              },
+            ]}
+          >
+            <Image
+              source={
+                item.image
+                  ? { uri: item.image }
+                  : require("@/assets/images/User.png")
+              }
+              style={styles.imageCard}
+            />
           </View>
-        </Animated.View>
-      </PanGestureHandler>
+          <View
+            style={[
+              styles.textContainer,
+              {
+                width: cardWidth,
+                height: cardHeight * 0.3, // 30% of card height for text
+              },
+            ]}
+          >
+            <Text
+              style={[styles.cardText]}
+              numberOfLines={2} // Allow maximum 2 lines
+              adjustsFontSizeToFit={true} // Auto adjust font size to fit
+              minimumFontScale={0.6} // Minimum scale for font size
+              textBreakStrategy="balanced" // Better text wrapping
+            >
+              {item.text}
+            </Text>
+          </View>
+        </View>
+      </TouchableOpacity>
     );
   };
 
@@ -585,12 +649,16 @@ export default function HomeScreen() {
     </TouchableOpacity>
   );
 
+  if (!fontsLoaded) {
+    return <AppLoading />;
+  }
+
   // Fixed getItemLayout function
   const getItemLayout = (
     data: CardType[] | null | undefined,
     index: number
   ) => ({
-    length: cardHeight + 10, // Use cardHeight instead of cardWidth for grid layout
+    length: cardHeight + 10,
     offset: Math.floor(index / cardsPerRow) * (cardHeight + 10),
     index,
   });
@@ -606,20 +674,40 @@ export default function HomeScreen() {
 
   return (
     <ThemedView style={styles.container}>
+      {/* NOTIFICATION BOX */}
+      {showNotification && (
+        <Animated.View
+          style={[
+            styles.notificationContainer,
+            {
+              opacity: notificationOpacity,
+            },
+          ]}
+        >
+          <View style={styles.notificationBox}>
+            <Text style={styles.notificationText}>
+              Please add cards to create a sentence first
+            </Text>
+          </View>
+        </Animated.View>
+      )}
+
       {/* HEADER */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={handleProfileTap}>
-          <Image
-            source={require("@/assets/images/user2.png")}
-            style={styles.headerImage}
-          />
-          {/* Optional tap indicator */}
-          {tapCount > 0 && tapCount < 5 && (
-            <View style={styles.tapIndicator}>
-              <Text style={styles.tapIndicatorText}>{tapCount}/5</Text>
-            </View>
-          )}
-        </TouchableOpacity>
+        <View style={styles.userInfoContainer}>
+          <TouchableOpacity onPress={handleProfileTap}>
+            <Image
+              source={require("@/assets/images/user2.png")}
+              style={styles.headerImage}
+            />
+            {/* Optional tap indicator */}
+            {tapCount > 0 && tapCount < 5 && (
+              <View style={styles.tapIndicator}>
+                <Text style={styles.tapIndicatorText}>{tapCount}/5</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Settings Modal */}
@@ -695,7 +783,7 @@ export default function HomeScreen() {
             <View style={styles.sentence}>
               {sentenceCards.length === 0 ? (
                 <Text style={styles.dropHint}>
-                  Drag cards here to build a sentence
+                  Tap cards to build a sentence
                 </Text>
               ) : (
                 <FlatList
@@ -746,49 +834,45 @@ export default function HomeScreen() {
             contentContainerStyle={[styles.cardsContainer]}
             getItemLayout={getItemLayout}
             removeClippedSubviews={false}
-            NumToRender={cardsPerRow * 3}
+            initialNumToRender={cardsPerRow * 3}
             maxToRenderPerBatch={cardsPerRow * 2}
             windowSize={5}
           />
         </View>
       </View>
 
-      {/* FOOTER */}
-      <View style={styles.footer}>
-        <FlatList
-          data={categories}
-          renderItem={({ item, index }) => (
-            <TouchableOpacity
-              style={[
-                styles.categoryInfos,
-                item.active && styles.categoryInfosActive,
-                index === categories.length - 1 && styles.categoryInfosLast, // Remove border on last item
-              ]}
-              onPress={() => handleCategoryPress(item.id)}
-            >
-              <Image
-                source={
-                  item.image
-                    ? { uri: item.image }
-                    : require("@/assets/images/pecs1.png")
-                }
-                style={styles.categoryImage}
-              />
-              <Text
-                style={styles.categoryText}
-                numberOfLines={2}
-                adjustsFontSizeToFit
+      {/* FOOTER - Only show if there are categories with cards */}
+      {categories.length > 0 && (
+        <View style={styles.footer}>
+          <FlatList
+            data={categories}
+            renderItem={({ item, index }) => (
+              <TouchableOpacity
+                style={[
+                  styles.categoryInfos,
+                  item.active && styles.categoryInfosActive,
+                  index === categories.length - 1 && styles.categoryInfosLast, // Remove border on last item
+                ]}
+                onPress={() => handleCategoryPress(item.id)}
               >
-                {item.categoryName}
-              </Text>
-            </TouchableOpacity>
-          )}
-          keyExtractor={(item) => item.id}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categoryContainer}
-        />
-      </View>
+                <Image
+                  source={
+                    item.image
+                      ? { uri: item.image }
+                      : require("@/assets/images/pecs1.png")
+                  }
+                  style={styles.categoryImage}
+                />
+                <Text style={styles.categoryText}>{item.category_name}</Text>
+              </TouchableOpacity>
+            )}
+            keyExtractor={(item) => item.id}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.categoryContainer}
+          />
+        </View>
+      )}
     </ThemedView>
   );
 }
@@ -814,16 +898,63 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
 
+  // NOTIFICATION STYLES
+  notificationContainer: {
+    position: "absolute",
+    top: hp(3),
+    left: wp(2.5),
+    right: wp(2.5),
+    zIndex: 9999,
+    alignItems: "center",
+  },
+
+  notificationBox: {
+    backgroundColor: "#FF6B6B",
+    paddingVertical: hp(1),
+    paddingHorizontal: wp(4),
+    borderRadius: wp(2),
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 8,
+  },
+
+  notificationText: {
+    color: "#fafafa",
+    fontSize: wp(2.2),
+    fontWeight: "500",
+    textAlign: "center",
+    fontFamily: "Poppins",
+  },
+
   // HEADER STYLES
   header: {
-    paddingHorizontal: wp(4),
+    paddingHorizontal: wp(8),
     paddingVertical: hp(0.5),
     backgroundColor: "#E5E5E5",
-    height: hp(6),
+    height: hp(4),
     justifyContent: "center",
     alignItems: "flex-end",
     position: "relative",
   },
+
+  userInfoContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: wp(2),
+  },
+
+  userName: {
+    fontSize: wp(2.5),
+    fontWeight: "500",
+    color: "#9B72CF",
+    fontFamily: "Poppins",
+  },
+
   headerImage: {
     width: wp(3),
     height: hp(3.5),
@@ -856,9 +987,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   modalContent: {
-    backgroundColor: "white",
-    borderRadius: wp(1),
-    padding: wp(2),
+    backgroundColor: "#fafafa",
+    borderRadius: wp(2),
+    padding: wp(3),
     minWidth: wp(25),
     alignItems: "center",
     shadowColor: "#000",
@@ -871,25 +1002,25 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   modalTitle: {
-    fontSize: wp(1.8),
+    fontSize: wp(3),
     fontWeight: "700",
     color: "#9B72CF",
-    marginBottom: hp(3),
+    marginBottom: hp(2),
     fontFamily: "Poppins",
   },
   modalButton: {
     backgroundColor: "#9B72CF",
-    paddingVertical: 15,
-    paddingHorizontal: 30,
-    borderRadius: wp(1),
+    paddingVertical: hp(1),
+    paddingHorizontal: wp(2),
+    borderRadius: wp(2),
     marginBottom: 15,
     minWidth: 200,
     alignItems: "center",
   },
   modalButtonText: {
     color: "white",
-    fontSize: wp(1.2),
-    fontWeight: "500",
+    fontSize: wp(2.2),
+    fontWeight: "600",
     fontFamily: "Poppins",
   },
   logoutButton: {
@@ -904,7 +1035,7 @@ const styles = StyleSheet.create({
   },
   cancelButtonText: {
     color: "#434343",
-    fontSize: wp(1.2),
+    fontSize: wp(2.2),
     fontFamily: "Poppins",
   },
 
@@ -914,7 +1045,7 @@ const styles = StyleSheet.create({
   },
 
   firstContainer: {
-    height: isTablet ? hp(18) : hp(22), // Increased for mobile
+    height: isTablet ? hp(7) : hp(11), // Increased for mobile
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: wp(2.5),
@@ -922,12 +1053,12 @@ const styles = StyleSheet.create({
 
   sentenceStrip: {
     backgroundColor: "#9B72CF",
-    height: isTablet ? hp(14) : hp(18), // Increased for mobile
+    height: isTablet ? hp(5) : hp(9), // Increased for mobile
     flexDirection: "row",
     gap: wp(1),
     justifyContent: "space-between",
     alignItems: "center",
-    borderRadius: wp(1),
+    borderRadius: wp(2),
     paddingHorizontal: wp(2),
   },
 
@@ -935,8 +1066,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#fafafa",
     paddingVertical: hp(1.5),
     paddingHorizontal: wp(1),
-    borderRadius: wp(1),
-    height: isTablet ? hp(9) : hp(11), // Increased for mobile
+    borderRadius: wp(2),
+    height: isTablet ? hp(4) : hp(6), // Increased for mobile
     justifyContent: "center",
     alignItems: "center",
   },
@@ -949,7 +1080,7 @@ const styles = StyleSheet.create({
   },
 
   buttonText: {
-    fontSize: wp(1),
+    fontSize: wp(2),
     fontFamily: "Poppins",
     letterSpacing: 0.5,
     fontWeight: "bold",
@@ -975,17 +1106,17 @@ const styles = StyleSheet.create({
   sentence: {
     backgroundColor: "#fafafa",
     flex: 1,
-    height: isTablet ? hp(12) : hp(16), // Increased for mobile
-    borderRadius: wp(1),
+    height: isTablet ? hp(4) : hp(8),
+    borderRadius: wp(2),
     justifyContent: "center",
     alignItems: "center",
   },
 
   dropHint: {
     color: "#9B72CF",
-    fontSize: wp(1.5),
+    fontSize: wp(2.6),
     textAlign: "center",
-    opacity: 0.7,
+    opacity: 0.5,
   },
 
   sentenceCardsContainer: {
@@ -996,20 +1127,20 @@ const styles = StyleSheet.create({
   // CARDS IN SENTENCE STRIP
   sentenceCard: {
     backgroundColor: "#5FA056",
-    borderRadius: wp(1),
+    borderRadius: wp(2),
     marginRight: wp(0.5),
     alignItems: "center",
     justifyContent: "center",
-    width: wp(7.5),
-    height: isTablet ? hp(11) : hp(14), // Increased for mobile
+    width: wp(16),
+    height: isTablet ? hp(3) : hp(7),
     overflow: "hidden",
     flexDirection: "column",
   },
 
   sentenceCardImageContainer: {
-    width: wp(7.5),
-    height: (isTablet ? hp(11) : hp(14)) * 0.7, // 70% of updated sentence card height
-    backgroundColor: "#ffffff",
+    width: wp(16),
+    height: (isTablet ? hp(3) : hp(7)) * 0.8,
+    backgroundColor: "#9B72CF",
     overflow: "hidden",
   },
 
@@ -1020,8 +1151,8 @@ const styles = StyleSheet.create({
   },
 
   sentenceCardTextContainer: {
-    width: wp(7.5),
-    height: (isTablet ? hp(11) : hp(14)) * 0.3, // 30% of updated sentence card height
+    width: wp(16),
+    height: (isTablet ? hp(10) : hp(13)) * 0.2, // 30% of updated sentence card height
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: wp(0.5),
@@ -1030,31 +1161,28 @@ const styles = StyleSheet.create({
 
   sentenceCardText: {
     color: "#fafafa",
-    fontSize: wp(0.8),
+    fontSize: wp(1.4),
     fontWeight: "500",
     textAlign: "center",
     fontFamily: "Poppins",
-    lineHeight: 12, // Better line spacing for multi-line text
   },
 
   secondContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingBottom: hp(2),
+    paddingBottom: hp(1),
   },
 
   // DISPLAYED CARDS - UPDATED STYLES
   cardsContainer: {
     justifyContent: "space-around",
-    paddingVertical: hp(1),
-    paddingHorizontal: wp(1),
     borderRadius: wp(1.5),
   },
 
   card: {
     backgroundColor: "#5FA056",
-    borderRadius: wp(1),
+    borderRadius: wp(2),
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
@@ -1088,17 +1216,18 @@ const styles = StyleSheet.create({
   },
 
   cardText: {
-    color: "#ffffff",
+    color: "#fafafa",
     textAlign: "center",
     fontFamily: "Poppins",
     fontWeight: "500",
     lineHeight: 16,
+    fontSize: wp(2.2),
   },
 
   // FOOTER STYLES
   footer: {
     backgroundColor: "#E5E5E5",
-    height: hp(8),
+    height: hp(4),
     justifyContent: "center",
   },
 
@@ -1115,12 +1244,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: wp(0.5),
-    paddingHorizontal: wp(2),
-    paddingVertical: hp(1),
+    gap: wp(1.5),
+    paddingHorizontal: wp(6),
     borderRightWidth: 1,
     borderColor: "#9B72CF",
-    minWidth: wp(15), // Ensure minimum width
+    minWidth: wp(18),
+    height: hp(3),
   },
 
   categoryInfosActive: {
@@ -1128,34 +1257,36 @@ const styles = StyleSheet.create({
     display: "flex",
     flexDirection: "row",
     alignItems: "center",
-    height: hp(8),
-    gap: wp(0.5),
-    borderBottomLeftRadius: wp(1),
-    borderBottomRightRadius: wp(1),
-    paddingHorizontal: wp(2),
+    justifyContent: "center",
+    height: hp(4),
+    gap: wp(1.5),
+    borderBottomLeftRadius: wp(2),
+    borderBottomRightRadius: wp(2),
+    paddingHorizontal: wp(6),
     paddingVertical: hp(1),
     borderRightWidth: 1,
     borderColor: "#9B72CF",
   },
 
   categoryInfosLast: {
-    borderRightWidth: 0, // Remove border on last item
+    borderRightWidth: 0,
   },
 
   categoryImage: {
     borderRadius: wp(0.5),
     resizeMode: "contain",
     aspectRatio: 1,
-    width: wp(2.5), // Consistent size like profile
-    height: hp(2.5),
+    width: wp(4),
+    height: hp(4),
   },
 
   categoryText: {
-    fontSize: wp(1.2),
+    fontSize: wp(2.2),
     fontWeight: "500",
     color: "#9B72CF",
     fontFamily: "Poppins",
-    textAlign: "left", // Left align like profile
+    textAlign: "left",
+    justifyContent: "center",
     marginTop: 0,
   },
 });

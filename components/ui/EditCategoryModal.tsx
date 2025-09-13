@@ -106,7 +106,6 @@ const EditCategoryModal = ({ visible, onClose, categoryId }: modalProps) => {
     try {
       await deleteCategory(categoryId);
 
-      Alert.alert("Success", "Category deleted successfully!");
       onClose();
     } catch (err) {
       console.error("Error deleting category: ", err);

@@ -2,7 +2,12 @@ import COLORS from "@/constants/Colors";
 import { Image, StyleSheet, Text, View } from "react-native";
 import PrimaryButton from "./PrimaryButton";
 
-type profileProps = { name: string; age: number; screen: string };
+type profileProps = {
+  profile: string;
+  name: string;
+  age: number;
+  screen: string;
+};
 
 const LearnerProfileHeader = (props: profileProps) => {
   return (
@@ -11,7 +16,11 @@ const LearnerProfileHeader = (props: profileProps) => {
         <View style={styles.profileContainer}>
           <Image
             style={styles.profile}
-            source={require("../assets/images/creeper.png")}
+            source={
+              props.profile
+                ? { uri: props.profile }
+                : require("../assets/images/creeper.png")
+            }
           />
         </View>
         <View style={styles.nameAgeContainer}>

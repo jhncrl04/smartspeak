@@ -139,8 +139,6 @@ export const getStudentInfo = async (studentId: string) => {
 
     const result = snapshot.data();
 
-    console.log(result);
-
     return result;
   } catch (err) {
     console.error("Error getting student info:", err);
@@ -170,8 +168,20 @@ export const uploadProfilePic = async (imageUri: string) => {
   }
 };
 
-export const updateCurrentUserInfo = async () => {
+export const updateCurrentUserInfo = async (
+  fname: string,
+  lname: string,
+  phoneNumber: string
+) => {
   try {
+    const uid = getCurrentUid();
+    if (!uid) throw new Error("No authenticated user");
+
+    await userCollection.doc(uid).update({
+      first_name: fname,
+      last_name: lname,
+      phone_number: phoneNumber,
+    });
   } catch (err) {
     console.error("Error updating user info: ", err);
   }

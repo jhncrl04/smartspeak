@@ -204,7 +204,7 @@ export const deleteCategory = async (categoryId: string) => {
             {
               text: "Cancel",
               style: "cancel",
-              onPress: () => reject(new Error("User cancelled delete")),
+              onPress: () => resolve(),
             },
             {
               text: "Yes, Delete",
@@ -213,9 +213,10 @@ export const deleteCategory = async (categoryId: string) => {
                 try {
                   await categoryCollection.doc(categoryId).delete();
                   resolve();
+
+                  Alert.alert("Success", "Category deleted successfully!");
                 } catch (err) {
                   console.error("Error deleting category:", err);
-                  reject(err);
                 }
               },
             },

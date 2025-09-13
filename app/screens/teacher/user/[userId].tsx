@@ -31,7 +31,6 @@ const LearnerProfile = () => {
         console.error("Error fetching student info: ", err);
       }
     };
-
     fetchUserInfo();
   }, [userId]);
 
@@ -59,6 +58,7 @@ const LearnerProfile = () => {
             <View style={styles.headerContainer}>
               <ActionLink text="Return" clickHandler={router.back} />
               <LearnerProfileHeader
+                profile={userInfo?.profile_pic}
                 name={`${userInfo?.fname} ${userInfo?.lname}`}
                 age={10}
                 screen="teacher"
