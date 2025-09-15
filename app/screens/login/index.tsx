@@ -1,9 +1,10 @@
 import ActionLink from "@/components/ActionLink";
 import PrimaryButton from "@/components/PrimaryButton";
+import TextFieldWrapper from "@/components/TextfieldWrapper";
+import LoadingScreen from "@/components/ui/LoadingScreen";
 import COLORS from "@/constants/Colors";
 import { loginAuth } from "@/services/userApi/Authentication";
 import { useAuthStore } from "@/stores/userAuthStore";
-import auth from "@react-native-firebase/auth";
 import { router } from "expo-router";
 import { useState } from "react";
 import { StyleSheet, TextInput, View } from "react-native";
@@ -12,69 +13,80 @@ const LoginScreen = () => {
   // added a value for testing, remove when done
   const [email, setEmail] = useState("johncarloservidad1@gmail.com");
   const [password, setPassword] = useState("Johncarlo1");
+  const [loading, setLoading] = useState(false);
 
   const login = useAuthStore((state) => state.login);
-  const user = useAuthStore((state) => state.user);
 
   const validateInput = async (email: string, password: string) => {
-    const userAuth = await loginAuth(email, password);
+    try {
+      setLoading(true);
 
-    if (userAuth) {
-      const [firebaseUser, userDoc] = userAuth;
+      const userAuth = await loginAuth(email, password);
 
-      if (userDoc && "role" in userDoc) {
-        const role = userDoc.role;
-        const currentUser = auth().currentUser;
+      if (userAuth) {
+        const [firebaseUser, userDoc] = userAuth;
 
-        login({
-          fname: userDoc.first_name,
-          lname: userDoc.last_name,
-          email: userDoc.email,
-          phoneNumber: userDoc.phone_number,
-          profile: userDoc.profile_pic,
-          role: role,
-          uid: firebaseUser?.uid,
-        });
+        if (userDoc && "role" in userDoc) {
+          const role = userDoc.role;
 
-        console.log(firebaseUser?.uid);
+          login({
+            fname: userDoc.first_name,
+            lname: userDoc.last_name,
+            email: userDoc.email,
+            phoneNumber: userDoc.phone_number,
+            profile: userDoc.profile_pic,
+            role: role,
+            uid: firebaseUser?.uid,
+          });
 
-        router.replace(`/screens/${role.toLowerCase()}` as any);
-      } else {
-        console.log("User document missing or role not found.");
+          router.replace(`/screens/${role.toLowerCase()}` as any);
+        } else {
+          console.log("User document missing or role not found.");
+        }
       }
+    } catch (err) {
+      console.error("Login error:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <View style={styles.container}>
+      <LoadingScreen visible={loading} />
+
       <View style={{ flex: 1, width: "100%" }}>
         <View style={styles.loginForm}>
-          <TextInput
-            style={styles.textbox}
-            placeholder="Email"
-            keyboardType="email-address"
-            value={email}
-            onChangeText={setEmail}
-          />
-          <TextInput
-            style={styles.textbox}
-            placeholder="Password"
-            secureTextEntry={true}
-            value={password}
-            onChangeText={setPassword}
-          />
+          <View style={styles.inputContainer}>
+            <TextFieldWrapper label="Email">
+              <TextInput
+                style={styles.textbox}
+                placeholder=""
+                keyboardType="email-address"
+                value={email}
+                onChangeText={setEmail}
+              />
+            </TextFieldWrapper>
+            <TextFieldWrapper label="Password">
+              <TextInput
+                style={styles.textbox}
+                placeholder=""
+                secureTextEntry={true}
+                value={password}
+                onChangeText={setPassword}
+              />
+            </TextFieldWrapper>
+          </View>
           <ActionLink
             text="Forgot Password?"
             clickHandler={() => {
               router.push("/screens/signup");
             }}
           />
-          {/* <Link style={styles.forgotPassword} href="/screens/signup">
-            Forgot Password?
-          </Link> */}
           <View>
             <PrimaryButton
               title={"Log In"}
+              disabled={loading}
               clickHandler={async () => {
                 await validateInput(email, password);
               }}
@@ -105,7 +117,7 @@ const styles = StyleSheet.create({
     gap: 10,
     justifyContent: "center",
 
-    paddingVertical: 20,
+    paddingVertical: 10,
   },
   textbox: {
     borderColor: COLORS.gray,
@@ -118,7 +130,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   inputContainer: {
-    gap: 10,
+    gap: 5,
   },
   forgotPassword: {
     alignSelf: "flex-end",

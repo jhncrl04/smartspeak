@@ -1,10 +1,17 @@
 import PrimaryButton from "@/components/PrimaryButton";
-import ButtonSeparator from "@/components/ui/ButtonSeparator";
+import TextFieldWrapper from "@/components/TextfieldWrapper";
 import COLORS from "@/constants/Colors";
 import { useSignupForm } from "@/context/signupContext";
 import { router } from "expo-router";
 import { useState } from "react";
-import { ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import {
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 
 const PersonalDetailsScreen = () => {
   const [errorMsg, setErrorMsg] = useState("This is an error message");
@@ -23,31 +30,39 @@ const PersonalDetailsScreen = () => {
         </View>
 
         <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.textbox}
-            placeholder="First Name"
-            onChangeText={(firstName) =>
-              setFormData({ ...formData, first_name: firstName })
-            }
-            value={formData.first_name}
-          />
-          <TextInput
-            style={styles.textbox}
-            placeholder="Last Name"
-            onChangeText={(lastName) =>
-              setFormData({ ...formData, last_name: lastName })
-            }
-            value={formData.last_name}
-          />
-          <TextInput
-            style={styles.textbox}
-            placeholder="Phone Number"
-            keyboardType="phone-pad"
-            onChangeText={(phoneNum) =>
-              setFormData({ ...formData, phone_number: phoneNum })
-            }
-            value={formData.phone_number}
-          />
+          <TextFieldWrapper label="First Name">
+            <TextInput
+              style={styles.textbox}
+              placeholder=""
+              onChangeText={(firstName) =>
+                setFormData({ ...formData, first_name: firstName })
+              }
+              value={formData.first_name}
+            />
+          </TextFieldWrapper>
+
+          <TextFieldWrapper label="Last Name">
+            <TextInput
+              style={styles.textbox}
+              placeholder=""
+              onChangeText={(lastName) =>
+                setFormData({ ...formData, last_name: lastName })
+              }
+              value={formData.last_name}
+            />
+          </TextFieldWrapper>
+
+          <TextFieldWrapper label="Phone Number">
+            <TextInput
+              style={styles.textbox}
+              placeholder=""
+              keyboardType="phone-pad"
+              onChangeText={(phoneNum) =>
+                setFormData({ ...formData, phone_number: phoneNum })
+              }
+              value={formData.phone_number}
+            />
+          </TextFieldWrapper>
         </View>
 
         <View>
@@ -61,8 +76,8 @@ const PersonalDetailsScreen = () => {
               )
             }
           />
-          <ButtonSeparator />
-          {/* <SecondaryButton
+          {/* <ButtonSeparator />
+          <SecondaryButton
             title={"Continue with Google"}
             clickHandler={() => {}}
           /> */}
@@ -80,11 +95,11 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: "5%",
-    paddingVertical: 20,
-    gap: 10,
+    paddingVertical: 10,
+    gap: 8,
   },
   headerContainer: {
-    gap: 5,
+    gap: 0,
   },
   stepIndicator: {
     fontSize: 14,
@@ -116,7 +131,7 @@ const styles = StyleSheet.create({
     height: 100,
   },
   inputContainer: {
-    gap: 5,
+    gap: 0,
   },
   textbox: {
     borderColor: COLORS.gray,
@@ -139,6 +154,7 @@ const isDataValid = (firstName: string, lastName: string, phoneNum: string) => {
     !phoneNum ||
     phoneNum.trim().length === 0
   ) {
+    Alert.alert("Missing input", "Please fill all the required fields");
     return false;
   }
 

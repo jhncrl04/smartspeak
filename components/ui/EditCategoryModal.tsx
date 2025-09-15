@@ -22,6 +22,7 @@ import {
 import * as ImagePicker from "expo-image-picker";
 import { runOnJS } from "react-native-reanimated";
 import SecondaryButton from "../SecondaryButton";
+import imageToBase64 from "@/helper/imageToBase64";
 
 type modalProps = {
   visible: boolean;
@@ -91,7 +92,7 @@ const EditCategoryModal = ({ visible, onClose, categoryId }: modalProps) => {
       await updateCategory(categoryId, {
         category_name: categoryName,
         background_color: selectedColor,
-        image,
+        image: await imageToBase64(image),
       });
 
       Alert.alert("Success", "Category updated successfully!");

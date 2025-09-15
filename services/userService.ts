@@ -1,4 +1,5 @@
 import getCurrentUid from "@/helper/getCurrentUid";
+import auth from "@react-native-firebase/auth";
 import firestore, { arrayUnion } from "@react-native-firebase/firestore";
 import * as FileSystem from "expo-file-system";
 
@@ -94,6 +95,66 @@ export const getStudents = async () => {
   }
 };
 
+export const listenToStudents = (
+  onUpdate: (students: any[]) => void,
+  onError?: (err: any) => void
+) => {
+  const uid = getCurrentUid();
+  if (!uid) {
+    onError?.(new Error("No authenticated user"));
+    return () => {}; // dummy unsubscribe
+  }
+
+  // Main unsubscribe holder
+  let studentUnsubs: (() => void)[] = [];
+
+  // Listen to teacher doc for studentIds
+  const unsubscribeTeacher = userCollection.doc(uid).onSnapshot(
+    (userSnapshot) => {
+      const studentIds: string[] = userSnapshot.data()?.students || [];
+
+      // Clear old listeners whenever the student list changes
+      studentUnsubs.forEach((u) => u());
+      studentUnsubs = [];
+
+      if (studentIds.length === 0) {
+        onUpdate([]);
+        return;
+      }
+
+      const idsCopy = [...studentIds];
+      const allStudents: Record<string, any> = {};
+
+      while (idsCopy.length) {
+        const chunk = idsCopy.splice(0, 10);
+
+        const unsub = userCollection
+          .where(firestore.FieldPath.documentId(), "in", chunk)
+          .onSnapshot(
+            (snap) => {
+              snap.docs.forEach((doc) => {
+                allStudents[doc.id] = { id: doc.id, ...doc.data() };
+              });
+
+              // Convert object → array
+              onUpdate(Object.values(allStudents));
+            },
+            (err) => onError?.(err)
+          );
+
+        studentUnsubs.push(unsub);
+      }
+    },
+    (err) => onError?.(err)
+  );
+
+  // Return cleanup function
+  return () => {
+    unsubscribeTeacher();
+    studentUnsubs.forEach((u) => u());
+  };
+};
+
 export const searchAddLearner = async (collection: string, value: string) => {
   const uid = getCurrentUid();
   if (!uid) throw new Error("No authenticated user");
@@ -102,21 +163,25 @@ export const searchAddLearner = async (collection: string, value: string) => {
   const currentUserSnapshot = await userCollection.doc(uid).get();
   const currentStudents: string[] = currentUserSnapshot.data()?.students || [];
 
-  // search for learners by ID prefix
-  const snapshot = await firestore()
-    .collection(collection)
-    .orderBy(firestore.FieldPath.documentId())
-    .startAt(value)
-    .endAt(value + "\uf8ff")
-    .get();
+  const firestoreRef = firestore().collection(collection);
 
-  // filter out existing students
-  const results = snapshot.docs
-    .filter((doc) => !currentStudents.includes(doc.id))
-    .map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
+  const results: any[] = [];
+
+  // --- Search by exact ID ---
+  const idDoc = await firestoreRef.doc(value).get();
+  if (idDoc.exists() && !currentStudents.includes(idDoc.id)) {
+    results.push({ id: idDoc.id, ...idDoc.data() });
+  }
+
+  // --- Search by exact email ---
+  const emailSnapshot = await firestoreRef
+    .where("email", "==", value.toLowerCase())
+    .get();
+  emailSnapshot.docs.forEach((doc) => {
+    if (!currentStudents.includes(doc.id)) {
+      results.push({ id: doc.id, ...doc.data() });
+    }
+  });
 
   return results;
 };
@@ -127,9 +192,11 @@ export const addAsStudent = async (studentId: string) => {
     if (!uid) throw new Error("No authenticated user");
 
     userCollection.doc(uid).update({ students: arrayUnion(studentId) });
+
+    return { success: true };
   } catch (err) {
     console.error("Error adding student:", err);
-    return [];
+    return { success: false };
   }
 };
 
@@ -184,5 +251,31 @@ export const updateCurrentUserInfo = async (
     });
   } catch (err) {
     console.error("Error updating user info: ", err);
+  }
+};
+
+export const updateUserPassword = async (
+  currentPassword: string,
+  newPassword: string
+) => {
+  const user = auth().currentUser;
+
+  if (!user || !user.email) {
+    console.error("No user signed in");
+  }
+
+  try {
+    const credential = auth.EmailAuthProvider.credential(
+      user?.email as string,
+      currentPassword
+    );
+
+    await user?.reauthenticateWithCredential(credential);
+
+    await user?.updatePassword(newPassword);
+
+    return { success: true, message: "Password updated successfully" };
+  } catch (err: any) {
+    return { success: false, message: err.message };
   }
 };

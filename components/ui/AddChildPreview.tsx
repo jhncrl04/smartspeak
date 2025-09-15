@@ -1,5 +1,6 @@
 import COLORS from "@/constants/Colors";
 import { addAsStudent } from "@/services/userService";
+import { useState } from "react";
 import { Image, StyleSheet, Text, View } from "react-native";
 import PrimaryButton from "../PrimaryButton";
 
@@ -14,6 +15,18 @@ const AddChildPreview = ({
   learnerProfile,
   learnerId,
 }: previewProps) => {
+  const [buttonTitle, setButtonTitle] = useState("Add");
+  const [isButtonDisabled, setIsButtonDisabled] = useState(false);
+
+  const handleAddEvent = async (learnerId: string) => {
+    const result = await addAsStudent(learnerId);
+
+    if (result.success) {
+      setIsButtonDisabled(true);
+      setButtonTitle("Added");
+    }
+  };
+
   return (
     <View style={styles.profilePreview}>
       <View style={styles.profileInfoContainer}>
@@ -22,9 +35,10 @@ const AddChildPreview = ({
       </View>
       <View style={styles.buttonContainer}>
         <PrimaryButton
-          title="Add"
+          title={buttonTitle}
+          disabled={isButtonDisabled}
           clickHandler={() => {
-            addAsStudent(learnerId);
+            handleAddEvent(learnerId);
           }}
         />
       </View>

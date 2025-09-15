@@ -1,9 +1,16 @@
 import COLORS from "@/constants/Colors";
 import { useSidebarWidth } from "@/context/sidebarContext";
 import { useAuthStore } from "@/stores/userAuthStore";
-import { router } from "expo-router";
+import { router, usePathname } from "expo-router";
 import { useState } from "react";
-import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import MDIcon from "react-native-vector-icons/MaterialIcons";
 import Icon from "react-native-vector-icons/Octicons";
 
@@ -18,7 +25,9 @@ const Sidebar = ({ onNavigate, userRole }: SidebarProps) => {
   const [expanded, setExpanded] = useState(false);
 
   const indexScreenByRole =
-    userRole === "teacher" ? "/screens/teacher/" : "/screens/guardian/";
+    user?.role.toLowerCase() === "teacher"
+      ? "/screens/teacher/"
+      : "/screens/guardian/";
 
   const [activeScreen, setActiveScreen] = useState(indexScreenByRole);
 
@@ -28,7 +37,7 @@ const Sidebar = ({ onNavigate, userRole }: SidebarProps) => {
     {
       icon: "people",
       label: "Learners",
-      screen: "/screens/teacher/",
+      screen: "/screens/teacher",
     },
     {
       icon: "image",
@@ -56,7 +65,7 @@ const Sidebar = ({ onNavigate, userRole }: SidebarProps) => {
     {
       icon: "people",
       label: "Child Management",
-      screen: "/screens/guardian/",
+      screen: "/screens/guardian",
     },
     {
       icon: "image",
@@ -81,7 +90,9 @@ const Sidebar = ({ onNavigate, userRole }: SidebarProps) => {
   ];
 
   const menuItems =
-    userRole === "teacher" ? teachersMenuItems : guardiansMenuItems;
+    user?.role.toLowerCase() === "teacher"
+      ? teachersMenuItems
+      : guardiansMenuItems;
 
   // Report width when expanded/collapsed
   const toggleSidebar = () => {
@@ -94,6 +105,8 @@ const Sidebar = ({ onNavigate, userRole }: SidebarProps) => {
 
   const currentWidth = expanded ? "25%" : 60;
 
+  const pathname = usePathname();
+
   return (
     <View
       style={[
@@ -101,83 +114,109 @@ const Sidebar = ({ onNavigate, userRole }: SidebarProps) => {
         { width: currentWidth }, // dynamic width here
       ]}
     >
-      <View style={{ gap: 10 }}>
-        {/* Expand/Collapse Button */}
-        <View style={styles.toggleButton}>
-          {expanded && (
-            <TouchableOpacity
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 10,
-              }}
-            >
-              <Image
-                source={
-                  user?.profile
-                    ? { uri: user.profile }
-                    : require("../assets/images/creeper.png")
-                }
-                style={styles.profile}
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <View style={{ paddingVertical: 16 }}>
+          <View style={{ gap: 0 }}>
+            {/* Expand/Collapse Button */}
+            <View style={styles.toggleButton}>
+              {expanded && (
+                <TouchableOpacity
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 10,
+                  }}
+                  onPress={() => {
+                    router.push("/screens/settings");
+                  }}
+                >
+                  <Image
+                    source={
+                      user?.profile
+                        ? { uri: user.profile }
+                        : require("../assets/images/creeper.png")
+                    }
+                    style={styles.profile}
+                  />
+                  <Text
+                    style={{
+                      fontFamily: "Poppins",
+                      fontWeight: "500",
+                      fontSize: 16,
+                    }}
+                  >{`${user?.fname}`}</Text>
+                </TouchableOpacity>
+              )}
+              <Icon
+                name={expanded ? "chevron-left" : "chevron-right"}
+                size={24}
+                color={COLORS.gray}
+                onPress={toggleSidebar}
+                style={{ paddingHorizontal: 10 }}
               />
-              <Text
-                style={{
-                  fontFamily: "Poppins",
-                  fontWeight: "500",
-                  fontSize: 16,
-                }}
-              >{`${user?.fname}`}</Text>
-            </TouchableOpacity>
-          )}
-          <Icon
-            name={expanded ? "chevron-left" : "chevron-right"}
-            size={24}
-            color={COLORS.gray}
-            onPress={toggleSidebar}
-            style={{ paddingHorizontal: 5 }}
-          />
+            </View>
+
+            <View style={styles.sidebarInnerContainer}>
+              {/* Menu Items */}
+              {menuItems.map((item) => (
+                <TouchableOpacity
+                  key={item.label}
+                  style={[
+                    styles.menuItem,
+                    pathname === item.screen && {
+                      backgroundColor: COLORS.lightGray,
+                    },
+                  ]}
+                  onPress={() => {
+                    router.push(item.screen as any);
+                    onNavigate(item.screen);
+                  }}
+                >
+                  <View
+                    style={[
+                      styles.iconContainer,
+                      pathname === item.screen && styles.activeIcon,
+                    ]}
+                  >
+                    <Icon
+                      name={item.icon}
+                      size={24}
+                      color={
+                        pathname === item.screen ? COLORS.white : COLORS.gray
+                      }
+                    />
+                  </View>
+
+                  {expanded && (
+                    <Text
+                      style={[
+                        styles.menuText,
+                        pathname === item.screen && styles.activeText,
+                      ]}
+                    >
+                      {item.label}
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          <TouchableOpacity style={styles.menuItem} onPress={logoutHandler}>
+            <View style={styles.iconContainer}>
+              <MDIcon
+                name={"logout"}
+                size={24}
+                color={COLORS.gray}
+                style={{ transform: [{ scaleX: -1 }] }}
+              />
+            </View>
+
+            {expanded && <Text style={styles.menuText}>Log Out</Text>}
+          </TouchableOpacity>
         </View>
-
-        <View>
-          {/* Menu Items */}
-          {menuItems.map((item) => (
-            <TouchableOpacity
-              key={item.label}
-              style={styles.menuItem}
-              onPress={() => {
-                setActiveScreen(item.screen);
-
-                onNavigate(item.screen);
-              }}
-            >
-              <View
-                style={[
-                  styles.iconContainer,
-                  activeScreen === item.screen && styles.activeIcon,
-                ]}
-              >
-                <Icon name={item.icon} size={24} color={COLORS.gray} />
-              </View>
-
-              {expanded && <Text style={styles.menuText}>{item.label}</Text>}
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-
-      <TouchableOpacity style={styles.menuItem} onPress={logoutHandler}>
-        <View style={styles.iconContainer}>
-          <MDIcon
-            name={"logout"}
-            size={24}
-            color={COLORS.gray}
-            style={{ transform: [{ scaleX: -1 }] }}
-          />
-        </View>
-
-        {expanded && <Text style={styles.menuText}>Log Out</Text>}
-      </TouchableOpacity>
+      </ScrollView>
     </View>
   );
 };
@@ -190,17 +229,24 @@ const logoutHandler = () => {
 const styles = StyleSheet.create({
   sidebar: {
     backgroundColor: COLORS.navbarBg,
-    paddingVertical: 20,
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     justifyContent: "space-between",
+    borderRightWidth: 1,
+    borderRightColor: COLORS.shadow,
   },
   profile: {
-    width: 30,
-    height: 30,
-    borderRadius: 30,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+  },
+  sidebarInnerContainer: {
+    marginTop: 5,
+    gap: 0,
   },
   iconContainer: {
-    padding: 7,
+    width: 35,
+    height: 35,
+    borderRadius: 20,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -208,23 +254,29 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 10,
-  },
-  toggleText: {
-    fontSize: 16,
+    paddingVertical: 5,
+    marginBottom: 0,
   },
   menuItem: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    paddingVertical: 5,
+    gap: 12,
+    paddingVertical: 6,
+    paddingHorizontal: 4,
+    borderRadius: 8,
   },
   menuText: {
-    fontSize: 16,
+    fontSize: 15,
+    fontFamily: "Poppins",
+    fontWeight: "500",
+    color: COLORS.gray,
   },
   activeIcon: {
-    backgroundColor: COLORS.shadow,
-    borderRadius: 100,
+    backgroundColor: COLORS.gray,
+  },
+  activeText: {
+    color: COLORS.gray,
+    fontWeight: "600",
   },
 });
 

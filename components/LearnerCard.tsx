@@ -1,5 +1,6 @@
 import COLORS from "@/constants/Colors";
 import { useResponsiveCardSize } from "@/helper/setCardWidth";
+import { useAuthStore } from "@/stores/userAuthStore";
 import { Entypo } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
@@ -17,6 +18,8 @@ type profile = {
 
 const LearnerCard = (props: profile) => {
   const { cardWidth, cardHeight } = useResponsiveCardSize();
+
+  const user = useAuthStore((state) => state.user);
 
   const styles = StyleSheet.create({
     cards: {
@@ -101,7 +104,9 @@ const LearnerCard = (props: profile) => {
     <TouchableOpacity
       style={styles.cards}
       onPress={() => {
-        router.push(`../screens/teacher/user/${props.learnerId}` as any);
+        router.push(
+          `/screens/${user?.role.toLowerCase()}/user/${props.learnerId}` as any
+        );
       }}
     >
       <View style={styles.cardImageContainer}>

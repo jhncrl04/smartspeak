@@ -1,24 +1,26 @@
 import ActionLink from "@/components/ActionLink";
 import AddCard from "@/components/AddCard";
-import Board from "@/components/Board";
 import LearnerProfileHeader from "@/components/LeanerProfileHeader";
 import PageHeader from "@/components/PageHeader";
+import PecsCard from "@/components/PecsCard";
 import Sidebar from "@/components/Sidebar";
 import HorizontalLine from "@/components/ui/HorizontalLine";
 import COLORS from "@/constants/Colors";
-import { calculateAge } from "@/helper/calculateAge";
-import { listenAssignedCategories } from "@/services/categoryService";
+import {
+  getAssignedCards,
+  listenAssignedCardWithCategory,
+} from "@/services/cardsService";
 import { getStudentInfo } from "@/services/userService";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 
-const LearnerProfile = () => {
+const LearnerProfileCategory = () => {
   const handleNavigation = (screen: string) => {
     router.push(screen as any);
   };
 
-  const { userId } = useLocalSearchParams();
+  const { userId, categoryId } = useLocalSearchParams();
 
   const [userInfo, setUserInfo] = useState<any>(null);
 
@@ -32,23 +34,41 @@ const LearnerProfile = () => {
         console.error("Error fetching student info: ", err);
       }
     };
+
     fetchUserInfo();
   }, [userId]);
+  const [cards, setCards] = useState<any[]>([]);
+  const [categoryName, setCategoryName] = useState<string>("");
 
-  const [categories, setCategories] = useState<any[]>();
-
-  // get assign categories on students
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || !categoryId) return;
 
-    // subscribe to changes
-    const unsubscribe = listenAssignedCategories(userId as string, (cats) => {
-      setCategories(cats);
-    });
+    // fetch category name once
+    const fetchCategoryName = async () => {
+      try {
+        const [, name] = await getAssignedCards(
+          userId as string,
+          categoryId as string
+        );
+        setCategoryName(name);
+      } catch (err) {
+        console.error("Error fetching category name: ", err);
+      }
+    };
 
-    // cleanup on unmount
+    fetchCategoryName();
+
+    // subscribe to assigned cards
+    const unsubscribe = listenAssignedCardWithCategory(
+      userId as string,
+      categoryId as string,
+      (cards) => {
+        setCards(cards);
+      }
+    );
+
     return () => unsubscribe();
-  }, [userId]);
+  }, [userId, categoryId]);
 
   return (
     <>
@@ -59,9 +79,8 @@ const LearnerProfile = () => {
             <View style={styles.headerContainer}>
               <ActionLink text="Return" clickHandler={router.back} />
               <LearnerProfileHeader
-                profile={userInfo?.profile_pic}
-                name={`${userInfo?.first_name} ${userInfo?.last_name}`}
-                age={calculateAge(userInfo?.date_of_birth)}
+                name={`${userInfo?.fname} ${userInfo?.lname}`}
+                age={10}
                 screen="teacher"
               />
               <View>
@@ -70,45 +89,30 @@ const LearnerProfile = () => {
             </View>
             <View style={styles.pageHeaderContainer}>
               <PageHeader
-                pageTitle="Assign Category"
+                pageTitle={`${categoryName} Cards`}
                 onSearch={() => {}}
-                collectionToSearch="pecsCategories"
-                query="category"
+                collectionToSearch="cards"
+                query="card"
                 hasFilter={true}
-                searchPlaceholder="Search Category"
+                searchPlaceholder="Search card"
               />
-              {/* <View style={styles.buttonContainer}>
-            <PrimaryButton
-              title="Remove Board"
-              clickHandler={() => console.log("remove board")}
-            />
-            <PrimaryButton
-              title="Add Board"
-              clickHandler={() => console.log("add board")}
-            />
-          </View> */}
             </View>
             <View style={styles.boardContainer}>
               <AddCard
-                cardType="board"
+                cardType="card"
                 action="assign"
                 learnerId={userId as string}
+                categoryId={categoryId as string}
               />
-              {categories?.map((category, index) => (
-                <Board
-                  boardName={category.category_name}
-                  boardBackground={category.background_color}
-                  categoryId={category.id}
-                  image={category.image}
-                  actionHandler={() => {
-                    router.push({
-                      pathname: "/screens/teacher/user/category/[categoryId]",
-                      params: {
-                        categoryId: category.id,
-                        userId: userId as string,
-                      },
-                    });
-                  }}
+              {cards?.map((card, index) => (
+                <PecsCard
+                  action="Unassign"
+                  learnerId={userId as string}
+                  cardId={card.id}
+                  cardCategory={categoryName}
+                  cardName={card.card_name}
+                  categoryColor={card.background_color}
+                  image={card.image}
                   key={index}
                 />
               ))}
@@ -166,4 +170,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default LearnerProfile;
+export default LearnerProfileCategory;

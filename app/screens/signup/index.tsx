@@ -19,7 +19,7 @@ const SignupScreen = () => {
 
   return (
     <View style={styles.container}>
-      <View style={{ backgroundColor: COLORS.gray, height: 1 }}></View>
+      <View></View>
       <View style={styles.formContainer}>
         <View style={styles.headerContainer}>
           <Text style={styles.stepIndicator}>Step 1 of 3</Text>

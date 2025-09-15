@@ -43,7 +43,7 @@ const ChildManagementScreen = () => {
               key={child.id}
               learnerId={child.id}
               cardType={"profile"}
-              image={child.profile ? child.profile : null}
+              image={child.profile_pic ? child.profile_pic : null}
               name={child.first_name}
               age={12}
               gender={child.gender}

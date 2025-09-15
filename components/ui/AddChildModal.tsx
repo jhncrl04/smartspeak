@@ -3,7 +3,6 @@ import SecondaryButton from "@/components/SecondaryButton";
 import COLORS from "@/constants/Colors";
 import imageToBase64 from "@/helper/imageToBase64";
 import { registerChild } from "@/services/userApi/Registration";
-import { useAuthStore } from "@/stores/userAuthStore";
 import * as ImagePicker from "expo-image-picker";
 import { AnimatePresence, MotiView } from "moti";
 import { useState } from "react";
@@ -19,6 +18,16 @@ import {
 } from "react-native";
 import Icon from "react-native-vector-icons/Octicons";
 
+import firestore from "@react-native-firebase/firestore";
+
+import TextFieldWrapper from "../TextfieldWrapper";
+
+import { formatDate } from "@/helper/formatDate";
+import getCurrentUid from "@/helper/getCurrentUid";
+import DatePicker from "react-native-date-picker";
+import LoadingScreen from "./LoadingScreen";
+import MyDropdown from "./MyDropdown";
+
 type Props = {
   visible: boolean;
   onClose: () => void;
@@ -27,31 +36,31 @@ type Props = {
 type formDataType = {
   first_name: string;
   last_name: string;
-  date_of_birth: string;
+  date_of_birth: Date | null;
   gender: string;
   email: string;
   password: string;
   role: string;
-  profile: string;
+  profile_pic: string;
   guardian_id: string | undefined;
   creation_date: Date;
 };
 
 const AddChildModal = ({ visible, onClose }: Props) => {
-  const [formData, setFormData] = useState({
-    first_name: "",
-    last_name: "",
-    date_of_birth: "",
-    gender: "",
-    email: "",
-    password: "",
+  const [formData, setFormData] = useState<formDataType>({
+    first_name: "Morty",
+    last_name: "Smith",
+    date_of_birth: null,
+    gender: "Male",
+    email: "info.coolbeanscoffee@gmail.com",
+    password: "Johncarlo1",
     role: "",
-    profile: "",
+    profile_pic: "",
     guardian_id: "",
     creation_date: new Date(),
   });
 
-  const [confirmPass, setConfirmPass] = useState("");
+  const [confirmPass, setConfirmPass] = useState("Johncarlo1");
 
   const [step, setStep] = useState(1);
   const [date, setDate] = useState(new Date());
@@ -59,11 +68,9 @@ const AddChildModal = ({ visible, onClose }: Props) => {
   const [error, setError] = useState("");
   const [image, setImage] = useState("");
   const [direction, setDirection] = useState<"left" | "right">("right");
-  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       quality: 1,
     });
@@ -72,7 +79,7 @@ const AddChildModal = ({ visible, onClose }: Props) => {
       setImage(result.assets[0].uri);
 
       const base64Image = await imageToBase64(image);
-      setFormData({ ...formData, profile: base64Image });
+      setFormData({ ...formData, profile_pic: base64Image });
     }
   };
 
@@ -97,7 +104,7 @@ const AddChildModal = ({ visible, onClose }: Props) => {
       if (
         formData.first_name === "" ||
         formData.last_name === "" ||
-        formData.date_of_birth === "" ||
+        formData.date_of_birth === null ||
         formData.gender === ""
       ) {
         Alert.alert("Missing inputs. Please fill all the inputs.");
@@ -110,22 +117,47 @@ const AddChildModal = ({ visible, onClose }: Props) => {
     setStep(nextStep);
   };
 
+  const [isLoading, setIsLoading] = useState(false);
+
   const submitRegistration = async (userData: formDataType) => {
-    const user = { ...userData };
-    user.role = "Learner";
+    try {
+      setIsLoading(true); // ⏳ start loader
 
-    const currentId = useAuthStore.getState().user?.uid;
+      const user = { ...userData };
+      user.role = "Learner";
 
-    user.guardian_id = currentId;
+      const currentId = getCurrentUid();
+      user.guardian_id = currentId;
 
-    const isRegistrationComplete = await registerChild(user);
+      if (user.date_of_birth) {
+        user.date_of_birth = firestore.Timestamp.fromDate(
+          user.date_of_birth
+        ) as any;
+      }
+      user.creation_date = firestore.Timestamp.fromDate(new Date()) as any;
 
-    if (isRegistrationComplete) {
-      console.log("Form submitted ✅");
-      setStep(1);
-      onClose();
+      const isRegistrationComplete = await registerChild(user);
+
+      if (isRegistrationComplete) {
+        console.log("Form submitted ✅");
+        setStep(1);
+        onClose();
+      }
+    } catch (err) {
+      console.error(err);
+      Alert.alert("Error", "Something went wrong while registering child.");
+    } finally {
+      setIsLoading(false); // ✅ stop loader
     }
   };
+
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+
+  const genderChoices = [
+    { label: "Male", value: "Male" },
+    { label: "Female", value: "Female" },
+    { label: "Others", value: "Others" },
+  ];
 
   return (
     <Modal
@@ -137,6 +169,25 @@ const AddChildModal = ({ visible, onClose }: Props) => {
         onClose();
       }}
     >
+      <LoadingScreen visible={isLoading} />
+      <DatePicker
+        // placeholder="Date of Birth"
+        modal={true}
+        date={formData.date_of_birth ? formData.date_of_birth : new Date()}
+        mode="date"
+        maximumDate={new Date()}
+        open={isDatePickerOpen}
+        onConfirm={(date) => {
+          setIsDatePickerOpen(false);
+          setDate(date);
+
+          setFormData({ ...formData, date_of_birth: date });
+        }}
+        onCancel={() => {
+          setIsDatePickerOpen(false);
+        }}
+        style={styles.input}
+      />
       <View style={styles.modalContainer}>
         <View style={styles.modalContent}>
           {/* Close Button */}
@@ -167,31 +218,37 @@ const AddChildModal = ({ visible, onClose }: Props) => {
                 style={styles.stepContainer}
               >
                 <Text style={styles.title}>Account Setup</Text>
-                <TextInput
-                  placeholder="Email"
-                  keyboardType="email-address"
-                  value={formData.email}
-                  onChangeText={(text) =>
-                    setFormData({ ...formData, email: text })
-                  }
-                  style={styles.input}
-                />
-                <TextInput
-                  placeholder="Password"
-                  secureTextEntry
-                  value={formData.password}
-                  onChangeText={(text) =>
-                    setFormData({ ...formData, password: text })
-                  }
-                  style={styles.input}
-                />
-                <TextInput
-                  placeholder="Confirm Password"
-                  secureTextEntry
-                  value={confirmPass}
-                  onChangeText={(text) => setConfirmPass(text)}
-                  style={styles.input}
-                />
+                <TextFieldWrapper label="Email">
+                  <TextInput
+                    placeholder="Email"
+                    keyboardType="email-address"
+                    value={formData.email}
+                    onChangeText={(text) =>
+                      setFormData({ ...formData, email: text })
+                    }
+                    style={styles.input}
+                  />
+                </TextFieldWrapper>
+                <TextFieldWrapper label="Password">
+                  <TextInput
+                    placeholder=""
+                    secureTextEntry
+                    value={formData.password}
+                    onChangeText={(text) =>
+                      setFormData({ ...formData, password: text })
+                    }
+                    style={styles.input}
+                  />
+                </TextFieldWrapper>
+                <TextFieldWrapper label="Confirm Password">
+                  <TextInput
+                    placeholder="Confirm Password"
+                    secureTextEntry
+                    value={confirmPass}
+                    onChangeText={(text) => setConfirmPass(text)}
+                    style={styles.input}
+                  />
+                </TextFieldWrapper>
               </MotiView>
             )}
 
@@ -213,43 +270,58 @@ const AddChildModal = ({ visible, onClose }: Props) => {
 
                 {/* First + Last name on same line */}
                 <View style={styles.row}>
-                  <TextInput
-                    placeholder="First Name"
-                    value={formData.first_name}
-                    onChangeText={(text) =>
-                      setFormData({ ...formData, first_name: text })
-                    }
-                    style={[styles.input, styles.halfInput]}
-                  />
-                  <TextInput
-                    placeholder="Last Name"
-                    value={formData.last_name}
-                    onChangeText={(text) =>
-                      setFormData({ ...formData, last_name: text })
-                    }
-                    style={[styles.input, styles.halfInput]}
-                  />
+                  <TextFieldWrapper label="First Name" isFlex={true}>
+                    <TextInput
+                      placeholder=""
+                      value={formData.first_name}
+                      onChangeText={(text) =>
+                        setFormData({ ...formData, first_name: text })
+                      }
+                      style={styles.input}
+                    />
+                  </TextFieldWrapper>
+
+                  <TextFieldWrapper label="Last Name" isFlex={true}>
+                    <TextInput
+                      placeholder=""
+                      value={formData.last_name}
+                      onChangeText={(text) =>
+                        setFormData({ ...formData, last_name: text })
+                      }
+                      style={styles.input}
+                    />
+                  </TextFieldWrapper>
                 </View>
 
-                {/* Date of Birth with Date Picker */}
-                {/* <DatePicker mode="date" date={date} onDateChange={setDate} /> */}
-                <TextInput
-                  placeholder="Date of Birth"
-                  value={formData.date_of_birth}
-                  onChangeText={(text) =>
-                    setFormData({ ...formData, date_of_birth: text })
-                  }
-                  style={styles.input}
-                />
+                <TextFieldWrapper label="Date of Birth">
+                  <TouchableOpacity
+                    onPress={() => setIsDatePickerOpen(true)}
+                    activeOpacity={0.7}
+                  >
+                    <View pointerEvents="none">
+                      <TextInput
+                        style={styles.input}
+                        value={
+                          formData.date_of_birth
+                            ? formatDate(formData.date_of_birth)
+                            : ""
+                        }
+                        editable={false}
+                      />
+                    </View>
+                  </TouchableOpacity>
+                </TextFieldWrapper>
 
-                <TextInput
-                  placeholder="Gender"
-                  value={formData.gender}
-                  onChangeText={(text) =>
-                    setFormData({ ...formData, gender: text })
-                  }
-                  style={styles.input}
-                />
+                <TextFieldWrapper label="Gender">
+                  <MyDropdown
+                    dropdownItems={genderChoices}
+                    placeholder=""
+                    value={formData.gender}
+                    onChange={(val) => {
+                      setFormData({ ...formData, gender: val });
+                    }}
+                  />
+                </TextFieldWrapper>
               </MotiView>
             )}
 
@@ -344,26 +416,34 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.shadow,
   },
   modalContent: {
-    backgroundColor: "white",
-    padding: 20,
+    backgroundColor: COLORS.pureWhite,
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+
     borderRadius: 16,
-    width: "85%",
+    width: "70%",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 5,
+
+    position: "relative",
   },
   closeButton: {
-    alignSelf: "flex-end",
+    position: "absolute",
+    top: 20,
+    right: 20,
+    zIndex: 1,
+    // alignSelf: "flex-end",
   },
   stepContainer: {
-    marginBottom: 20,
+    marginBottom: 10,
   },
   title: {
     fontSize: 20,
     fontWeight: "600",
-    marginBottom: 15,
+    marginBottom: 10,
     textAlign: "center",
   },
   row: {
@@ -372,15 +452,11 @@ const styles = StyleSheet.create({
 
     gap: 10,
   },
-  halfInput: {
-    flex: 1,
-  },
   input: {
     borderWidth: 1,
     borderColor: COLORS.gray,
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
+    borderRadius: 6,
+    padding: 8,
   },
   imageContainer: {
     width: 100,

@@ -4,6 +4,7 @@ import { StyleSheet } from "react-native";
 import { Dropdown } from "react-native-element-dropdown";
 
 type item = { label: string; value: string };
+
 type DropdownProps = {
   dropdownItems: item[];
   placeholder: string;
@@ -46,6 +47,7 @@ const MyDropdown = (props: DropdownProps) => {
           props.onChange(item.value);
           setIsFocus(false);
         }}
+        dropdownPosition="top"
       />
     </>
   );
@@ -55,11 +57,20 @@ const styles = StyleSheet.create({
   dropdown: {
     paddingHorizontal: 10,
     paddingVertical: 5,
-    flex: 1,
     minWidth: 100,
     borderColor: COLORS.gray,
     borderWidth: 0.5,
     borderRadius: 5,
+  },
+  dropdownContainer: {
+    marginTop: 0, // 👈 removes gap between input and dropdown list
+    borderWidth: 0.5,
+    borderColor: COLORS.gray,
+    borderRadius: 5,
+  },
+  dropdownItem: {
+    paddingVertical: 8,
+    paddingHorizontal: 10,
   },
   disabledDropdown: {
     backgroundColor: COLORS.lightGray,

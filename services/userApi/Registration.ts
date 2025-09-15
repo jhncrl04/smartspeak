@@ -59,10 +59,10 @@ type childUserProps = {
   role: string;
   first_name: string;
   last_name: string;
-  date_of_birth: string;
+  date_of_birth: Date | null;
   email: string;
   password: string;
-  profile: string;
+  profile_pic: string;
   gender: string;
   guardian_id: string | undefined;
   creation_date: Date;
@@ -104,6 +104,7 @@ const saveUserInfo = async (
   const userCollection = firestore().collection("users");
 
   const { password, ...userWithoutPassword } = userInfo;
+  userWithoutPassword.email = userWithoutPassword.email.toLowerCase();
 
   await userCollection.doc(uid).set(userWithoutPassword);
 

@@ -14,8 +14,11 @@ import {
   View,
 } from "react-native";
 
+import TextFieldWrapper from "@/components/TextfieldWrapper";
 import {
   updateCurrentUserInfo,
+  updateUserPassword,
+  // updateUserPassword,
   uploadProfilePic,
 } from "@/services/userService";
 import { useAuthStore } from "@/stores/userAuthStore";
@@ -97,10 +100,44 @@ const SettingScreen = () => {
     }
   };
 
+  const handleChangePassword = async (
+    currentPassword: string,
+    newPassword: string
+  ) => {
+    if (
+      newPassword.trim() === "" ||
+      confirmPassword.trim() === "" ||
+      currentPassword.trim() === ""
+    ) {
+      Alert.alert("Error", "Fill all the required field");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      Alert.alert("Error", "New Password don't match");
+      return;
+    }
+
+    const result = await updateUserPassword(currentPassword, newPassword);
+    if (result.success) {
+      Alert.alert("Success", result.message);
+
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } else {
+      Alert.alert("Updating password failed\n", result.message);
+    }
+  };
+
   const [fname, setFname] = useState(user?.fname || "");
   const [lname, setLname] = useState(user?.lname || "");
   const [phoneNumber, setPhoneNumber] = useState(user?.phoneNumber || "");
   const [email, setEmail] = useState(user?.email || "");
+
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   return (
     <View style={styles.container}>
@@ -140,7 +177,7 @@ const SettingScreen = () => {
             </View>
             <View style={styles.mainSettingsContainer}>
               <View style={styles.settingsSubContainer}>
-                <View style={{ gap: 5 }}>
+                <View>
                   <Text style={styles.settingsSubheader}>
                     Personal Information
                   </Text>
@@ -153,36 +190,46 @@ const SettingScreen = () => {
                       })
                     }
                   >
-                    <TextInput
-                      style={[styles.textInput, { flex: 1 }]}
-                      placeholder="First Name"
-                      value={fname}
-                      onChangeText={setFname}
-                    />
-                    <TextInput
-                      style={[styles.textInput, { flex: 1 }]}
-                      placeholder="Last Name"
-                      value={lname}
-                      onChangeText={setLname}
-                    />
+                    <TextFieldWrapper isFlex={true} label="First Name">
+                      <TextInput
+                        style={[styles.textInput, { flex: 1 }]}
+                        placeholder=""
+                        value={fname}
+                        onChangeText={setFname}
+                      />
+                    </TextFieldWrapper>
+
+                    <TextFieldWrapper isFlex={true} label="Last Name">
+                      <TextInput
+                        style={[styles.textInput, { flex: 1 }]}
+                        placeholder=""
+                        value={lname}
+                        onChangeText={setLname}
+                      />
+                    </TextFieldWrapper>
                   </View>
                 </View>
-                <View style={{ gap: 5 }}>
+                <View>
                   <Text style={styles.settingsSubheader}>Contact Details</Text>
                   <View style={styles.inputContainer}>
-                    <TextInput
-                      style={styles.textInput}
-                      placeholder="Phone Number"
-                      value={phoneNumber}
-                      onChangeText={setPhoneNumber}
-                    />
-                    <TextInput
-                      style={[styles.textInput, styles.disabledText]}
-                      placeholder="Email"
-                      value={email}
-                      onChangeText={setEmail}
-                      editable={false}
-                    />
+                    <TextFieldWrapper label="Phone Number">
+                      <TextInput
+                        style={styles.textInput}
+                        placeholder=""
+                        value={phoneNumber}
+                        onChangeText={setPhoneNumber}
+                      />
+                    </TextFieldWrapper>
+
+                    <TextFieldWrapper label="Email">
+                      <TextInput
+                        style={[styles.textInput, styles.disabledText]}
+                        placeholder=""
+                        value={email}
+                        onChangeText={setEmail}
+                        editable={false}
+                      />
+                    </TextFieldWrapper>
                   </View>
                 </View>
                 <PrimaryButton
@@ -192,32 +239,58 @@ const SettingScreen = () => {
                   }}
                 />
               </View>
-              <View
+              {/* <View
                 style={{
                   width: 0.3,
                   height: "100%",
                   backgroundColor: COLORS.gray,
                 }}
-              />
+              /> */}
               <View style={styles.settingsSubContainer}>
-                <View style={{ gap: 5 }}>
+                <View>
                   <Text style={styles.settingsSubheader}>Change Password</Text>
                   <View style={styles.inputContainer}>
-                    <TextInput
-                      style={styles.textInput}
-                      placeholder="Old Password"
-                    />
-                    <TextInput
-                      style={styles.textInput}
-                      placeholder="New Password"
-                    />
-                    <TextInput
-                      style={styles.textInput}
-                      placeholder="Confirm Password"
-                    />
+                    <TextFieldWrapper label="Old Password">
+                      <TextInput
+                        style={styles.textInput}
+                        placeholder=""
+                        value={currentPassword}
+                        onChangeText={setCurrentPassword}
+                        secureTextEntry={true}
+                      />
+                    </TextFieldWrapper>
+
+                    <TextFieldWrapper label="New Password">
+                      <TextInput
+                        style={styles.textInput}
+                        placeholder=""
+                        value={newPassword}
+                        autoComplete="password-new"
+                        textContentType="none"
+                        onChangeText={setNewPassword}
+                        secureTextEntry={true}
+                      />
+                    </TextFieldWrapper>
+
+                    <TextFieldWrapper label="Confirm Password">
+                      <TextInput
+                        style={styles.textInput}
+                        placeholder=""
+                        value={confirmPassword}
+                        autoComplete="password-new"
+                        textContentType="none"
+                        onChangeText={setConfirmPassword}
+                        secureTextEntry={true}
+                      />
+                    </TextFieldWrapper>
                   </View>
                 </View>
-                <PrimaryButton title="Save Password" clickHandler={() => {}} />
+                <PrimaryButton
+                  title="Save Password"
+                  clickHandler={() => {
+                    handleChangePassword(currentPassword, newPassword);
+                  }}
+                />
               </View>
             </View>
           </View>
@@ -272,7 +345,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 10,
     paddingHorizontal: 20,
-    gap: 20,
+    gap: 10,
   },
   settingsSubheader: {
     fontSize: 16,
@@ -282,7 +355,7 @@ const styles = StyleSheet.create({
     color: COLORS.black,
     textAlign: "center",
   },
-  inputContainer: { gap: 10 },
+  inputContainer: { gap: 0 },
   textInput: {
     paddingHorizontal: 10,
     paddingVertical: 5,

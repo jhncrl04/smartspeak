@@ -19,19 +19,22 @@ type Props = {
 const AddLearnerModal = ({ visible, onClose }: Props) => {
   const [results, setResults] = useState<any[]>([]);
 
+  const handleClose = () => {
+    setResults([]); // clear search results
+    onClose(); // call parent close handler
+  };
+
   return (
     <Modal
       visible={visible}
       animationType="fade"
       transparent
-      onRequestClose={() => {
-        setResults([]);
-      }}
+      onRequestClose={handleClose}
     >
       <View style={styles.modalContainer}>
         <View style={styles.modalContent}>
           {/* Close Button */}
-          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+          <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
             <Icon name="x" size={22} color={COLORS.gray} />
           </TouchableOpacity>
 
@@ -42,7 +45,7 @@ const AddLearnerModal = ({ visible, onClose }: Props) => {
                 onSearch={(results) => {
                   setResults(results);
                 }}
-                placeholder="Search Learner ID"
+                placeholder="Search Learner ID or Email"
                 query="newLearner"
               />
             </View>
@@ -53,8 +56,8 @@ const AddLearnerModal = ({ visible, onClose }: Props) => {
               <View style={styles.profileContainer}>
                 {results?.map((result, index) => (
                   <AddChildPreview
-                    learnerName={`${result.firstname} ${result.last_name}`}
-                    learnerProfile={result?.profile}
+                    learnerName={`${result.first_name} ${result.last_name}`}
+                    learnerProfile={result?.profile_pic}
                     learnerId={result.id}
                     key={index}
                   />

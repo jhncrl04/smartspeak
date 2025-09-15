@@ -27,9 +27,6 @@ const Board = (props: boardProp) => {
     },
     folderIcon: {
       position: "absolute",
-      top: "50%",
-      left: "50%",
-      transform: [{ translateX: "-50%" }, { translateY: "-50%" }],
     },
     boardInfoContainer: {
       paddingTop: 30,

@@ -2,10 +2,10 @@ import AddLearnerCard from "@/components/AddLearnerCard";
 import LearnerCard from "@/components/LearnerCard";
 import PageHeader from "@/components/PageHeader";
 import Sidebar from "@/components/Sidebar";
-import { getStudents } from "@/services/userService";
+import { listenToStudents } from "@/services/userService";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { ActivityIndicator, ScrollView, StyleSheet, View } from "react-native";
 
 const ManageLearnersScreen = () => {
   const handleNavigation = (screen: string) => {
@@ -13,18 +13,25 @@ const ManageLearnersScreen = () => {
   };
 
   const [results, setResults] = useState<any[]>();
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchLearners = async () => {
-      try {
-        const data = await getStudents();
-        setResults(data);
-      } catch (err) {
-        console.error("Error fetching learners: ", err);
+    // Start listening when component mounts
+    const unsubscribe = listenToStudents(
+      (updatedStudents) => {
+        setResults(updatedStudents);
+        setLoading(false);
+      },
+      (err) => {
+        setLoading(false);
       }
-    };
-    fetchLearners();
+    );
+
+    // Cleanup when component unmounts
+    return unsubscribe;
   }, []);
+
+  if (loading) return <ActivityIndicator size="large" />;
 
   return (
     <View style={styles.container}>
@@ -46,7 +53,7 @@ const ManageLearnersScreen = () => {
             {results?.map((result, index) => (
               <LearnerCard
                 image={result.profile_pic}
-                name={result.fname}
+                name={result.first_name}
                 age={1}
                 gender={result.gender}
                 cardType="profile"

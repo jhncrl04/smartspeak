@@ -32,19 +32,26 @@ const ManageBoardsScreen = () => {
       <Sidebar userRole="teacher" onNavigate={handleNavigation} />
       <View style={styles.mainContentContainer}>
         <PageHeader
+          collectionToSearch="pecsCategories"
+          query="category"
+          onSearch={() => {}}
           pageTitle="Manage Categories"
           hasFilter={true}
           searchPlaceholder="Search Category"
         />
         <View style={styles.boardContainer}>
-          <AddCard cardType="board" />
+          <AddCard cardType="board" action="add" />
 
-          {categories.map((categories, index) => (
+          {categories.map((category, index) => (
             <Board
+              categoryId={category.id}
+              actionHandler={() => {
+                router.push(`/screens/teacher/category/${category.id}` as any);
+              }}
               key={index}
-              image={categories.image}
-              boardName={categories.categoryName}
-              boardBackground={categories.backgroundColor}
+              image={category.image}
+              boardName={category.categoryName}
+              boardBackground={category.backgroundColor}
             />
           ))}
         </View>

@@ -1,4 +1,3 @@
-import { useAuthStore } from "@/stores/userAuthStore";
 import auth from "@react-native-firebase/auth";
 import firestore from "@react-native-firebase/firestore";
 
@@ -28,44 +27,44 @@ export const getUserInfo = async (uid: string) => {
   return doc.data();
 };
 
-export const initAuthListener = () => {
-  auth().onAuthStateChanged(async (firebaseUser) => {
-    if (firebaseUser) {
-      try {
-        // 🔑 Fetch user profile from Firestore
-        const userDoc = await firestore()
-          .collection("users")
-          .doc(firebaseUser.uid)
-          .get();
+// export const initAuthListener = () => {
+//   auth().onAuthStateChanged(async (firebaseUser) => {
+//     if (firebaseUser) {
+//       try {
+//         // 🔑 Fetch user profile from Firestore
+//         const userDoc = await firestore()
+//           .collection("users")
+//           .doc(firebaseUser.uid)
+//           .get();
 
-        const userData = userDoc.data();
+//         const userData = userDoc.data();
 
-        if (!userData) {
-          console.warn(
-            "User document not found in Firestore for uid:",
-            firebaseUser.uid
-          );
-          useAuthStore.setState({ user: null });
+//         if (!userData) {
+//           console.warn(
+//             "User document not found in Firestore for uid:",
+//             firebaseUser.uid
+//           );
+//           useAuthStore.setState({ user: null });
 
-          return;
-        }
+//           return;
+//         }
 
-        const mappedUser = {
-          fname: userData.fname ?? "",
-          lname: userData.lname ?? "",
-          email: firebaseUser.email ?? "",
-          phoneNumber: firebaseUser.phoneNumber ?? "",
-          role: userData.role ?? "user",
-          uid: firebaseUser.uid,
-        };
+//         const mappedUser = {
+//           fname: userData.fname ?? "",
+//           lname: userData.lname ?? "",
+//           email: firebaseUser.email ?? "",
+//           phoneNumber: firebaseUser.phoneNumber ?? "",
+//           role: userData.role ?? "user",
+//           uid: firebaseUser.uid,
+//         };
 
-        useAuthStore.setState({ user: mappedUser });
-      } catch (error) {
-        console.error("Error fetching user from Firestore:", error);
-        useAuthStore.setState({ user: null });
-      }
-    } else {
-      useAuthStore.setState({ user: null });
-    }
-  });
-};
+//         useAuthStore.setState({ user: mappedUser });
+//       } catch (error) {
+//         console.error("Error fetching user from Firestore:", error);
+//         useAuthStore.setState({ user: null });
+//       }
+//     } else {
+//       useAuthStore.setState({ user: null });
+//     }
+//   });
+// };

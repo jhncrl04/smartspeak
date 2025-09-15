@@ -32,6 +32,7 @@ const LearnerProfile = () => {
         console.error("Error fetching student info: ", err);
       }
     };
+
     fetchUserInfo();
   }, [userId]);
 
@@ -53,7 +54,7 @@ const LearnerProfile = () => {
   return (
     <>
       <View style={styles.container}>
-        <Sidebar userRole="teacher" onNavigate={handleNavigation} />
+        <Sidebar userRole="guardian" onNavigate={handleNavigation} />
         <ScrollView showsVerticalScrollIndicator={false}>
           <View style={styles.pageContainer}>
             <View style={styles.headerContainer}>
@@ -62,7 +63,7 @@ const LearnerProfile = () => {
                 profile={userInfo?.profile_pic}
                 name={`${userInfo?.first_name} ${userInfo?.last_name}`}
                 age={calculateAge(userInfo?.date_of_birth)}
-                screen="teacher"
+                screen="guardian"
               />
               <View>
                 <HorizontalLine />
@@ -102,7 +103,7 @@ const LearnerProfile = () => {
                   image={category.image}
                   actionHandler={() => {
                     router.push({
-                      pathname: "/screens/teacher/user/category/[categoryId]",
+                      pathname: "/screens/guardian/user/category/[categoryId]",
                       params: {
                         categoryId: category.id,
                         userId: userId as string,

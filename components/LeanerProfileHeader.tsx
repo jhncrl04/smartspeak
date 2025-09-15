@@ -5,7 +5,7 @@ import PrimaryButton from "./PrimaryButton";
 type profileProps = {
   profile: string;
   name: string;
-  age: number;
+  age: number | null;
   screen: string;
 };
 

@@ -104,12 +104,6 @@ const AddCard = (props: CardProps) => {
     },
     folderIcon: {
       position: "absolute",
-      top: "50%",
-      left: "50%",
-      transform: [
-        { translateX: -cardWidth / 2 },
-        { translateY: -cardWidth / 2 },
-      ],
     },
     boardInfoContainer: {
       paddingTop: 20,

@@ -1,6 +1,6 @@
+import imageToBase64 from "@/helper/imageToBase64";
 import { useAuthStore } from "@/stores/userAuthStore";
 import firestore, { arrayUnion } from "@react-native-firebase/firestore";
-import * as FileSystem from "expo-file-system";
 import { Alert } from "react-native";
 
 type categoryProps = { name: string; color: string; image: string };
@@ -15,10 +15,7 @@ export const addCategory = async (categoryInfo: categoryProps) => {
   let base64Image = "";
   if (categoryInfo.image) {
     try {
-      base64Image = await FileSystem.readAsStringAsync(categoryInfo.image, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
-      base64Image = `data:image/jpeg;base64,${base64Image}`;
+      base64Image = await imageToBase64(categoryInfo.image);
     } catch (err) {
       console.error("Error converting image to base64:", err);
     }
@@ -149,22 +146,20 @@ export const listenAssignedCategories = (
   const uid = useAuthStore.getState().user?.uid;
   if (!uid) return () => {};
 
-  return categoryCollection
-    .where("created_by", "==", uid)
-    .onSnapshot((snapshot) => {
-      const categories: any[] = [];
+  return categoryCollection.onSnapshot((snapshot) => {
+    const categories: any[] = [];
 
-      snapshot.forEach((doc) => {
-        const category = doc.data();
-        category.id = doc.id;
+    snapshot.forEach((doc) => {
+      const category = doc.data();
+      category.id = doc.id;
 
-        if (category.assigned_to?.includes(learnerId)) {
-          categories.push(category);
-        }
-      });
-
-      callback(categories); // push new categories to state
+      if (category.assigned_to?.includes(learnerId)) {
+        categories.push(category);
+      }
     });
+
+    callback(categories); // push new categories to state
+  });
 };
 
 export const updateCategory = async (
