@@ -1,7 +1,15 @@
-import { Stack } from "expo-router"; // use stack instead of tabs
+import { setAppToFullscreen } from "@/helper/setAppToFullscreen";
+import { Stack, usePathname } from "expo-router"; // use stack instead of tabs
 import { StatusBar } from "expo-status-bar";
+import { useEffect } from "react";
 
 export default function Layout() {
+  const pathname = usePathname();
+
+  useEffect(() => {
+    setAppToFullscreen();
+  }, [pathname]);
+
   return (
     <>
       <StatusBar hidden={true} />

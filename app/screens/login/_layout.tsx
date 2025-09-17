@@ -1,6 +1,8 @@
 import COLORS from "@/constants/Colors";
-import { Stack } from "expo-router";
+import { setAppToFullscreen } from "@/helper/setAppToFullscreen";
+import { Stack, usePathname } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { useEffect } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 const LoginLayout = () => {
@@ -13,6 +15,12 @@ const LoginLayout = () => {
       fontWeight: 600,
     },
   });
+
+  const pathname = usePathname();
+
+  useEffect(() => {
+    setAppToFullscreen();
+  }, [pathname]);
 
   return (
     <>

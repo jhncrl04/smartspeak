@@ -1,6 +1,8 @@
 import COLORS from "@/constants/Colors";
 import { SignupFormProvider } from "@/context/signupContext";
+import { setAppToFullscreen } from "@/helper/setAppToFullscreen";
 import { Stack } from "expo-router";
+import { useEffect } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 const SignupLayout = () => {
@@ -12,6 +14,10 @@ const SignupLayout = () => {
       fontSize: 18,
       fontWeight: 600,
     },
+  });
+
+  useEffect(() => {
+    setAppToFullscreen();
   });
 
   return (

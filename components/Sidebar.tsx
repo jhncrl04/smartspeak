@@ -64,7 +64,7 @@ const Sidebar = ({ onNavigate, userRole }: SidebarProps) => {
   const guardiansMenuItems = [
     {
       icon: "people",
-      label: "Child Management",
+      label: "Children",
       screen: "/screens/guardian",
     },
     {

@@ -11,7 +11,14 @@
       "supportsTablet": true,
       "runtimeVersion": {
         "policy": "appVersion"
+      },
+      "infoPlist": {
+        "UIEdgeToEdgeExtendedLayout": false
       }
+    },
+    "androidStatusBar": {
+      "backgroundColor": "#ffffff",
+      "translucent": false
     },
     "android": {
       "googleServicesFile": "./google-services.json",
@@ -21,7 +28,7 @@
       },
       "package": "com.smartspeak.Smartspeak",
       "versionCode": 1,
-      "edgeToEdgeEnabled": true,
+      "edgeToEdgeEnabled": false,
       "permissions": [
         "android.permission.RECORD_AUDIO",
         "android.permission.MODIFY_AUDIO_SETTINGS",

@@ -1,5 +1,6 @@
+import { setAppToFullscreen } from "@/helper/setAppToFullscreen";
 import { useFonts } from "expo-font";
-import { Stack } from "expo-router";
+import { Stack, usePathname } from "expo-router";
 import * as ScreenOrientation from "expo-screen-orientation";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
@@ -8,9 +9,13 @@ import { setCustomText } from "react-native-global-props";
 // SplashScreen.preventAutoHideAsync();
 
 const RootLayout = () => {
+  const pathname = usePathname();
+
   useEffect(() => {
     ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
-  });
+
+    setAppToFullscreen();
+  }, [pathname]);
 
   // setting default font, working on web but not on android
   const [fontsLoaded] = useFonts({

@@ -50,8 +50,8 @@ const ManageBoardsScreen = () => {
               }}
               key={index}
               image={category.image}
-              boardName={category.categoryName}
-              boardBackground={category.backgroundColor}
+              boardName={category.category_name}
+              boardBackground={category.background_color}
             />
           ))}
         </View>

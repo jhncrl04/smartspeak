@@ -3,7 +3,7 @@ import { ReactNode } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 type Props = {
-  children: ReactNode;
+  children?: ReactNode;
   label: string;
   isFlex?: boolean;
 };

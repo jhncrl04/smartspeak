@@ -1,6 +1,8 @@
 import COLORS from "@/constants/Colors";
 import { SidebarProvider } from "@/context/sidebarContext";
-import { Stack } from "expo-router";
+import { setAppToFullscreen } from "@/helper/setAppToFullscreen";
+import { Stack, usePathname } from "expo-router";
+import { useEffect } from "react";
 import { StatusBar, StyleSheet } from "react-native";
 
 const ScreenLayout = () => {
@@ -13,6 +15,12 @@ const ScreenLayout = () => {
       fontWeight: 600,
     },
   });
+
+  const pathname = usePathname();
+
+  useEffect(() => {
+    setAppToFullscreen();
+  }, [pathname]);
 
   return (
     <SidebarProvider>

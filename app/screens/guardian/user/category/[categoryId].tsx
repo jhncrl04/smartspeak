@@ -6,6 +6,7 @@ import PecsCard from "@/components/PecsCard";
 import Sidebar from "@/components/Sidebar";
 import HorizontalLine from "@/components/ui/HorizontalLine";
 import COLORS from "@/constants/Colors";
+import { calculateAge } from "@/helper/calculateAge";
 import {
   getAssignedCards,
   listenAssignedCardWithCategory,
@@ -79,9 +80,10 @@ const LearnerProfileCategory = () => {
             <View style={styles.headerContainer}>
               <ActionLink text="Return" clickHandler={router.back} />
               <LearnerProfileHeader
-                name={`${userInfo?.fname} ${userInfo?.lname}`}
-                age={10}
-                screen="teacher"
+                profile={userInfo?.profile_pic}
+                name={`${userInfo?.first_name} ${userInfo?.last_name}`}
+                age={calculateAge(userInfo?.date_of_birth)}
+                screen="guardian"
               />
               <View>
                 <HorizontalLine />
