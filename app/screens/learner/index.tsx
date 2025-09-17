@@ -4,7 +4,7 @@ import { useAuthStore } from "@/stores/userAuthStore";
 import auth from "@react-native-firebase/auth";
 import AppLoading from "expo-app-loading";
 import { useFonts } from "expo-font";
-import { router } from "expo-router";
+import { router, usePathname } from "expo-router";
 import * as ScreenOrientation from "expo-screen-orientation";
 import * as Speech from "expo-speech";
 import { collection, getDocs, getFirestore } from "firebase/firestore";
@@ -28,9 +28,13 @@ import {
 
 const db = getFirestore();
 
-export default function HomeScreen() {
+const Homepage = () => {
   // Get user data from auth store
   const user = useAuthStore((state) => state.user);
+
+  const path = usePathname();
+
+  console.log(path);
 
   // LOGOUT FUNCTION
   const logout = useAuthStore((state) => state.logout);
@@ -171,7 +175,7 @@ export default function HomeScreen() {
   // Function to handle account settings
   const handleAccountSettings = () => {
     setShowSettingsModal(false);
-    router.push("../screens/learner/profile");
+    router.push("/screens/learner/profile");
   };
 
   // Clean up timeout on unmount
@@ -399,7 +403,7 @@ export default function HomeScreen() {
         // Use filtered categories instead of all categories
         setCategories(categoriesWithCards);
         setAllCards(cardsData);
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error fetching data from Firebase:", error);
         alert("Error loading data from Firebase: " + error.message);
       } finally {
@@ -548,13 +552,7 @@ export default function HomeScreen() {
   }, []);
 
   // UPDATED: Simplified card render function - now just uses TouchableOpacity
-  const renderCard = ({
-    item,
-    index,
-  }: {
-    item: CardType;
-    index: number;
-  }): JSX.Element => {
+  const renderCard = ({ item, index }: { item: CardType; index: number }) => {
     return (
       <TouchableOpacity
         style={[
@@ -615,7 +613,7 @@ export default function HomeScreen() {
     index: number;
   }
 
-  const renderSentenceCard = (card: CardType, index: number): JSX.Element => (
+  const renderSentenceCard = (card: CardType, index: number) => (
     <TouchableOpacity
       key={`sentence-${card.id}-${index}`}
       style={styles.sentenceCard}
@@ -655,13 +653,13 @@ export default function HomeScreen() {
 
   // Fixed getItemLayout function
   const getItemLayout = (
-    data: CardType[] | null | undefined,
+    _data: ArrayLike<CardType> | null | undefined,
     index: number
-  ) => ({
-    length: cardHeight + 10,
-    offset: Math.floor(index / cardsPerRow) * (cardHeight + 10),
-    index,
-  });
+  ): { length: number; offset: number; index: number } => {
+    const length = cardHeight + 10;
+    const offset = Math.floor(index / cardsPerRow) * length;
+    return { length, offset, index };
+  };
 
   if (loading) {
     return (
@@ -875,7 +873,7 @@ export default function HomeScreen() {
       )}
     </ThemedView>
   );
-}
+};
 
 const { width, height } = Dimensions.get("window");
 const isTablet = width > 915;
@@ -1290,3 +1288,5 @@ const styles = StyleSheet.create({
     marginTop: 0,
   },
 });
+
+export default Homepage;

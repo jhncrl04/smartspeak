@@ -1,7 +1,9 @@
 import imageToBase64 from "@/helper/imageToBase64";
 import { useAuthStore } from "@/stores/userAuthStore";
+import { CreateLogInput } from "@/types/log";
 import firestore, { arrayUnion } from "@react-native-firebase/firestore";
 import { Alert } from "react-native";
+import { createLog } from "./loggingService";
 
 type categoryProps = { name: string; color: string; image: string };
 
@@ -29,7 +31,19 @@ export const addCategory = async (categoryInfo: categoryProps) => {
     image: base64Image,
   };
 
-  await categoryCollection.add(newCategory);
+  const categoryRef = await categoryCollection.add(newCategory);
+
+  const logBody: CreateLogInput = {
+    action: "Create Category",
+    image: base64Image,
+    item_category: newCategory.category_name,
+    item_id: categoryRef.id,
+    item_name: newCategory.category_name,
+    item_type: "Card",
+    timestamp: currentDate,
+  };
+
+  await createLog(logBody);
 };
 
 export const getCategories = async () => {

@@ -1,7 +1,7 @@
 import { useSidebarWidth } from "@/context/sidebarContext";
 import { useWindowDimensions } from "react-native";
 
-const MAX_CARD_WIDTH = 100;
+const MAX_CARD_WIDTH = 120;
 const MIN_CARD_WIDTH = 100;
 const COLUMN_GAP = 20;
 const HORIZONTAL_PADDING = 60;

@@ -12,7 +12,7 @@ import { StyleSheet, TextInput, View } from "react-native";
 const LoginScreen = () => {
   // added a value for testing, remove when done
   const [email, setEmail] = useState("johncarloservidad1@gmail.com");
-  const [password, setPassword] = useState("Johncarlo1");
+  const [password, setPassword] = useState("Johncarlo12");
   const [loading, setLoading] = useState(false);
 
   const login = useAuthStore((state) => state.login);

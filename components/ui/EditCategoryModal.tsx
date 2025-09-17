@@ -14,6 +14,7 @@ import Icon from "react-native-vector-icons/Octicons";
 import ColorPicker, { Panel5 } from "reanimated-color-picker";
 import PrimaryButton from "../PrimaryButton";
 
+import imageToBase64 from "@/helper/imageToBase64";
 import {
   deleteCategory,
   getCategoryWithId,
@@ -22,7 +23,6 @@ import {
 import * as ImagePicker from "expo-image-picker";
 import { runOnJS } from "react-native-reanimated";
 import SecondaryButton from "../SecondaryButton";
-import imageToBase64 from "@/helper/imageToBase64";
 
 type modalProps = {
   visible: boolean;

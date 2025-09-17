@@ -1,7 +1,6 @@
 import { ThemedView } from "@/components/ThemedView";
-import { useAuthStore } from "@/stores/userAuthStore"; // Import your auth store
 import { useFonts } from "expo-font";
-import { router } from "expo-router";
+import { router, usePathname } from "expo-router";
 import * as ScreenOrientation from "expo-screen-orientation";
 import { useEffect, useState } from "react";
 import {
@@ -22,13 +21,17 @@ import {
   widthPercentageToDP as wp,
 } from "react-native-responsive-screen";
 
-export default function HomeScreen() {
+export default function ChangePassScreen() {
   const [fontsLoaded] = useFonts({
     Poppins: require("@/assets/fonts/Poppins-Regular.ttf"),
   });
 
+  const path = usePathname();
+
+  console.log(path);
+
   // Get user and updatePassword from auth store
-  const { user, updatePassword } = useAuthStore();
+  // const { user, updatePassword } = useAuthStore();
 
   const [isEditing, setIsEditing] = useState(false);
   const [passwords, setPasswords] = useState({
@@ -101,25 +104,25 @@ export default function HomeScreen() {
     }
 
     // Get current password from auth store (fallback to default if not set)
-    const currentPassword = user?.password || "123456";
+    // const currentPassword = user?.password || "123456";
 
-    // Check if old password is correct
-    if (oldPassword !== currentPassword) {
-      showPopup("Incorrect old password", "error");
-      return;
-    }
+    // // Check if old password is correct
+    // if (oldPassword !== currentPassword) {
+    //   showPopup("Incorrect old password", "error");
+    //   return;
+    // }
 
-    // Check if new passwords match
-    if (newPassword !== confirmPassword) {
-      showPopup("New passwords do not match", "error");
-      return;
-    }
+    // // Check if new passwords match
+    // if (newPassword !== confirmPassword) {
+    //   showPopup("New passwords do not match", "error");
+    //   return;
+    // }
 
-    // Check if new password is different from old password
-    if (newPassword === oldPassword) {
-      showPopup("New password cannot be same as old password", "error");
-      return;
-    }
+    // // Check if new password is different from old password
+    // if (newPassword === oldPassword) {
+    //   showPopup("New password cannot be same as old password", "error");
+    //   return;
+    // }
 
     // Validate password strength (optional)
     if (newPassword.length < 6) {
@@ -128,7 +131,7 @@ export default function HomeScreen() {
     }
 
     // Update password in auth store
-    updatePassword(newPassword);
+    // updatePassword(newPassword);
 
     // ✅ Success
     showPopup("Password changed successfully!", "success");

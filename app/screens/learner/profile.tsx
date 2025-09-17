@@ -1,7 +1,7 @@
 import { ThemedView } from "@/components/ThemedView";
 import { useAuthStore } from "@/stores/userAuthStore";
 import { useFonts } from "expo-font";
-import { router } from "expo-router";
+import { router, usePathname } from "expo-router";
 import * as ScreenOrientation from "expo-screen-orientation";
 import { doc, getDoc, getFirestore, updateDoc } from "firebase/firestore";
 import { useEffect, useState } from "react";
@@ -33,6 +33,10 @@ export default function ProfileScreen() {
 
   const { width } = Dimensions.get("window");
   const isTablet = width > 968;
+
+  const path = usePathname();
+
+  console.log(path);
 
   const user = useAuthStore((state) => state.user);
 
@@ -148,7 +152,7 @@ export default function ProfileScreen() {
         } else {
           console.log("No user document found");
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error fetching user data:", error);
         showNotification("Error loading user data: " + error.message, "error");
       } finally {
@@ -201,7 +205,7 @@ export default function ProfileScreen() {
 
       console.log("User data updated successfully");
       showNotification("Profile updated successfully!", "success");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating user data:", error);
       showNotification("Error updating profile: " + error.message, "error");
     } finally {
@@ -292,7 +296,7 @@ export default function ProfileScreen() {
 
             <TouchableOpacity
               style={styles.ChangeProfileBtn}
-              onPress={() => router.push("../screens/learner/changepass")}
+              onPress={() => router.push("/screens/learner/changepass")}
             >
               <Text style={styles.BtnText}>Upload New Photo</Text>
             </TouchableOpacity>
@@ -452,7 +456,10 @@ export default function ProfileScreen() {
           <View style={styles.categoryContainer}>
             <TouchableOpacity
               style={styles.categoryInfosActive}
-              onPress={() => router.push("../screens/learner/profile")}
+              onPress={() => {
+                //router.push("/screens/learner/profile");
+                console.log("test");
+              }}
             >
               <Image
                 source={require("@/assets/images/user2.png")}

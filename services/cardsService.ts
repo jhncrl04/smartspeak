@@ -1,11 +1,15 @@
 import imageToBase64 from "@/helper/imageToBase64";
 import { useAuthStore } from "@/stores/userAuthStore";
+import { CreateLogInput, DeleteLogInput } from "@/types/log";
 import firestore, {
   arrayRemove,
   arrayUnion,
+  FirebaseFirestoreTypes,
 } from "@react-native-firebase/firestore";
 import * as FileSystem from "expo-file-system";
 import { Alert } from "react-native";
+import { getCategoryWithId } from "./categoryService";
+import { createLog } from "./loggingService";
 
 type cardProps = {
   name: string;
@@ -40,12 +44,28 @@ export const addCard = async (cardInfo: cardProps) => {
     image: base64Image,
   };
 
-  await cardCollection.add(new_card);
+  const cardRef = await cardCollection.add(new_card);
+
+  const category = await getCategoryWithId(cardInfo.category_id);
+  if (!category) throw new Error("Category not found");
+
+  const logBody: CreateLogInput = {
+    action: "Create Card",
+    image: base64Image,
+    item_category: category.category_name,
+    item_id: cardRef.id,
+    item_name: cardInfo.name,
+    item_type: "Card",
+    timestamp: current_date,
+  };
+
+  await createLog(logBody);
 };
 
 export const deleteCard = async (cardId: string) => {
   const cardRef = cardCollection.doc(cardId);
-  const card = (await cardRef.get()).data();
+  const cardSnap = await cardRef.get();
+  const card = cardSnap.data();
 
   if (card?.assigned_to?.length !== 0) {
     Alert.alert(
@@ -55,22 +75,55 @@ export const deleteCard = async (cardId: string) => {
         {
           text: "Yes",
           onPress: async () => {
-            await cardRef.delete();
-            Alert.alert("Card deleted");
+            await confirmCardDeletion(cardRef, card);
           },
           style: "destructive",
         },
-        {
-          text: "No",
-          style: "cancel",
-        },
+        { text: "No", style: "cancel" },
       ],
       { cancelable: true }
     );
   } else {
-    await cardRef.delete();
-    Alert.alert("Card deleted");
+    await confirmCardDeletion(cardRef, card);
   }
+};
+
+const confirmCardDeletion = async (
+  cardRef: FirebaseFirestoreTypes.DocumentReference,
+  cardInfo: any
+) => {
+  if (!cardInfo) throw new Error("Card not found");
+
+  const current_date = new Date();
+
+  const category = await getCategoryWithId(cardInfo.category_id);
+  if (!category) throw new Error("Category not found");
+
+  const deleteCard = {
+    id: cardRef.id,
+    card_name: cardInfo.card_name,
+    category_name: category.category_name,
+  };
+
+  const logBody: DeleteLogInput = {
+    action: "Delete Card",
+    category_id: cardInfo.category_id,
+    category_name: category.category_name,
+    image: cardInfo.image,
+    item_category: category.category_name,
+    item_id: cardRef.id,
+    item_name: cardInfo.card_name,
+    item_type: "Card",
+    deleted_at: current_date,
+
+    deleted_cards: [deleteCard],
+  };
+
+  // Delete first AFTER we save the info
+  await cardRef.delete();
+  Alert.alert("Card deleted");
+
+  await createLog(logBody);
 };
 
 type cardType = {

@@ -18,6 +18,7 @@ const AuthInitializer = ({ children }: { children: React.ReactNode }) => {
               fname: userDoc.first_name,
               lname: userDoc.last_name,
               email: userDoc.email,
+              profile: userDoc.profile_pic,
               phoneNumber: userDoc.phone_number,
               role: userDoc.role,
               uid: firebaseUser.uid,
