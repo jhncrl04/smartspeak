@@ -10,7 +10,11 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "tunnel": "expo start --tunnel",
-    "build:apk": "eas build --platform android --profile preview-apk"
+    "build:apk": "eas build --platform android --profile preview-apk",
+    "build:dev-apk": "eas build --platform android --profile development",
+    "clean-gradle": "cd android ./gradlew clean",
+    "clean-prebuild": "cd ../ npx expo prebuild --clean",
+    "new:dev-apk": "npm run clean-gradlew && npm run clean-prebuild && npm run build:dev-apk"
   },
   "dependencies": {
     "@expo/vector-icons": "^14.1.0",

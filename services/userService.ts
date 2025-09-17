@@ -1,7 +1,7 @@
 import getCurrentUid from "@/helper/getCurrentUid";
+import imageToBase64 from "@/helper/imageToBase64";
 import auth from "@react-native-firebase/auth";
 import firestore, { arrayUnion } from "@react-native-firebase/firestore";
-import * as FileSystem from "expo-file-system";
 
 const userCollection = firestore().collection("users");
 
@@ -218,10 +218,7 @@ export const uploadProfilePic = async (imageUri: string) => {
     if (!uid) throw new Error("No authenticated user");
 
     // Convert to base64
-    let base64Image = await FileSystem.readAsStringAsync(imageUri, {
-      encoding: FileSystem.EncodingType.Base64,
-    });
-    base64Image = `data:image/jpeg;base64,${base64Image}`;
+    let base64Image = await imageToBase64(imageUri);
 
     // Save to Firestore
     await userCollection.doc(uid).update({

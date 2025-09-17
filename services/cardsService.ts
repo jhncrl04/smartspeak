@@ -6,7 +6,6 @@ import firestore, {
   arrayUnion,
   FirebaseFirestoreTypes,
 } from "@react-native-firebase/firestore";
-import * as FileSystem from "expo-file-system";
 import { Alert } from "react-native";
 import { getCategoryWithId } from "./categoryService";
 import { createLog } from "./loggingService";
@@ -24,17 +23,7 @@ export const addCard = async (cardInfo: cardProps) => {
 
   const current_date = new Date();
 
-  let base64Image = "";
-  if (cardInfo.image) {
-    try {
-      base64Image = await FileSystem.readAsStringAsync(cardInfo.image, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
-      base64Image = `data:image/jpeg;base64,${base64Image}`;
-    } catch (err) {
-      console.error("Error converting image to base64:", err);
-    }
-  }
+  let base64Image = await imageToBase64(cardInfo.image);
 
   const new_card = {
     card_name: cardInfo.name,
