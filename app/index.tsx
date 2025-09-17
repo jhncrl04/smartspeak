@@ -29,7 +29,7 @@ const index = () => {
       <View style={styles.buttonContainer}>
         <PrimaryButton
           title={"Sign In"}
-          clickHandler={() => router.push("./screens/login/")}
+          clickHandler={() => router.push("/login")}
         />
         <View style={styles.registerContainer}>
           <Text
@@ -42,7 +42,7 @@ const index = () => {
           </Text>
           <ActionLink
             text={"Register"}
-            clickHandler={() => router.push("./screens/signup/")}
+            clickHandler={() => router.push("/registration")}
           />
         </View>
       </View>

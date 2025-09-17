@@ -223,7 +223,7 @@ const Sidebar = ({ onNavigate, userRole }: SidebarProps) => {
 
 const logoutHandler = () => {
   useAuthStore.getState().logout();
-  router.replace("/screens/login");
+  router.replace("/login");
 };
 
 const styles = StyleSheet.create({

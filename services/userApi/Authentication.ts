@@ -1,5 +1,7 @@
+import { getFriendlyAuthError } from "@/utils/firebaseError";
 import auth from "@react-native-firebase/auth";
 import firestore from "@react-native-firebase/firestore";
+import { Alert } from "react-native";
 
 type userProps = { email: string; password: string };
 
@@ -14,8 +16,19 @@ export const loginAuth = async (email: string, password: string) => {
     const userDoc = await getUserInfo(user.uid);
 
     return [user, userDoc];
-  } catch (err) {
-    console.error(`Login Error: ${err}`);
+  } catch (err: any) {
+    console.error("Login Error:", err);
+
+    const errorCode = (err.code as string) || "unknown";
+
+    const friendlyMessage = getFriendlyAuthError(errorCode);
+
+    Alert.alert(
+      "Login Failed", // Title
+      friendlyMessage, // Message
+      [{ text: "OK", style: "default" }], // Button
+      { cancelable: true }
+    );
 
     return null;
   }

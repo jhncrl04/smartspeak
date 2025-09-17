@@ -14,7 +14,7 @@ const SignupScreen = () => {
   };
 
   const proceedToStepTwo = () => {
-    router.push("/screens/signup/personalDetails");
+    router.push("/personalDetails");
   };
 
   return (

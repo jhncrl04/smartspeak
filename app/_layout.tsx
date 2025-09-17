@@ -1,9 +1,13 @@
+import COLORS from "@/constants/Colors";
+import { SignupFormProvider } from "@/context/signupContext";
 import { setAppToFullscreen } from "@/helper/setAppToFullscreen";
 import { useFonts } from "expo-font";
 import { Stack, usePathname } from "expo-router";
 import * as ScreenOrientation from "expo-screen-orientation";
 import { StatusBar } from "expo-status-bar";
+import { View } from "moti";
 import { useEffect } from "react";
+import { StyleSheet, Text } from "react-native";
 import { setCustomText } from "react-native-global-props";
 
 // SplashScreen.preventAutoHideAsync();
@@ -35,18 +39,94 @@ const RootLayout = () => {
     },
   });
 
+  const styles = StyleSheet.create({
+    headerContainer: {},
+    title: {
+      color: COLORS.accent,
+      fontFamily: "Poppins",
+      fontSize: 18,
+      fontWeight: 600,
+    },
+  });
+
   return (
-    <>
+    <SignupFormProvider>
       <StatusBar hidden={true} />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen
           name="index"
           options={{
             title: "Landing Page",
+            headerShown: false,
+          }}
+        />
+
+        <Stack.Screen
+          name="login"
+          options={{
+            headerTitleAlign: "center",
+            headerTitle: () => (
+              <View style={styles.headerContainer}>
+                <Text style={styles.title}>LOG IN</Text>
+              </View>
+            ),
+            headerShown: true,
+          }}
+        />
+
+        <Stack.Screen
+          name="registration"
+          options={{
+            headerTitleAlign: "center",
+            headerTitle: () => (
+              <View style={styles.headerContainer}>
+                <Text style={styles.title}>SIGN UP</Text>
+              </View>
+            ),
+            headerShown: true,
+          }}
+        />
+
+        <Stack.Screen
+          name="personalDetails"
+          options={{
+            headerTitleAlign: "center",
+            headerTitle: () => (
+              <View style={styles.headerContainer}>
+                <Text style={styles.title}>PERSONAL DETAILS</Text>
+              </View>
+            ),
+            headerShown: true,
+          }}
+        />
+
+        <Stack.Screen
+          name="credentials"
+          options={{
+            headerTitleAlign: "center",
+            headerTitle: () => (
+              <View style={styles.headerContainer}>
+                <Text style={styles.title}>LOG IN DETAILS</Text>
+              </View>
+            ),
+            headerShown: true,
+          }}
+        />
+
+        <Stack.Screen
+          name="otpVerification"
+          options={{
+            headerTitleAlign: "center",
+            headerTitle: () => (
+              <View style={styles.headerContainer}>
+                <Text style={styles.title}>OTP VERIFICATION</Text>
+              </View>
+            ),
+            headerShown: true,
           }}
         />
       </Stack>
-    </>
+    </SignupFormProvider>
   );
 };
 

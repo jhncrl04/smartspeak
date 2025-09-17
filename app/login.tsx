@@ -3,19 +3,18 @@ import PrimaryButton from "@/components/PrimaryButton";
 import TextFieldWrapper from "@/components/TextfieldWrapper";
 import LoadingScreen from "@/components/ui/LoadingScreen";
 import COLORS from "@/constants/Colors";
-import { setAppToFullscreen } from "@/helper/setAppToFullscreen";
 import { loginAuth } from "@/services/userApi/Authentication";
 import { useAuthStore } from "@/stores/userAuthStore";
 import { router } from "expo-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { StyleSheet, TextInput, View } from "react-native";
 
 const LoginScreen = () => {
   // added a value for testing, remove when done
-  // const [email, setEmail] = useState("johncarloservidad1@gmail.com");
-  // const [password, setPassword] = useState("Johncarlo12");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("johncarloservidad1@gmail.com");
+  const [password, setPassword] = useState("Johncarlo12");
+  // const [email, setEmail] = useState("");
+  // const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   const login = useAuthStore((state) => state.login);
@@ -54,10 +53,6 @@ const LoginScreen = () => {
     }
   };
 
-  useEffect(() => {
-    setAppToFullscreen();
-  }, []);
-
   return (
     <View style={styles.container}>
       <LoadingScreen visible={loading} />
@@ -87,7 +82,7 @@ const LoginScreen = () => {
           <ActionLink
             text="Forgot Password?"
             clickHandler={() => {
-              router.push("/screens/signup");
+              router.push("/registration");
             }}
           />
           <View>

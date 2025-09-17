@@ -1,9 +1,11 @@
 import { ThemedView } from "@/components/ThemedView";
+import { useAuthStore } from "@/stores/userAuthStore"; // Import your auth store
 import { useFonts } from "expo-font";
-import { router, usePathname } from "expo-router";
+import { router } from "expo-router";
 import * as ScreenOrientation from "expo-screen-orientation";
 import { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Animated,
   Dimensions,
   Image,
@@ -21,17 +23,17 @@ import {
   widthPercentageToDP as wp,
 } from "react-native-responsive-screen";
 
-export default function ChangePassScreen() {
+// ✅ Use React Native Firebase instead of web SDK
+import auth from "@react-native-firebase/auth";
+import firestore from "@react-native-firebase/firestore";
+
+export default function HomeScreen() {
   const [fontsLoaded] = useFonts({
     Poppins: require("@/assets/fonts/Poppins-Regular.ttf"),
   });
 
-  const path = usePathname();
-
-  console.log(path);
-
   // Get user and updatePassword from auth store
-  // const { user, updatePassword } = useAuthStore();
+  const { user, updatePassword } = useAuthStore();
 
   const [isEditing, setIsEditing] = useState(false);
   const [passwords, setPasswords] = useState({
@@ -39,6 +41,10 @@ export default function ChangePassScreen() {
     newPassword: "",
     confirmPassword: "",
   });
+
+  // Profile image state
+  const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
+  const [loadingImage, setLoadingImage] = useState(true);
 
   // Notification state
   const [notification, setNotification] = useState({
@@ -50,6 +56,39 @@ export default function ChangePassScreen() {
 
   const { width } = Dimensions.get("window");
   const isTablet = width > 968;
+
+  // Fetch profile image from Firebase
+  useEffect(() => {
+    const fetchProfileImage = async () => {
+      if (!user?.uid) {
+        setLoadingImage(false);
+        return;
+      }
+
+      try {
+        setLoadingImage(true);
+        const userDoc = await firestore()
+          .collection("users")
+          .doc(user.uid)
+          .get();
+
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          const profilePicUrl =
+            userData?.profile_pic ||
+            userData?.profilePic ||
+            userData?.profile_picture;
+          setProfileImageUrl(profilePicUrl || null);
+        }
+      } catch (error) {
+        console.error("Error fetching profile image:", error);
+      } finally {
+        setLoadingImage(false);
+      }
+    };
+
+    fetchProfileImage();
+  }, [user]);
 
   useEffect(() => {
     const lockOrientation = async () => {
@@ -94,53 +133,71 @@ export default function ChangePassScreen() {
     }, 3000);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const { oldPassword, newPassword, confirmPassword } = passwords;
 
-    // First check if all fields are filled
     if (!oldPassword || !newPassword || !confirmPassword) {
       showPopup("Please fill in all fields", "error");
       return;
     }
 
-    // Get current password from auth store (fallback to default if not set)
-    // const currentPassword = user?.password || "123456";
+    if (newPassword !== confirmPassword) {
+      showPopup("New passwords do not match", "error");
+      return;
+    }
 
-    // // Check if old password is correct
-    // if (oldPassword !== currentPassword) {
-    //   showPopup("Incorrect old password", "error");
-    //   return;
-    // }
+    if (newPassword === oldPassword) {
+      showPopup("New password cannot be the same as old password", "error");
+      return;
+    }
 
-    // // Check if new passwords match
-    // if (newPassword !== confirmPassword) {
-    //   showPopup("New passwords do not match", "error");
-    //   return;
-    // }
-
-    // // Check if new password is different from old password
-    // if (newPassword === oldPassword) {
-    //   showPopup("New password cannot be same as old password", "error");
-    //   return;
-    // }
-
-    // Validate password strength (optional)
     if (newPassword.length < 6) {
       showPopup("Password must be at least 6 characters long", "error");
       return;
     }
 
-    // Update password in auth store
-    // updatePassword(newPassword);
+    try {
+      // ✅ Get current user from React Native Firebase
+      const currentUser = auth().currentUser;
 
-    // ✅ Success
-    showPopup("Password changed successfully!", "success");
-    setIsEditing(false);
-    setPasswords({
-      oldPassword: "",
-      newPassword: "",
-      confirmPassword: "",
-    });
+      if (!currentUser || !currentUser.email) {
+        showPopup("No user is logged in", "error");
+        return;
+      }
+
+      // ✅ Create credential for re-authentication
+      const credential = auth.EmailAuthProvider.credential(
+        currentUser.email,
+        oldPassword
+      );
+
+      // ✅ Re-authenticate with old password
+      await currentUser.reauthenticateWithCredential(credential);
+
+      // ✅ Update password in Firebase Auth
+      await currentUser.updatePassword(newPassword);
+
+      // ✅ Update in Zustand store (optional)
+      updatePassword(newPassword);
+
+      showPopup("Password changed successfully!", "success");
+      setIsEditing(false);
+      setPasswords({ oldPassword: "", newPassword: "", confirmPassword: "" });
+    } catch (error: any) {
+      // ✅ Handle React Native Firebase error codes
+      if (
+        error.code === "auth/wrong-password" ||
+        error.code === "auth/invalid-credential"
+      ) {
+        showPopup("Incorrect old password", "error");
+      } else if (error.code === "auth/weak-password") {
+        showPopup("Password is too weak", "error");
+      } else if (error.code === "auth/requires-recent-login") {
+        showPopup("Please log out and log back in, then try again", "error");
+      } else {
+        showPopup(error.message || "Failed to update password", "error");
+      }
+    }
   };
 
   if (!fontsLoaded) {
@@ -185,10 +242,24 @@ export default function ChangePassScreen() {
         <View style={[styles.body, isTablet ? styles.body : styles.bodyMobile]}>
           <View style={styles.layer1}>
             <View style={styles.ProfileContainer}>
-              <Image
-                source={require("@/assets/images/stock.jpg")}
-                style={styles.ProfileImage}
-              />
+              {loadingImage ? (
+                <View style={styles.ProfileImageLoading}>
+                  <ActivityIndicator size="small" color="#9B72CF" />
+                </View>
+              ) : (
+                <Image
+                  source={
+                    profileImageUrl
+                      ? { uri: profileImageUrl }
+                      : require("@/assets/images/defaultimg.jpg")
+                  }
+                  style={styles.ProfileImage}
+                  onError={(error) => {
+                    console.log("Error loading profile image:", error);
+                    setProfileImageUrl(null);
+                  }}
+                />
+              )}
             </View>
           </View>
 
@@ -284,7 +355,7 @@ export default function ChangePassScreen() {
 
             <TouchableOpacity
               style={styles.categoryInfosActive}
-              onPress={() => router.push("../screens/learner/changepass")}
+              onPress={() => router.push("/screens/learner/changepass")}
             >
               <Image
                 source={require("@/assets/images/lock.png")}
@@ -379,6 +450,15 @@ const styles = StyleSheet.create({
     borderRadius: wp(9),
     resizeMode: "cover",
     marginRight: wp(1),
+  },
+  ProfileImageLoading: {
+    width: wp(15),
+    height: wp(15),
+    borderRadius: wp(9),
+    backgroundColor: "#f0f0f0",
+    marginRight: wp(1),
+    justifyContent: "center",
+    alignItems: "center",
   },
   // LAYER 2
   layer2: {

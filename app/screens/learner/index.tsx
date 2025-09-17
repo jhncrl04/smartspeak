@@ -1,13 +1,12 @@
 import { ThemedView } from "@/components/ThemedView";
-import "@/firebaseConfig";
 import { useAuthStore } from "@/stores/userAuthStore";
 import auth from "@react-native-firebase/auth";
+import firestore from "@react-native-firebase/firestore";
 import AppLoading from "expo-app-loading";
 import { useFonts } from "expo-font";
-import { router, usePathname } from "expo-router";
+import { router } from "expo-router";
 import * as ScreenOrientation from "expo-screen-orientation";
 import * as Speech from "expo-speech";
-import { collection, getDocs, getFirestore } from "firebase/firestore";
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -26,15 +25,9 @@ import {
   widthPercentageToDP as wp,
 } from "react-native-responsive-screen";
 
-const db = getFirestore();
-
-const Homepage = () => {
+export default function HomeScreen() {
   // Get user data from auth store
   const user = useAuthStore((state) => state.user);
-
-  const path = usePathname();
-
-  console.log(path);
 
   // LOGOUT FUNCTION
   const logout = useAuthStore((state) => state.logout);
@@ -175,7 +168,7 @@ const Homepage = () => {
   // Function to handle account settings
   const handleAccountSettings = () => {
     setShowSettingsModal(false);
-    router.push("/screens/learner/profile");
+    router.push("../screens/learner/profile");
   };
 
   // Clean up timeout on unmount
@@ -264,13 +257,13 @@ const Homepage = () => {
     console.log("Card added to sentence:", card.text);
   };
 
-  // UPDATED: Fetch data from Firebase with user-based filtering
+  // UPDATED: Fetch data from Firebase with user-based filtering using React Native Firebase SDK
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
 
-        // Get current user ID from auth store - FIXED
+        // Get current user ID from auth store
         const currentUserId = user?.uid;
 
         if (!currentUserId) {
@@ -279,29 +272,34 @@ const Homepage = () => {
           return;
         }
 
+        console.log("=== FETCHING DATA FOR USER ===");
         console.log("Current user ID:", currentUserId);
 
-        // Fetch categories with user filtering
-        const categoriesSnapshot = await getDocs(
-          collection(db, "pecsCategories")
-        );
+        // Fetch categories with improved filtering logic using React Native Firebase SDK
+        const categoriesSnapshot = await firestore()
+          .collection("pecsCategories")
+          .get();
+
         const allCategoriesData: CategoryType[] = [];
 
         categoriesSnapshot.docs.forEach((categoryDoc) => {
           const categoryData = categoryDoc.data();
 
-          console.log("Category data:", categoryData); // Debug log
+          console.log(`\n--- Category ${categoryDoc.id} ---`);
+          console.log("Category name:", categoryData.category_name);
+          console.log("Created by:", categoryData.created_by);
+          console.log("Assigned to:", categoryData.assigned_to);
 
-          // Check if category should be visible to current user
+          // Use the same logic as your category service:
+          // 1. Show if created by current user (admin/teacher view)
+          // 2. Show if assigned to current user (learner view)
+          // 3. Show if no assigned_to field (public categories)
           const shouldShowCategory =
-            // Admin created (no assigned_to field) - show to all users
-            !categoryData.assigned_to ||
-            // Assigned to current user specifically
-            categoryData.assigned_to === currentUserId;
+            categoryData.created_by === currentUserId || // created by user
+            categoryData.assigned_to?.includes(currentUserId) || // assigned to user
+            !categoryData.assigned_to; // no assignment (public)
 
-          console.log(
-            `Category ${categoryData.category_name}: shouldShow=${shouldShowCategory}, assigned_to=${categoryData.assigned_to}`
-          );
+          console.log("Should show category:", shouldShowCategory);
 
           if (shouldShowCategory) {
             allCategoriesData.push({
@@ -313,49 +311,69 @@ const Homepage = () => {
           }
         });
 
-        console.log("Filtered categories for user:", allCategoriesData);
+        console.log(
+          "Filtered categories:",
+          allCategoriesData.map((c) => c.category_name)
+        );
 
-        // Fetch cards with user filtering
-        const cardsSnapshot = await getDocs(collection(db, "cards"));
+        // Fetch cards with the same filtering pattern using React Native Firebase SDK
+        const cardsSnapshot = await firestore().collection("cards").get();
+
         const cardsData: CardType[] = [];
+
+        console.log("\n=== FETCHING CARDS ===");
+        console.log("Total cards in database:", cardsSnapshot.docs.length);
 
         cardsSnapshot.docs.forEach((cardDoc) => {
           const cardData = cardDoc.data();
 
-          console.log("Card data:", cardData); // Debug log
-
-          // Check if card should be visible to current user
-          const shouldShowCard =
-            // Admin created (no assigned_to field) - show to all users
-            !cardData.assigned_to ||
-            // Assigned to current user specifically
-            cardData.assigned_to === currentUserId;
-
+          console.log(`\n--- Card ${cardDoc.id} ---`);
+          console.log("Card name:", cardData.card_name);
+          console.log("Created by:", cardData.created_by);
+          console.log("Assigned to:", cardData.assigned_to);
           console.log(
-            `Card ${cardData.card_name}: shouldShow=${shouldShowCard}, assigned_to=${cardData.assigned_to}`
+            "Category:",
+            cardData.category_name || cardData.category_id
           );
+
+          // Use the same logic as categories:
+          // 1. Show if created by current user
+          // 2. Show if assigned to current user
+          // 3. Show if no assigned_to field (public cards)
+          const shouldShowCard =
+            cardData.created_by === currentUserId || // created by user
+            cardData.assigned_to?.includes(currentUserId) || // assigned to user
+            !cardData.assigned_to; // no assignment (public)
+
+          console.log("Should show card:", shouldShowCard);
 
           if (shouldShowCard) {
             cardsData.push({
               id: cardDoc.id,
               image: cardData.image || "",
               text: cardData.card_name || cardData.text || "No text",
-              categoryId: cardData.category_name || "", // Make sure this field exists in your cards
+              categoryId: cardData.category_name || cardData.category_id || "",
             });
           }
         });
 
-        console.log("Filtered cards for user:", cardsData);
+        console.log("Filtered cards:", cardsData.length);
 
-        // Filter categories that have at least one card (from the filtered cards)
+        // Filter categories that have at least one card
         const categoriesWithCards = allCategoriesData.filter((category) => {
           const hasCards = cardsData.some((card) => {
-            // Try exact match first, then case-insensitive match
-            const exactMatch = card.categoryId === category.category_name;
+            // Flexible matching for category names
+            const categoryName = category.category_name;
+            const cardCategoryId = card.categoryId;
+
+            const exactMatch = cardCategoryId === categoryName;
             const caseInsensitiveMatch =
-              card.categoryId.toLowerCase() ===
-              category.category_name.toLowerCase();
-            return exactMatch || caseInsensitiveMatch;
+              cardCategoryId.toLowerCase() === categoryName.toLowerCase();
+            const trimmedMatch =
+              cardCategoryId.trim().toLowerCase() ===
+              categoryName.trim().toLowerCase();
+
+            return exactMatch || caseInsensitiveMatch || trimmedMatch;
           });
 
           console.log(
@@ -365,15 +383,12 @@ const Homepage = () => {
           return hasCards;
         });
 
-        console.log("Categories with cards for user:", categoriesWithCards);
+        console.log(
+          "Categories with cards:",
+          categoriesWithCards.map((c) => c.category_name)
+        );
 
-        // Check what category names exist in filtered cards
-        const uniqueCardCategories = [
-          ...new Set(cardsData.map((card) => card.categoryId)),
-        ];
-        console.log("Unique card categories for user:", uniqueCardCategories);
-
-        // Set first category as active by default (only if there are categories with cards)
+        // Set first category as active and load its cards
         if (categoriesWithCards.length > 0) {
           categoriesWithCards[0].active = true;
           setSelectedCategory(categoriesWithCards[0].id);
@@ -381,31 +396,39 @@ const Homepage = () => {
           // Filter cards for the first category
           const firstCategoryName = categoriesWithCards[0].category_name;
           const firstCategoryCards = cardsData.filter((card) => {
-            const exactMatch = card.categoryId === firstCategoryName;
-            const caseInsensitiveMatch =
-              card.categoryId.toLowerCase() === firstCategoryName.toLowerCase();
-            const matches = exactMatch || caseInsensitiveMatch;
+            const categoryName = firstCategoryName;
+            const cardCategoryId = card.categoryId;
 
-            console.log(
-              `Card "${card.text}" category "${card.categoryId}" matches "${firstCategoryName}":`,
-              matches
-            );
-            return matches;
+            const exactMatch = cardCategoryId === categoryName;
+            const caseInsensitiveMatch =
+              cardCategoryId.toLowerCase() === categoryName.toLowerCase();
+            const trimmedMatch =
+              cardCategoryId.trim().toLowerCase() ===
+              categoryName.trim().toLowerCase();
+
+            return exactMatch || caseInsensitiveMatch || trimmedMatch;
           });
 
-          console.log("First category cards for user:", firstCategoryCards);
+          console.log(
+            `First category "${firstCategoryName}" cards:`,
+            firstCategoryCards.length
+          );
           setDisplayedCards(firstCategoryCards);
         } else {
-          console.log("No categories with cards found for user");
+          console.log("No categories with cards found");
           setDisplayedCards([]);
         }
 
-        // Use filtered categories instead of all categories
         setCategories(categoriesWithCards);
         setAllCards(cardsData);
-      } catch (error: any) {
+
+        console.log("=== DATA FETCH COMPLETE ===");
+      } catch (error) {
         console.error("Error fetching data from Firebase:", error);
-        alert("Error loading data from Firebase: " + error.message);
+        alert(
+          "Error loading data from Firebase: " +
+            (error instanceof Error ? error.message : "Unknown error")
+        );
       } finally {
         setLoading(false);
       }
@@ -418,9 +441,9 @@ const Homepage = () => {
       console.log("No user found, not fetching data");
       setLoading(false);
     }
-  }, [user]); // Add user as dependency to refetch when user changes
+  }, [user]);
 
-  // UPDATED: Filter cards when category changes
+  // Also update the handleCategoryPress function to use the same matching logic:
   const handleCategoryPress = (categoryId: string) => {
     console.log("Category pressed:", categoryId);
 
@@ -433,7 +456,7 @@ const Homepage = () => {
     }));
     setCategories(updatedCategories);
 
-    // Find the selected category to get its name
+    // Find the selected category
     const selectedCategory = categories.find((cat) => cat.id === categoryId);
     if (!selectedCategory) {
       console.log("Category not found:", categoryId);
@@ -443,34 +466,31 @@ const Homepage = () => {
 
     console.log("Selected category name:", selectedCategory.category_name);
 
-    // Filter cards that match this category name (from already filtered allCards)
+    // Filter cards using consistent matching logic
     const filteredCards = allCards.filter((card) => {
-      const matches = card.categoryId === selectedCategory.category_name;
+      const categoryName = selectedCategory.category_name;
+      const cardCategoryId = card.categoryId;
+
+      const exactMatch = cardCategoryId === categoryName;
+      const caseInsensitiveMatch =
+        cardCategoryId.toLowerCase() === categoryName.toLowerCase();
+      const trimmedMatch =
+        cardCategoryId.trim().toLowerCase() ===
+        categoryName.trim().toLowerCase();
+
+      const matches = exactMatch || caseInsensitiveMatch || trimmedMatch;
+
       console.log(
-        `Card "${card.text}" (category: "${card.categoryId}") matches "${selectedCategory.category_name}":`,
-        matches
+        `Card "${card.text}": categoryId="${cardCategoryId}", categoryName="${categoryName}", matches=${matches}`
       );
+
       return matches;
     });
 
     console.log(
-      "Filtered cards for category:",
-      selectedCategory.category_name,
-      filteredCards
+      `Found ${filteredCards.length} cards for category "${selectedCategory.category_name}"`
     );
     setDisplayedCards(filteredCards);
-
-    // If no cards found, let's also try a case-insensitive match
-    if (filteredCards.length === 0) {
-      console.log("No exact matches, trying case-insensitive...");
-      const caseInsensitiveFiltered = allCards.filter(
-        (card) =>
-          card.categoryId.toLowerCase() ===
-          selectedCategory.category_name.toLowerCase()
-      );
-      console.log("Case-insensitive matches:", caseInsensitiveFiltered);
-      setDisplayedCards(caseInsensitiveFiltered);
-    }
   };
 
   const clearSentence = () => {
@@ -653,13 +673,13 @@ const Homepage = () => {
 
   // Fixed getItemLayout function
   const getItemLayout = (
-    _data: ArrayLike<CardType> | null | undefined,
+    data: CardType[] | null | undefined,
     index: number
-  ): { length: number; offset: number; index: number } => {
-    const length = cardHeight + 10;
-    const offset = Math.floor(index / cardsPerRow) * length;
-    return { length, offset, index };
-  };
+  ) => ({
+    length: cardHeight + 10,
+    offset: Math.floor(index / cardsPerRow) * (cardHeight + 10),
+    index,
+  });
 
   if (loading) {
     return (
@@ -705,6 +725,13 @@ const Homepage = () => {
               </View>
             )}
           </TouchableOpacity>
+
+          {/* DEBUG: Show current user ID */}
+          {/* <View style={styles.debugContainer}>
+            <Text style={styles.debugText}>
+              User ID: {user?.uid || 'No user ID'}
+            </Text>
+          </View> */}
         </View>
       </View>
 
@@ -873,7 +900,7 @@ const Homepage = () => {
       )}
     </ThemedView>
   );
-};
+}
 
 const { width, height } = Dimensions.get("window");
 const isTablet = width > 915;
@@ -957,6 +984,21 @@ const styles = StyleSheet.create({
     width: wp(3),
     height: hp(3.5),
     resizeMode: "contain",
+  },
+
+  // DEBUG STYLES
+  debugContainer: {
+    backgroundColor: "rgba(255, 255, 255, 0.8)",
+    padding: 4,
+    borderRadius: 4,
+    marginLeft: 10,
+  },
+
+  debugText: {
+    fontSize: 10,
+    color: "#9B72CF",
+    fontWeight: "500",
+    fontFamily: "Poppins",
   },
 
   // Tap indicator styles
@@ -1288,5 +1330,3 @@ const styles = StyleSheet.create({
     marginTop: 0,
   },
 });
-
-export default Homepage;

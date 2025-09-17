@@ -14,6 +14,7 @@ interface AuthState {
   };
   login: (user: AuthState["user"]) => void;
   updateUser: (updatedData: Partial<NonNullable<AuthState["user"]>>) => void;
+  updatePassword: (newPassword: string) => void;
   logout: () => void;
 }
 
@@ -27,6 +28,10 @@ export const useAuthStore = create<AuthState>()(
         updateUser: (updatedData: Partial<AuthState["user"]>) =>
           set((state) => ({
             user: state.user ? { ...state.user, ...updatedData } : null,
+          })),
+        updatePassword: (newPassword: string) =>
+          set((state) => ({
+            user: state.user ? { ...state.user, password: newPassword } : null,
           })),
       }),
       {
