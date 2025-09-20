@@ -26,6 +26,121 @@ export default function HomeScreen() {
     Poppins: require("../../../assets/fonts/Poppins-Regular.ttf"),
   });
 
+  // State to store user's full name
+  const [userFullName, setUserFullName] = useState<string>('');
+
+  // Function to get user's full name from Firebase
+  const fetchUserFullName = async () => {
+    if (!user?.uid) return '';
+
+    try {
+      console.log("=== FETCHING USER FULL NAME ===");
+      const userDoc = await firestore()
+        .collection("users")
+        .doc(user.uid)
+        .get();
+
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        console.log("User data from Firebase:", userData);
+        
+        // Get the full name using the same logic as ProfileScreen
+        const firstName = userData?.first_name || userData?.fname || '';
+        const lastName = userData?.last_name || userData?.lname || '';
+        const fullName = `${firstName} ${lastName}`.trim();
+        
+        console.log("First name:", firstName);
+        console.log("Last name:", lastName);
+        console.log("Combined full name:", fullName);
+        
+        // If no name is available, fall back to email
+        const displayName = fullName || user?.email || 'Unknown User';
+        console.log("Final display name:", displayName);
+        
+        setUserFullName(displayName);
+        return displayName;
+      } else {
+        console.log("User document does not exist");
+        const fallbackName = user?.email || 'Unknown User';
+        setUserFullName(fallbackName);
+        return fallbackName;
+      }
+    } catch (error) {
+      console.error('Error fetching user full name:', error);
+      const fallbackName = user?.email || 'Unknown User';
+      setUserFullName(fallbackName);
+      return fallbackName;
+    }
+  };
+
+  // LOGGING FUNCTIONS - Updated to get fresh name if userFullName is empty
+  const logCardTap = async (card: CardType, action: 'add' | 'remove', sentencePosition?: number) => {
+    try {
+      // Get fresh user name if not already loaded
+      let currentUserName = userFullName;
+      if (!currentUserName || currentUserName === user?.email) {
+        console.log("User full name not loaded, fetching now...");
+        currentUserName = await fetchUserFullName();
+      }
+      
+      console.log("Logging card tap with user name:", currentUserName);
+
+      const logData = {
+        user_id: user?.uid || 'unknown',
+        user_name: currentUserName || user?.email || 'unknown',
+        action: action === 'add' ? 'card added to sentence' : 'card removed from sentence',
+        item_category: card.categoryId,
+        item_id: card.id,
+        item_name: card.text,
+        sentence_position: sentencePosition,
+        timestamp: firestore.FieldValue.serverTimestamp(),
+        user_type: 'learner',
+      };
+
+      await firestore().collection('pecsLogs').add(logData);
+      console.log(`Card ${action} logged to pecsLogs:`, card.text, sentencePosition ? `at position ${sentencePosition}` : '');
+    } catch (error) {
+      console.error('Error logging card tap:', error);
+    }
+  };
+
+  const logPlaySentence = async (sentenceCards: SentenceCardType[]) => {
+    try {
+      // Get fresh user name if not already loaded
+      let currentUserName = userFullName;
+      if (!currentUserName || currentUserName === user?.email) {
+        console.log("User full name not loaded, fetching now...");
+        currentUserName = await fetchUserFullName();
+      }
+      
+      console.log("Logging sentence play with user name:", currentUserName);
+
+      const sentence = sentenceCards.map(card => card.text).join(' ');
+      const cardDetails = sentenceCards.map((card, index) => ({
+        card_id: card.id,
+        card_name: card.text,
+        category: card.categoryId,
+        position: index + 1
+      }));
+
+      const logData = {
+        user_id: user?.uid || 'unknown',
+        user_name: currentUserName || user?.email || 'unknown',
+        action: 'sentence played',
+        sentence_text: sentence,
+        card_count: sentenceCards.length,
+        cards_in_sentence: cardDetails,
+        timestamp: firestore.FieldValue.serverTimestamp(),
+        user_type: 'learner',
+      };
+
+      await firestore().collection('pecsLogs').add(logData);
+      console.log('Sentence play logged to pecsLogs:', sentence);
+    } catch (error) {
+      console.error('Error logging sentence play:', error);
+    }
+  };
+
   // Function to handle logout
   const handleLogout = async () => {
     setShowSettingsModal(false);
@@ -222,7 +337,7 @@ export default function HomeScreen() {
     }
   };
 
-  // UPDATED: Function to handle card tap - now includes category color
+  // UPDATED: Function to handle card tap - now includes category color AND logging
   const handleCardTap = async (card: CardType) => {
     // Check if sentence strip is full (max 8 cards)
     if (sentenceCards.length >= 8) {
@@ -256,6 +371,9 @@ export default function HomeScreen() {
     // Add card to sentence strip with its category color
     setSentenceCards((prev) => [...prev, sentenceCard]);
 
+    // LOG: Card added to sentence strip
+    await logCardTap(card, 'add', sentenceCards.length + 1);
+
     // Play the card name when added to sentence strip
     await playCardName(card.text);
 
@@ -285,6 +403,9 @@ useEffect(() => {
 
       console.log("=== FETCHING DATA FOR USER ===");
       console.log("Current user ID:", currentUserId);
+
+      // Fetch user's full name first
+      await fetchUserFullName();
 
       // UPDATED: Fetch categories with background_color field
       const categoriesSnapshot = await firestore()
@@ -488,10 +609,13 @@ useEffect(() => {
     setSentenceCards((prev) => prev.slice(0, -1));
   };
 
-  // Updated playSentence function with AI speech
+  // UPDATED: Play sentence function with logging
   const playSentence = async () => {
     if (sentenceCards.length > 0 && !isPlaying) {
       setIsPlaying(true);
+
+      // LOG: Sentence play action
+      await logPlaySentence(sentenceCards);
 
       try {
         // Stop any ongoing speech (including card names)
@@ -625,7 +749,7 @@ useEffect(() => {
     );
   };
 
-  // UPDATED: Sentence card now uses individual card's stored category color
+  // UPDATED: Sentence card now uses individual card's stored category color AND includes logging for removal
   const renderSentenceCard = (card: SentenceCardType, index: number): JSX.Element => {
     return (
       <TouchableOpacity
@@ -634,7 +758,10 @@ useEffect(() => {
           styles.sentenceCard,
           { backgroundColor: card.categoryColor } // Use the stored category color for each card
         ]}
-        onPress={() => {
+        onPress={async () => {
+          // // LOG: Card removed from sentence strip
+          // await logCardTap(card, 'remove', index + 1);
+          
           setSentenceCards((prev: SentenceCardType[]) =>
             prev.filter((_, i: number) => i !== index)
           );
