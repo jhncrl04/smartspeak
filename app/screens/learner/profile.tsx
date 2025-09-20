@@ -71,19 +71,19 @@ const createLog = async (
       timestamp: firestore.FieldValue.serverTimestamp(),
       user_id: userId,
       user_name: userName,
-      user_type: "LEARNER",
-    };
+      user_type: "Learner",
+    }; 
 
     console.log("Log data to be saved:", logData);
     
-    const docRef = await firestore().collection("logs").add(logData);
+    const docRef = await firestore().collection("learnerAcctLogs").add(logData);
     console.log("Log created successfully with ID:", docRef.id);
     
     return docRef.id;
   } catch (error) {
     console.error("Error creating log:", error);
     console.error("Error details:", error.message);
-    throw error; // Re-throw to handle in calling function
+    throw error;
   }
 };
 
