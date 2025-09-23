@@ -7,34 +7,139 @@ import { useFonts } from "expo-font";
 import { router } from "expo-router";
 import * as ScreenOrientation from "expo-screen-orientation";
 import * as Speech from "expo-speech";
-import React, { useEffect, useRef, useState } from "react";
-import {
-  ActivityIndicator,
-  Animated,
-  Dimensions,
-  FlatList,
-  Image,
-  Modal,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { ActivityIndicator, Animated, Dimensions, FlatList, Image, Modal, StyleSheet, Text, TouchableOpacity, View, } from "react-native";
 import {
   heightPercentageToDP as hp,
   widthPercentageToDP as wp,
 } from "react-native-responsive-screen";
 
 export default function HomeScreen() {
+
   // Get user data from auth store
   const user = useAuthStore((state) => state.user);
 
-  // LOGOUT FUNCTION
+  // LOGOUT FUNCTION 
   const logout = useAuthStore((state) => state.logout);
 
   const [fontsLoaded] = useFonts({
     Poppins: require("../../../assets/fonts/Poppins-Regular.ttf"),
   });
+
+  // State to store user's full name
+  const [userFullName, setUserFullName] = useState<string>('');
+
+  // Function to get user's full name from Firebase
+  const fetchUserFullName = async () => {
+    if (!user?.uid) return '';
+
+    try {
+      console.log("=== FETCHING USER FULL NAME ===");
+      const userDoc = await firestore()
+        .collection("users")
+        .doc(user.uid)
+        .get();
+
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        console.log("User data from Firebase:", userData);
+        
+        // Get the full name using the same logic as ProfileScreen
+        const firstName = userData?.first_name || userData?.fname || '';
+        const lastName = userData?.last_name || userData?.lname || '';
+        const fullName = `${firstName} ${lastName}`.trim();
+        
+        console.log("First name:", firstName);
+        console.log("Last name:", lastName);
+        console.log("Combined full name:", fullName);
+        
+        // If no name is available, fall back to email
+        const displayName = fullName || user?.email || 'Unknown User';
+        console.log("Final display name:", displayName);
+        
+        setUserFullName(displayName);
+        return displayName;
+      } else {
+        console.log("User document does not exist");
+        const fallbackName = user?.email || 'Unknown User';
+        setUserFullName(fallbackName);
+        return fallbackName;
+      }
+    } catch (error) {
+      console.error('Error fetching user full name:', error);
+      const fallbackName = user?.email || 'Unknown User';
+      setUserFullName(fallbackName);
+      return fallbackName;
+    }
+  };
+
+  // LOGGING FUNCTIONS - Updated to get fresh name if userFullName is empty
+  const logCardTap = async (card: CardType, action: 'add' | 'remove', sentencePosition?: number) => {
+    try {
+      // Get fresh user name if not already loaded
+      let currentUserName = userFullName;
+      if (!currentUserName || currentUserName === user?.email) {
+        console.log("User full name not loaded, fetching now...");
+        currentUserName = await fetchUserFullName();
+      }
+      
+      console.log("Logging card tap with user name:", currentUserName);
+
+      const logData = {
+        user_id: user?.uid || 'unknown',
+        user_name: currentUserName || user?.email || 'unknown',
+        action: action === 'add' ? 'card added to sentence' : 'card removed from sentence',
+        item_category: card.categoryId,
+        item_id: card.id,
+        item_name: card.text,
+        sentence_position: sentencePosition,
+        timestamp: firestore.FieldValue.serverTimestamp(),
+        user_type: 'learner',
+      };
+
+      await firestore().collection('pecsLogs').add(logData);
+      console.log(`Card ${action} logged to pecsLogs:`, card.text, sentencePosition ? `at position ${sentencePosition}` : '');
+    } catch (error) {
+      console.error('Error logging card tap:', error);
+    }
+  };
+
+  const logPlaySentence = async (sentenceCards: SentenceCardType[]) => {
+    try {
+      // Get fresh user name if not already loaded
+      let currentUserName = userFullName;
+      if (!currentUserName || currentUserName === user?.email) {
+        console.log("User full name not loaded, fetching now...");
+        currentUserName = await fetchUserFullName();
+      }
+      
+      console.log("Logging sentence play with user name:", currentUserName);
+
+      const sentence = sentenceCards.map(card => card.text).join(' ');
+      const cardDetails = sentenceCards.map((card, index) => ({
+        card_id: card.id,
+        card_name: card.text,
+        category: card.categoryId,
+        position: index + 1
+      }));
+
+      const logData = {
+        user_id: user?.uid || 'unknown',
+        user_name: currentUserName || user?.email || 'unknown',
+        action: 'sentence played',
+        sentence_text: sentence,
+        card_count: sentenceCards.length,
+        cards_in_sentence: cardDetails,
+        timestamp: firestore.FieldValue.serverTimestamp(),
+        user_type: 'learner',
+      };
+
+      await firestore().collection('pecsLogs').add(logData);
+      console.log('Sentence play logged to pecsLogs:', sentence);
+    } catch (error) {
+      console.error('Error logging sentence play:', error);
+    }
+  };
 
   // Function to handle logout
   const handleLogout = async () => {
@@ -80,14 +185,22 @@ export default function HomeScreen() {
     categoryId: string;
   };
 
+  // UPDATED: Add background_color to sentence card type
+  type SentenceCardType = CardType & {
+    categoryColor: string; // Store the category color with the card
+  };
+
+  // UPDATED: Add background_color to CategoryType
   type CategoryType = {
     id: string;
     category_name: string;
     image: string;
     active: boolean;
+    background_color?: string; // Add this field
   };
 
-  const [sentenceCards, setSentenceCards] = useState<CardType[]>([]);
+  // UPDATED: Change sentenceCards type to SentenceCardType
+  const [sentenceCards, setSentenceCards] = useState<SentenceCardType[]>([]);
   const [allCards, setAllCards] = useState<CardType[]>([]);
   const [displayedCards, setDisplayedCards] = useState<CardType[]>([]);
   const [categories, setCategories] = useState<CategoryType[]>([]);
@@ -104,9 +217,7 @@ export default function HomeScreen() {
   // New states for notification
   const [showNotification, setShowNotification] = useState<boolean>(false);
   const notificationOpacity = useRef(new Animated.Value(0)).current;
-  const notificationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null
-  );
+  const notificationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Animation for card tap feedback
   const cardTapScale = useRef(new Animated.Value(1)).current;
@@ -195,7 +306,7 @@ export default function HomeScreen() {
     try {
       // Configure speech options for card name
       const speechOptions = {
-        language: "en-US",
+        language: "fil-PH",
         pitch: 1.1, // Slightly higher pitch for card names
         rate: 0.9, // Normal speed for single words
         voice: undefined,
@@ -226,7 +337,7 @@ export default function HomeScreen() {
     }
   };
 
-  // NEW: Function to handle card tap - adds card to sentence
+  // UPDATED: Function to handle card tap - now includes category color AND logging
   const handleCardTap = async (card: CardType) => {
     // Check if sentence strip is full (max 8 cards)
     if (sentenceCards.length >= 8) {
@@ -248,200 +359,203 @@ export default function HomeScreen() {
       }),
     ]).start();
 
-    // Add card to sentence strip
-    setSentenceCards((prev) => [...prev, card]);
+    // Get the current category color
+    const currentCategoryColor = getCurrentCategoryBackgroundColor();
+
+    // Create sentence card with category color
+    const sentenceCard: SentenceCardType = {
+      ...card,
+      categoryColor: currentCategoryColor,
+    };
+
+    // Add card to sentence strip with its category color
+    setSentenceCards((prev) => [...prev, sentenceCard]);
+
+    // LOG: Card added to sentence strip
+    await logCardTap(card, 'add', sentenceCards.length + 1);
 
     // Play the card name when added to sentence strip
     await playCardName(card.text);
 
-    console.log("Card added to sentence:", card.text);
+    console.log("Card added to sentence with color:", card.text, currentCategoryColor);
   };
 
-  // UPDATED: Fetch data from Firebase with user-based filtering using React Native Firebase SDK
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
+  // NEW: Helper function to get current category background color
+  const getCurrentCategoryBackgroundColor = () => {
+    const currentCategory = categories.find(cat => cat.id === selectedCategory);
+    return currentCategory?.background_color || "#5FA056"; // Default fallback color
+  };
 
-        // Get current user ID from auth store
-        const currentUserId = user?.uid;
+// UPDATED: Fetch data from Firebase with user-based filtering using React Native Firebase SDK
+useEffect(() => {
+  const fetchData = async () => {
+    try {
+      setLoading(true);
 
-        if (!currentUserId) {
-          console.error("No current user ID found");
-          setLoading(false);
-          return;
-        }
+      // Get current user ID from auth store
+      const currentUserId = user?.uid;
 
-        console.log("=== FETCHING DATA FOR USER ===");
-        console.log("Current user ID:", currentUserId);
-
-        // Fetch categories with improved filtering logic using React Native Firebase SDK
-        const categoriesSnapshot = await firestore()
-          .collection("pecsCategories")
-          .get();
-
-        const allCategoriesData: CategoryType[] = [];
-
-        categoriesSnapshot.docs.forEach((categoryDoc) => {
-          const categoryData = categoryDoc.data();
-
-          console.log(`\n--- Category ${categoryDoc.id} ---`);
-          console.log("Category name:", categoryData.category_name);
-          console.log("Created by:", categoryData.created_by);
-          console.log("Assigned to:", categoryData.assigned_to);
-
-          // Use the same logic as your category service:
-          // 1. Show if created by current user (admin/teacher view)
-          // 2. Show if assigned to current user (learner view)
-          // 3. Show if no assigned_to field (public categories)
-          const shouldShowCategory =
-            categoryData.created_by === currentUserId || // created by user
-            categoryData.assigned_to?.includes(currentUserId) || // assigned to user
-            !categoryData.assigned_to; // no assignment (public)
-
-          console.log("Should show category:", shouldShowCategory);
-
-          if (shouldShowCategory) {
-            allCategoriesData.push({
-              id: categoryDoc.id,
-              category_name: categoryData.category_name || "Unknown Category",
-              image: categoryData.image || "",
-              active: false,
-            });
-          }
-        });
-
-        console.log(
-          "Filtered categories:",
-          allCategoriesData.map((c) => c.category_name)
-        );
-
-        // Fetch cards with the same filtering pattern using React Native Firebase SDK
-        const cardsSnapshot = await firestore().collection("cards").get();
-
-        const cardsData: CardType[] = [];
-
-        console.log("\n=== FETCHING CARDS ===");
-        console.log("Total cards in database:", cardsSnapshot.docs.length);
-
-        cardsSnapshot.docs.forEach((cardDoc) => {
-          const cardData = cardDoc.data();
-
-          console.log(`\n--- Card ${cardDoc.id} ---`);
-          console.log("Card name:", cardData.card_name);
-          console.log("Created by:", cardData.created_by);
-          console.log("Assigned to:", cardData.assigned_to);
-          console.log(
-            "Category:",
-            cardData.category_name || cardData.category_id
-          );
-
-          // Use the same logic as categories:
-          // 1. Show if created by current user
-          // 2. Show if assigned to current user
-          // 3. Show if no assigned_to field (public cards)
-          const shouldShowCard =
-            cardData.created_by === currentUserId || // created by user
-            cardData.assigned_to?.includes(currentUserId) || // assigned to user
-            !cardData.assigned_to; // no assignment (public)
-
-          console.log("Should show card:", shouldShowCard);
-
-          if (shouldShowCard) {
-            cardsData.push({
-              id: cardDoc.id,
-              image: cardData.image || "",
-              text: cardData.card_name || cardData.text || "No text",
-              categoryId: cardData.category_name || cardData.category_id || "",
-            });
-          }
-        });
-
-        console.log("Filtered cards:", cardsData.length);
-
-        // Filter categories that have at least one card
-        const categoriesWithCards = allCategoriesData.filter((category) => {
-          const hasCards = cardsData.some((card) => {
-            // Flexible matching for category names
-            const categoryName = category.category_name;
-            const cardCategoryId = card.categoryId;
-
-            const exactMatch = cardCategoryId === categoryName;
-            const caseInsensitiveMatch =
-              cardCategoryId.toLowerCase() === categoryName.toLowerCase();
-            const trimmedMatch =
-              cardCategoryId.trim().toLowerCase() ===
-              categoryName.trim().toLowerCase();
-
-            return exactMatch || caseInsensitiveMatch || trimmedMatch;
-          });
-
-          console.log(
-            `Category "${category.category_name}" has cards:`,
-            hasCards
-          );
-          return hasCards;
-        });
-
-        console.log(
-          "Categories with cards:",
-          categoriesWithCards.map((c) => c.category_name)
-        );
-
-        // Set first category as active and load its cards
-        if (categoriesWithCards.length > 0) {
-          categoriesWithCards[0].active = true;
-          setSelectedCategory(categoriesWithCards[0].id);
-
-          // Filter cards for the first category
-          const firstCategoryName = categoriesWithCards[0].category_name;
-          const firstCategoryCards = cardsData.filter((card) => {
-            const categoryName = firstCategoryName;
-            const cardCategoryId = card.categoryId;
-
-            const exactMatch = cardCategoryId === categoryName;
-            const caseInsensitiveMatch =
-              cardCategoryId.toLowerCase() === categoryName.toLowerCase();
-            const trimmedMatch =
-              cardCategoryId.trim().toLowerCase() ===
-              categoryName.trim().toLowerCase();
-
-            return exactMatch || caseInsensitiveMatch || trimmedMatch;
-          });
-
-          console.log(
-            `First category "${firstCategoryName}" cards:`,
-            firstCategoryCards.length
-          );
-          setDisplayedCards(firstCategoryCards);
-        } else {
-          console.log("No categories with cards found");
-          setDisplayedCards([]);
-        }
-
-        setCategories(categoriesWithCards);
-        setAllCards(cardsData);
-
-        console.log("=== DATA FETCH COMPLETE ===");
-      } catch (error) {
-        console.error("Error fetching data from Firebase:", error);
-        alert(
-          "Error loading data from Firebase: " +
-            (error instanceof Error ? error.message : "Unknown error")
-        );
-      } finally {
+      if (!currentUserId) {
+        console.error("No current user ID found");
         setLoading(false);
+        return;
       }
-    };
 
-    // Only fetch data if user exists
-    if (user?.uid) {
-      fetchData();
-    } else {
-      console.log("No user found, not fetching data");
+      console.log("=== FETCHING DATA FOR USER ===");
+      console.log("Current user ID:", currentUserId);
+
+      // Fetch user's full name first
+      await fetchUserFullName();
+
+      // UPDATED: Fetch categories with background_color field
+      const categoriesSnapshot = await firestore()
+        .collection("pecsCategories")
+        .get();
+      
+      const allCategoriesData: CategoryType[] = [];
+
+      categoriesSnapshot.docs.forEach((categoryDoc) => {
+        const categoryData = categoryDoc.data();
+
+        console.log(`\n--- Category ${categoryDoc.id} ---`);
+        console.log("Category name:", categoryData.category_name);
+        console.log("Background color:", categoryData.background_color);
+        console.log("Created by:", categoryData.created_by);
+        console.log("Assigned to:", categoryData.assigned_to);
+
+        // Fixed logic for array-based assigned_to field:
+        // 1. Show if created by current user (admin/teacher view)
+        // 2. Show if assigned_to array contains current user ID
+        // 3. Show if no assigned_to field (public categories)
+        const shouldShowCategory = 
+          categoryData.created_by === currentUserId || // created by user
+          (categoryData.assigned_to && Array.isArray(categoryData.assigned_to) && categoryData.assigned_to.includes(currentUserId)) || // assigned to user (array contains)
+          !categoryData.assigned_to; // no assignment (public)
+
+        console.log("Should show category:", shouldShowCategory);
+
+        if (shouldShowCategory) {
+          allCategoriesData.push({
+            id: categoryDoc.id,
+            category_name: categoryData.category_name || "Unknown Category",
+            image: categoryData.image || "",
+            active: false,
+            background_color: categoryData.background_color || "#5FA056", // Include background_color with fallback
+          });
+        }
+      });
+
+      console.log("Filtered categories:", allCategoriesData.map(c => `${c.category_name} (${c.background_color})`));
+
+      // Fetch cards with the same filtering pattern using React Native Firebase SDK
+      const cardsSnapshot = await firestore()
+        .collection("cards")
+        .get();
+      
+      const cardsData: CardType[] = [];
+
+      console.log("\n=== FETCHING CARDS ===");
+      console.log("Total cards in database:", cardsSnapshot.docs.length);
+      
+      cardsSnapshot.docs.forEach((cardDoc) => {
+        const cardData = cardDoc.data();
+        
+        console.log(`\n--- Card ${cardDoc.id} ---`);
+        console.log("Card name:", cardData.card_name);
+        console.log("Created by:", cardData.created_by);
+        console.log("Assigned to:", cardData.assigned_to);
+        console.log("Category:", cardData.category_name || cardData.category_id);
+        
+        // Fixed logic for array-based assigned_to field:
+        // 1. Show if created by current user
+        // 2. Show if assigned_to array contains current user ID  
+        // 3. Show if no assigned_to field (public cards)
+        const shouldShowCard = 
+          cardData.created_by === currentUserId || // created by user
+          (cardData.assigned_to && Array.isArray(cardData.assigned_to) && cardData.assigned_to.includes(currentUserId)) || // assigned to user (array contains)
+          !cardData.assigned_to; // no assignment (public)
+
+        console.log("Should show card:", shouldShowCard);
+
+        if (shouldShowCard) {
+          cardsData.push({
+            id: cardDoc.id,
+            image: cardData.image || "",
+            text: cardData.card_name || cardData.text || "No text",
+            categoryId: cardData.category_name || cardData.category_id || "",
+          });
+        }
+      });
+
+      console.log("Filtered cards:", cardsData.length);
+
+      // UPDATED: Filter categories to only show those that have cards
+      const categoriesWithCards = allCategoriesData.filter((category) => {
+        // Check if this category has any cards
+        const categoryCards = cardsData.filter((card) => {
+          const categoryName = category.category_name;
+          const cardCategoryId = card.categoryId;
+          
+          const exactMatch = cardCategoryId === categoryName;
+          const caseInsensitiveMatch = cardCategoryId.toLowerCase() === categoryName.toLowerCase();
+          const trimmedMatch = cardCategoryId.trim().toLowerCase() === categoryName.trim().toLowerCase();
+          
+          return exactMatch || caseInsensitiveMatch || trimmedMatch;
+        });
+
+        const hasCards = categoryCards.length > 0;
+        console.log(`Category "${category.category_name}" (${category.background_color}) has ${categoryCards.length} cards - ${hasCards ? 'SHOWING' : 'HIDING'}`);
+        
+        return hasCards;
+      });
+
+      console.log("Categories with cards:", categoriesWithCards.map(c => `${c.category_name} (${c.background_color})`));
+
+      // Set first category as active and load its cards
+      if (categoriesWithCards.length > 0) {
+        categoriesWithCards[0].active = true;
+        setSelectedCategory(categoriesWithCards[0].id);
+
+        // Filter cards for the first category
+        const firstCategoryName = categoriesWithCards[0].category_name;
+        const firstCategoryCards = cardsData.filter((card) => {
+          const categoryName = firstCategoryName;
+          const cardCategoryId = card.categoryId;
+          
+          const exactMatch = cardCategoryId === categoryName;
+          const caseInsensitiveMatch = cardCategoryId.toLowerCase() === categoryName.toLowerCase();
+          const trimmedMatch = cardCategoryId.trim().toLowerCase() === categoryName.trim().toLowerCase();
+          
+          return exactMatch || caseInsensitiveMatch || trimmedMatch;
+        });
+
+        console.log(`First category "${firstCategoryName}" cards:`, firstCategoryCards.length);
+        setDisplayedCards(firstCategoryCards);
+      } else {
+        console.log("No categories with cards found");
+        setDisplayedCards([]);
+      }
+
+      setCategories(categoriesWithCards);
+      setAllCards(cardsData);
+
+      console.log("=== DATA FETCH COMPLETE ===");
+    } catch (error) {
+      console.error("Error fetching data from Firebase:", error);
+      alert("Error loading data from Firebase: " + (error instanceof Error ? error.message : "Unknown error"));
+    } finally {
       setLoading(false);
     }
-  }, [user]);
+  };
+
+  // Only fetch data if user exists
+  if (user?.uid) {
+    fetchData();
+  } else {
+    console.log("No user found, not fetching data");
+    setLoading(false);
+  }
+}, [user]);
 
   // Also update the handleCategoryPress function to use the same matching logic:
   const handleCategoryPress = (categoryId: string) => {
@@ -465,31 +579,25 @@ export default function HomeScreen() {
     }
 
     console.log("Selected category name:", selectedCategory.category_name);
+    console.log("Selected category background color:", selectedCategory.background_color);
 
     // Filter cards using consistent matching logic
     const filteredCards = allCards.filter((card) => {
       const categoryName = selectedCategory.category_name;
       const cardCategoryId = card.categoryId;
-
+      
       const exactMatch = cardCategoryId === categoryName;
-      const caseInsensitiveMatch =
-        cardCategoryId.toLowerCase() === categoryName.toLowerCase();
-      const trimmedMatch =
-        cardCategoryId.trim().toLowerCase() ===
-        categoryName.trim().toLowerCase();
-
+      const caseInsensitiveMatch = cardCategoryId.toLowerCase() === categoryName.toLowerCase();
+      const trimmedMatch = cardCategoryId.trim().toLowerCase() === categoryName.trim().toLowerCase();
+      
       const matches = exactMatch || caseInsensitiveMatch || trimmedMatch;
-
-      console.log(
-        `Card "${card.text}": categoryId="${cardCategoryId}", categoryName="${categoryName}", matches=${matches}`
-      );
-
+      
+      console.log(`Card "${card.text}": categoryId="${cardCategoryId}", categoryName="${categoryName}", matches=${matches}`);
+      
       return matches;
     });
 
-    console.log(
-      `Found ${filteredCards.length} cards for category "${selectedCategory.category_name}"`
-    );
+    console.log(`Found ${filteredCards.length} cards for category "${selectedCategory.category_name}"`);
     setDisplayedCards(filteredCards);
   };
 
@@ -501,10 +609,13 @@ export default function HomeScreen() {
     setSentenceCards((prev) => prev.slice(0, -1));
   };
 
-  // Updated playSentence function with AI speech
+  // UPDATED: Play sentence function with logging
   const playSentence = async () => {
     if (sentenceCards.length > 0 && !isPlaying) {
       setIsPlaying(true);
+
+      // LOG: Sentence play action
+      await logPlaySentence(sentenceCards);
 
       try {
         // Stop any ongoing speech (including card names)
@@ -517,9 +628,9 @@ export default function HomeScreen() {
 
         // Configure speech options
         const speechOptions = {
-          language: "en-US", // You can change this to other languages like 'es-ES', 'fr-FR', etc.
-          pitch: 1.0, // Range: 0.5 - 2.0
-          rate: 0.8, // Range: 0.1 - 2.0 (0.8 is slightly slower for better clarity)
+          language: "fil-PH", // You can change this to other languages like 'es-ES', 'fr-FR', etc.
+          pitch: 1.1, // Range: 0.5 - 2.0
+          rate: 0.9, // Range: 0.1 - 2.0 (0.8 is slightly slower for better clarity)
           voice: undefined, // Let the system choose the default voice
         };
 
@@ -571,8 +682,17 @@ export default function HomeScreen() {
     };
   }, []);
 
-  // UPDATED: Simplified card render function - now just uses TouchableOpacity
-  const renderCard = ({ item, index }: { item: CardType; index: number }) => {
+  // UPDATED: Simplified card render function - now uses dynamic background color
+  const renderCard = ({
+    item,
+    index,
+  }: {
+    item: CardType;
+    index: number;
+  }): JSX.Element => {
+    // Get the background color from the current category
+    const cardBackgroundColor = getCurrentCategoryBackgroundColor();
+    
     return (
       <TouchableOpacity
         style={[
@@ -580,6 +700,7 @@ export default function HomeScreen() {
           {
             width: cardWidth,
             height: cardHeight,
+            backgroundColor: cardBackgroundColor, // Apply dynamic background color
           },
         ]}
         onPress={() => handleCardTap(item)}
@@ -628,44 +749,48 @@ export default function HomeScreen() {
     );
   };
 
-  interface SentenceCardProps {
-    card: CardType;
-    index: number;
-  }
-
-  const renderSentenceCard = (card: CardType, index: number) => (
-    <TouchableOpacity
-      key={`sentence-${card.id}-${index}`}
-      style={styles.sentenceCard}
-      onPress={() => {
-        setSentenceCards((prev: CardType[]) =>
-          prev.filter((_, i: number) => i !== index)
-        );
-      }}
-    >
-      <View style={styles.sentenceCardImageContainer}>
-        <Image
-          source={
-            card.image
-              ? { uri: card.image }
-              : require("@/assets/images/User.png")
-          }
-          style={styles.sentenceCardImage}
-        />
-      </View>
-      <View style={styles.sentenceCardTextContainer}>
-        <Text
-          style={styles.sentenceCardText}
-          numberOfLines={2}
-          adjustsFontSizeToFit={true}
-          minimumFontScale={0.5}
-          textBreakStrategy="balanced"
-        >
-          {card.text}
-        </Text>
-      </View>
-    </TouchableOpacity>
-  );
+  // UPDATED: Sentence card now uses individual card's stored category color AND includes logging for removal
+  const renderSentenceCard = (card: SentenceCardType, index: number): JSX.Element => {
+    return (
+      <TouchableOpacity
+        key={`sentence-${card.id}-${index}`}
+        style={[
+          styles.sentenceCard,
+          { backgroundColor: card.categoryColor } // Use the stored category color for each card
+        ]}
+        onPress={async () => {
+          // // LOG: Card removed from sentence strip
+          // await logCardTap(card, 'remove', index + 1);
+          
+          setSentenceCards((prev: SentenceCardType[]) =>
+            prev.filter((_, i: number) => i !== index)
+          );
+        }}
+      >
+        <View style={styles.sentenceCardImageContainer}>
+          <Image
+            source={
+              card.image
+                ? { uri: card.image }
+                : require("@/assets/images/User.png")
+            }
+            style={styles.sentenceCardImage}
+          />
+        </View>
+        <View style={styles.sentenceCardTextContainer}>
+          <Text
+            style={styles.sentenceCardText}
+            numberOfLines={2}
+            adjustsFontSizeToFit={true}
+            minimumFontScale={0.5}
+            textBreakStrategy="balanced"
+          >
+            {card.text}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   if (!fontsLoaded) {
     return <AppLoading />;
@@ -699,7 +824,7 @@ export default function HomeScreen() {
             styles.notificationContainer,
             {
               opacity: notificationOpacity,
-            },
+            }
           ]}
         >
           <View style={styles.notificationBox}>
@@ -888,7 +1013,11 @@ export default function HomeScreen() {
                   }
                   style={styles.categoryImage}
                 />
-                <Text style={styles.categoryText}>{item.category_name}</Text>
+                <Text
+                  style={styles.categoryText}
+                >
+                  {item.category_name}
+                </Text>
               </TouchableOpacity>
             )}
             keyExtractor={(item) => item.id}
@@ -988,7 +1117,7 @@ const styles = StyleSheet.create({
 
   // DEBUG STYLES
   debugContainer: {
-    backgroundColor: "rgba(255, 255, 255, 0.8)",
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
     padding: 4,
     borderRadius: 4,
     marginLeft: 10,
@@ -996,8 +1125,8 @@ const styles = StyleSheet.create({
 
   debugText: {
     fontSize: 10,
-    color: "#9B72CF",
-    fontWeight: "500",
+    color: '#9B72CF',
+    fontWeight: '500',
     fontFamily: "Poppins",
   },
 
@@ -1164,9 +1293,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: wp(1),
   },
 
-  // CARDS IN SENTENCE STRIP
+  // CARDS IN SENTENCE STRIP - Each card now uses its own stored category color
   sentenceCard: {
-    backgroundColor: "#5FA056",
+    // backgroundColor is now set dynamically using card.categoryColor
     borderRadius: wp(2),
     marginRight: wp(0.5),
     alignItems: "center",
@@ -1188,6 +1317,7 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
     resizeMode: "cover",
+
   },
 
   sentenceCardTextContainer: {
@@ -1214,14 +1344,14 @@ const styles = StyleSheet.create({
     paddingBottom: hp(1),
   },
 
-  // DISPLAYED CARDS - UPDATED STYLES
+  // DISPLAYED CARDS - Uses current category color
   cardsContainer: {
     justifyContent: "space-around",
     borderRadius: wp(1.5),
   },
 
   card: {
-    backgroundColor: "#5FA056",
+    // backgroundColor is now set dynamically using current category color
     borderRadius: wp(2),
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -1326,7 +1456,7 @@ const styles = StyleSheet.create({
     color: "#9B72CF",
     fontFamily: "Poppins",
     textAlign: "left",
-    justifyContent: "center",
+    justifyContent: 'center',
     marginTop: 0,
   },
 });

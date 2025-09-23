@@ -41,6 +41,52 @@ interface ProfileFormData {
   email: string;
 }
 
+// Function to create a log entry in the database
+const createLog = async (
+  userId: string,
+  userName: string,
+  action: string,
+  beforeData: any,
+  afterData: any
+) => {
+  try {
+    console.log("Attempting to create log with data:", {
+      userId,
+      userName,
+      action,
+      beforeData,
+      afterData
+    });
+
+    const logData = {
+      action: action,
+      after: afterData,
+      before: beforeData,
+      created_for: "System",
+      image: "",
+      item_category: "",
+      item_id: userId,
+      item_name: userName,
+      item_type: "Profile",
+      timestamp: firestore.FieldValue.serverTimestamp(),
+      user_id: userId,
+      user_name: userName,
+      user_type: "Learner",
+    }; 
+
+    console.log("Log data to be saved:", logData);
+    
+    const docRef = await firestore().collection("learnerAcctLogs").add(logData);
+    console.log("Log created successfully with ID:", docRef.id);
+    
+    return docRef.id;
+  } catch (error) {
+    console.error("Error creating log:", error);
+    console.error("Error details:", error.message);
+    throw error;
+  }
+};
+
 export default function ProfileScreen() {
   const [fontsLoaded] = useFonts({
     Poppins: require("@/assets/fonts/Poppins-Regular.ttf"),
@@ -151,11 +197,29 @@ export default function ProfileScreen() {
           return;
         }
 
+        const oldProfilePic = profileImageUrl;
+        const userName = `${formData.fname} ${formData.lname}`.trim();
+
         // Save to Firestore
         await firestore()
           .collection("users")
           .doc(user?.uid)
           .update({ profile_pic: base64Img });
+
+        // Create log for profile picture change - SAVES ACTUAL IMAGE STRINGS
+        try {
+          await createLog(
+            user?.uid || "",
+            userName || "Unknown User",
+            "Update Profile Picture",
+            { profile_pic: oldProfilePic || "" }, // Save the actual old base64 string
+            { profile_pic: base64Img } // Save the actual new base64 string
+          );
+          console.log("Profile picture log created successfully");
+        } catch (logError) {
+          console.error("Failed to create profile picture log:", logError);
+          // Don't fail the whole operation if logging fails
+        }
 
         setProfileImageUrl(base64Img);
         showNotification("Profile picture updated successfully!", "success");
@@ -291,14 +355,43 @@ export default function ProfileScreen() {
         phoneNumber: formData.phoneNumber,
       };
 
+      // Create before and after objects for logging
+      const beforeData = {
+        first_name: originalData.fname,
+        middle_name: originalData.mname,
+        last_name: originalData.lname,
+        dateOfBirth: originalData.dob,
+        gender: originalData.gender,
+      };
+
+      const afterData = {
+        first_name: formData.fname,
+        middle_name: formData.mname,
+        last_name: formData.lname,
+        dateOfBirth: formData.dob,
+        gender: formData.gender,
+      };
+
+      const userName = `${formData.fname} ${formData.lname}`.trim();
+
       // Update the user document in Firestore
       await firestore().collection("users").doc(user.uid).update(updateData);
+
+      // Create log entry for profile information change
+      await createLog(
+        user.uid,
+        userName || "Unknown User",
+        "Update Profile Information",
+        beforeData,
+        afterData
+      );
 
       // Update original data to reflect the saved changes
       setOriginalData({ ...formData });
       setIsEditing(false);
 
       console.log("User data updated successfully");
+      console.log("Log entry created for profile update");
       showNotification("Profile updated successfully!", "success");
     } catch (error: any) {
       console.error("Error updating user data:", error);
