@@ -857,7 +857,7 @@ export default function HomeScreen() {
             numColumns={cardsPerRow}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={[styles.cardsContainer]}
-            getItemLayout={getItemLayout}
+            // getItemLayout={getItemLayout}
             removeClippedSubviews={false}
             initialNumToRender={cardsPerRow * 3}
             maxToRenderPerBatch={cardsPerRow * 2}

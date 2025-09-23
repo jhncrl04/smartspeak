@@ -110,7 +110,8 @@
       "router": {},
       "eas": {
         "projectId": "54d13d26-16f8-47dc-b4dd-3d62360b086a"
-      }
+      },
+      "PSGC_API": "https://psgc.cloud/api"
     },
     "updates": {
       "url": "https://u.expo.dev/54d13d26-16f8-47dc-b4dd-3d62360b086a"

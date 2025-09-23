@@ -14,16 +14,10 @@ import MyDropdown from "./MyDropdown";
 
 import * as ImagePicker from "expo-image-picker";
 
-import {
-  RecordingPresets,
-  useAudioPlayer,
-  useAudioRecorder,
-  useAudioRecorderState,
-} from "expo-audio";
-
 import { addCard } from "@/services/cardsService";
 import { getCategories } from "@/services/categoryService";
 import { useEffect, useState } from "react";
+import TextFieldWrapper from "../TextfieldWrapper";
 
 type AddPecsModalProps = {
   visible: boolean;
@@ -32,44 +26,6 @@ type AddPecsModalProps = {
 };
 
 const AddPecsModal = ({ visible, onClose, categoryId }: AddPecsModalProps) => {
-  // audio functionalities
-  const [audioSource, setAudioSource] = useState("");
-  const player = useAudioPlayer(audioSource);
-
-  const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
-  const recorderState = useAudioRecorderState(audioRecorder);
-
-  // const record = async () => {
-  //   await audioRecorder.prepareToRecordAsync();
-  //   audioRecorder.record();
-  // };
-
-  // const stopRecording = async () => {
-  //   await audioRecorder.stop();
-
-  //   if (audioRecorder.uri) {
-  //     setAudioSource(audioRecorder.uri);
-  //     console.log("Recording URI:", audioRecorder.uri);
-  //   } else {
-  //     console.warn("Recording URI not available yet.");
-  //   }
-  // };
-
-  // useEffect(() => {
-  //   (async () => {
-  //     const status = await AudioModule.requestRecordingPermissionsAsync();
-
-  //     if (!status.granted) {
-  //       Alert.alert("Permission to access microphone was denied");
-  //     }
-
-  //     setAudioModeAsync({
-  //       playsInSilentMode: true,
-  //       allowsRecording: true,
-  //     });
-  //   })();
-  // }, []);
-
   // image upload functionalities
   const [image, setImage] = useState("");
   const [error, setError] = useState("");
@@ -97,7 +53,6 @@ const AddPecsModal = ({ visible, onClose, categoryId }: AddPecsModalProps) => {
   useEffect(() => {
     if (!visible) {
       setImage("");
-      setAudioSource("");
     }
   }, [visible]);
 
@@ -162,45 +117,28 @@ const AddPecsModal = ({ visible, onClose, categoryId }: AddPecsModalProps) => {
           <View style={styles.mainContainer}>
             <View style={styles.inputContainer}>
               <View style={styles.cardInfo}>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Name"
-                  placeholderTextColor={COLORS.gray}
-                  value={cardName}
-                  onChangeText={setCardName}
-                />
-                <View style={styles.dropdownWrapper}>
-                  <MyDropdown
-                    isDisabled={isDropdownDisabled}
-                    dropdownItems={dropdownItems}
-                    placeholder="Category"
-                    value={selectedCategory}
-                    onChange={(val) => setSelectedCategory(val)}
+                <TextFieldWrapper label="Card Name" isFlex={true}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder=""
+                    placeholderTextColor={COLORS.gray}
+                    value={cardName}
+                    onChangeText={setCardName}
                   />
-                </View>
+                </TextFieldWrapper>
+
+                <TextFieldWrapper label="Category Name">
+                  <View style={styles.dropdownWrapper}>
+                    <MyDropdown
+                      isDisabled={isDropdownDisabled}
+                      dropdownItems={dropdownItems}
+                      placeholder=""
+                      value={selectedCategory}
+                      onChange={(val) => setSelectedCategory(val)}
+                    />
+                  </View>
+                </TextFieldWrapper>
               </View>
-              {/* <TextInput
-                style={styles.input}
-                placeholder="Recordings"
-                placeholderTextColor={COLORS.gray}
-                editable={false}
-                value={audioSource ? audioSource : "Recording"}
-              />
-              <View style={styles.buttonContainer}>
-                <PrimaryButton
-                  title="Play"
-                  clickHandler={() => {
-                    player.play();
-                  }}
-                />
-                <PrimaryButton title="Upload" clickHandler={() => {}} />
-                <PrimaryButton
-                  title={recorderState.isRecording ? "Stop" : "Record"}
-                  clickHandler={
-                    recorderState.isRecording ? stopRecording : record
-                  }
-                />
-              </View> */}
             </View>
 
             <View>
@@ -323,8 +261,9 @@ const styles = StyleSheet.create({
   },
   dropdownWrapper: {
     minHeight: 40,
-    minWidth: 150,
+    minWidth: 175,
     flexShrink: 0,
+    gap: 0,
   },
 });
 

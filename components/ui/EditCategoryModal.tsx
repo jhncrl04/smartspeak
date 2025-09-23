@@ -5,7 +5,6 @@ import {
   Image,
   Modal,
   StyleSheet,
-  Text,
   TextInput,
   TouchableOpacity,
   View,
@@ -16,13 +15,16 @@ import PrimaryButton from "../PrimaryButton";
 
 import imageToBase64 from "@/helper/imageToBase64";
 import {
-  deleteCategory,
+  deleteCategoryWithLoading,
   getCategoryWithId,
   updateCategory,
 } from "@/services/categoryService";
 import * as ImagePicker from "expo-image-picker";
+import { router } from "expo-router";
 import { runOnJS } from "react-native-reanimated";
 import SecondaryButton from "../SecondaryButton";
+import TextFieldWrapper from "../TextfieldWrapper";
+import LoadingScreen from "./LoadingScreen";
 
 type modalProps = {
   visible: boolean;
@@ -96,6 +98,8 @@ const EditCategoryModal = ({ visible, onClose, categoryId }: modalProps) => {
       });
 
       Alert.alert("Success", "Category updated successfully!");
+      // router.reload();
+
       onClose();
     } catch (err) {
       console.error("Error updating category: ", err);
@@ -103,9 +107,18 @@ const EditCategoryModal = ({ visible, onClose, categoryId }: modalProps) => {
     }
   };
 
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const handleDelete = async () => {
     try {
-      await deleteCategory(categoryId);
+      const success = await deleteCategoryWithLoading(
+        categoryId,
+        setIsDeleting
+      );
+
+      if (success) {
+        router.back();
+      }
 
       onClose();
     } catch (err) {
@@ -123,6 +136,7 @@ const EditCategoryModal = ({ visible, onClose, categoryId }: modalProps) => {
         onClose();
       }}
     >
+      <LoadingScreen visible={isDeleting} />
       <View style={styles.overlay}>
         <View style={styles.modalContainer}>
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
@@ -136,21 +150,25 @@ const EditCategoryModal = ({ visible, onClose, categoryId }: modalProps) => {
             )}
           </TouchableOpacity>
           <View style={styles.mainContainer}>
-            <TextInput
-              value={categoryName}
-              onChangeText={setCategoryName}
-              placeholder="Category Name"
-              style={styles.input}
-            />
+            <TextFieldWrapper label="Category Name">
+              <TextInput
+                value={categoryName}
+                onChangeText={setCategoryName}
+                placeholder="Category Name"
+                style={styles.input}
+              />
+            </TextFieldWrapper>
+
             <View style={styles.colorPickerContainer}>
-              <Text>Background</Text>
-              <ColorPicker
-                style={styles.colorPicker}
-                value={selectedColor}
-                onComplete={onSelectColor}
-              >
-                <Panel5 />
-              </ColorPicker>
+              <TextFieldWrapper label="Background Color">
+                <ColorPicker
+                  style={styles.colorPicker}
+                  value={selectedColor}
+                  onComplete={onSelectColor}
+                >
+                  <Panel5 />
+                </ColorPicker>
+              </TextFieldWrapper>
             </View>
             <View style={{ flexDirection: "row", gap: 10 }}>
               <PrimaryButton title="Save" clickHandler={handleSave} />
@@ -182,6 +200,7 @@ const styles = StyleSheet.create({
   imagePreview: {
     width: "100%",
     height: "100%",
+
     resizeMode: "cover",
   },
   modalContainer: {
@@ -217,8 +236,8 @@ const styles = StyleSheet.create({
     flexBasis: 0,
     alignSelf: "flex-start",
 
-    padding: 30,
-    gap: 10,
+    paddingHorizontal: 30,
+    paddingVertical: 15,
   },
   input: {
     width: "100%",

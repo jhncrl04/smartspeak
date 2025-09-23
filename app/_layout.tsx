@@ -125,6 +125,19 @@ const RootLayout = () => {
             headerShown: true,
           }}
         />
+
+        <Stack.Screen
+          name="accountVerification"
+          options={{
+            headerTitleAlign: "center",
+            headerTitle: () => (
+              <View style={styles.headerContainer}>
+                <Text style={styles.title}>ACCOUNT VERIFICATION</Text>
+              </View>
+            ),
+            headerShown: true,
+          }}
+        />
       </Stack>
     </SignupFormProvider>
   );

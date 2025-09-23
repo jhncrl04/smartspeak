@@ -1,9 +1,18 @@
 import PrimaryButton from "@/components/PrimaryButton";
+import TextFieldWrapper from "@/components/TextfieldWrapper";
 import COLORS from "@/constants/Colors";
 import { useSignupForm } from "@/context/signupContext";
 import { registerAdultUser } from "@/services/userApi/Registration";
+import { router } from "expo-router";
 import { useState } from "react";
-import { Alert, StyleSheet, Text, TextInput, View } from "react-native";
+import {
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 
 type userDataType = {
   role: string;
@@ -17,57 +26,69 @@ type userDataType = {
 
 const SignUpCredentialScreens = () => {
   const { formData, setFormData } = useSignupForm();
-  const [confirmPass, setConfirmPass] = useState("");
+  const [confirmPass, setConfirmPass] = useState("Johncarlo1");
 
   return (
     <View style={styles.container}>
-      <View style={styles.headerContainer}>
-        <Text style={styles.stepIndicator}>Step 3 of 3</Text>
-        <Text style={styles.header}>Set Up Your Credentials.</Text>
-      </View>
-      <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.textbox}
-          placeholder="Email"
-          keyboardType="email-address"
-          onChangeText={(userMail) => {
-            setFormData({ ...formData, email: userMail });
-          }}
-          value={formData.email}
-        />
-        <TextInput
-          style={styles.textbox}
-          placeholder="Password"
-          secureTextEntry={true}
-          onChangeText={(userPassword) => {
-            setFormData({ ...formData, password: userPassword });
-          }}
-          value={formData.password}
-        />
-        <TextInput
-          style={styles.textbox}
-          placeholder="Confirm Password"
-          secureTextEntry={true}
-          onChangeText={(confirmPassword) => {
-            setConfirmPass(confirmPassword);
-          }}
-          value={confirmPass}
-        />
-      </View>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.headerContainer}>
+          <Text style={styles.stepIndicator}>Step 3 of 4</Text>
+          <Text style={styles.header}>Set Up Your Credentials.</Text>
+        </View>
+        <View style={styles.inputContainer}>
+          <TextFieldWrapper label="Email">
+            <TextInput
+              style={styles.textbox}
+              placeholder=""
+              keyboardType="email-address"
+              onChangeText={(userMail) => {
+                setFormData({ ...formData, email: userMail });
+              }}
+              value={formData.email}
+            />
+          </TextFieldWrapper>
+          <TextFieldWrapper label="Password">
+            <TextInput
+              style={styles.textbox}
+              placeholder=""
+              secureTextEntry={true}
+              onChangeText={(userPassword) => {
+                setFormData({ ...formData, password: userPassword });
+              }}
+              value={formData.password}
+            />
+          </TextFieldWrapper>
+          <TextFieldWrapper label="Confirm Password">
+            <TextInput
+              style={styles.textbox}
+              placeholder=""
+              secureTextEntry={true}
+              onChangeText={(confirmPassword) => {
+                setConfirmPass(confirmPassword);
+              }}
+              value={confirmPass}
+            />
+          </TextFieldWrapper>
+        </View>
 
-      <View>
-        <PrimaryButton
-          title="Sign Up"
-          clickHandler={() =>
-            finishRegistration(
-              formData.email,
-              formData.password,
-              confirmPass,
-              formData
-            )
-          }
-        />
-      </View>
+        <View>
+          <PrimaryButton
+            title="Sign Up"
+            clickHandler={() =>
+              // finishRegistration(
+              //   formData.email,
+              //   formData.password,
+              //   confirmPass,
+              //   formData
+              // )
+              router.push("/accountVerification")
+            }
+          />
+        </View>
+      </ScrollView>
     </View>
   );
 };
@@ -112,15 +133,16 @@ const finishRegistration = async (
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+
     backgroundColor: COLORS.white,
-
-    paddingVertical: 10,
+  },
+  scrollContent: {
     paddingHorizontal: "5%",
-
-    gap: 10,
+    paddingVertical: 25,
+    gap: 8,
   },
   headerContainer: {
-    gap: 5,
+    gap: 0,
   },
   stepIndicator: {
     fontSize: 14,
@@ -135,8 +157,25 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins",
     color: COLORS.black,
   },
+  errorMsgContainer: {
+    padding: 15,
+
+    backgroundColor: COLORS.errorText,
+    borderRadius: 5,
+  },
+  errorMessage: {
+    fontSize: 12,
+    fontFamily: "Poppins",
+    letterSpacing: 0.7,
+    color: COLORS.white,
+  },
+  logoImage: {
+    width: 150,
+    height: 100,
+  },
   inputContainer: {
-    gap: 15,
+    flex: 1,
+    gap: 0,
   },
   textbox: {
     borderColor: COLORS.gray,

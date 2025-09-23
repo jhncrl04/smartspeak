@@ -4,10 +4,12 @@ import TextFieldWrapper from "@/components/TextfieldWrapper";
 import LoadingScreen from "@/components/ui/LoadingScreen";
 import COLORS from "@/constants/Colors";
 import { loginAuth } from "@/services/userApi/Authentication";
+import { checkVerification, setLoginState } from "@/services/userService";
 import { useAuthStore } from "@/stores/userAuthStore";
+import auth from "@react-native-firebase/auth";
 import { router } from "expo-router";
 import { useState } from "react";
-import { StyleSheet, TextInput, View } from "react-native";
+import { Alert, StyleSheet, TextInput, View } from "react-native";
 
 const LoginScreen = () => {
   // added a value for testing, remove when done
@@ -26,20 +28,54 @@ const LoginScreen = () => {
       const userAuth = await loginAuth(email, password);
 
       if (userAuth) {
+        const isVerified = await checkVerification();
+
+        if (!isVerified) {
+          Alert.alert(
+            "Account not verified",
+            "Your account is not yet verified. We’ve sent you a verification link via email.\n\nDo you want to resend the verification link?",
+            [
+              {
+                text: "Resend link",
+                onPress: async () => {
+                  try {
+                    const user = auth().currentUser;
+                    if (user && !user.emailVerified) {
+                      await user.sendEmailVerification();
+                      Alert.alert(
+                        "Verification link sent",
+                        "Please check your email."
+                      );
+                    } else {
+                      Alert.alert(
+                        "Already verified",
+                        "Your email is already verified."
+                      );
+                    }
+                  } catch (error) {
+                    console.error("Error sending verification link:", error);
+                    Alert.alert(
+                      "Error",
+                      "Failed to send verification link. Please try again later."
+                    );
+                  }
+                },
+              },
+              {
+                text: "OK",
+                style: "cancel",
+              },
+            ]
+          );
+          return;
+        }
+
         const [firebaseUser, userDoc] = userAuth;
 
         if (userDoc && "role" in userDoc) {
           const role = userDoc.role;
 
-          login({
-            fname: userDoc.first_name,
-            lname: userDoc.last_name,
-            email: userDoc.email,
-            phoneNumber: userDoc.phone_number,
-            profile: userDoc.profile_pic,
-            role: role,
-            uid: firebaseUser?.uid,
-          });
+          setLoginState(firebaseUser, userDoc);
 
           router.replace(`/screens/${role.toLowerCase()}` as any);
         } else {

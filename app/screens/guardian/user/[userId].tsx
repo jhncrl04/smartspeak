@@ -1,9 +1,10 @@
 import ActionLink from "@/components/ActionLink";
-import AddCard from "@/components/AddCard";
 import Board from "@/components/Board";
+import FabMenu from "@/components/FabMenu";
 import LearnerProfileHeader from "@/components/LeanerProfileHeader";
 import PageHeader from "@/components/PageHeader";
 import Sidebar from "@/components/Sidebar";
+import AssignCategoryModal from "@/components/ui/AssignCategoryModal";
 import HorizontalLine from "@/components/ui/HorizontalLine";
 import COLORS from "@/constants/Colors";
 import { calculateAge } from "@/helper/calculateAge";
@@ -11,7 +12,7 @@ import { listenAssignedCategories } from "@/services/categoryService";
 import { getStudentInfo } from "@/services/userService";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 
 const LearnerProfile = () => {
   const handleNavigation = (screen: string) => {
@@ -50,9 +51,19 @@ const LearnerProfile = () => {
     // cleanup on unmount
     return () => unsubscribe();
   }, [userId]);
+  const age = calculateAge(userInfo?.date_of_birth);
+
+  const [activeModal, setActiveModal] = useState<
+    "assign_category" | "remove_learner" | null
+  >(null);
 
   return (
     <>
+      <AssignCategoryModal
+        visible={activeModal === "assign_category"}
+        learnerId={userId as string}
+        onClose={() => setActiveModal(null)}
+      />
       <View style={styles.container}>
         <Sidebar userRole="guardian" onNavigate={handleNavigation} />
         <ScrollView showsVerticalScrollIndicator={false}>
@@ -78,44 +89,61 @@ const LearnerProfile = () => {
                 hasFilter={true}
                 searchPlaceholder="Search Category"
               />
-              {/* <View style={styles.buttonContainer}>
-            <PrimaryButton
-              title="Remove Board"
-              clickHandler={() => console.log("remove board")}
-            />
-            <PrimaryButton
-              title="Add Board"
-              clickHandler={() => console.log("add board")}
-            />
-          </View> */}
             </View>
             <View style={styles.boardContainer}>
-              <AddCard
-                cardType="board"
-                action="assign"
-                learnerId={userId as string}
-              />
-              {categories?.map((category, index) => (
-                <Board
-                  boardName={category.category_name}
-                  boardBackground={category.background_color}
-                  categoryId={category.id}
-                  image={category.image}
-                  actionHandler={() => {
-                    router.push({
-                      pathname: "/screens/guardian/user/category/[categoryId]",
-                      params: {
-                        categoryId: category.id,
-                        userId: userId as string,
-                      },
-                    });
+              {categories && categories?.length <= 0 ? (
+                <View
+                  style={{
+                    flex: 1,
+                    justifyContent: "center",
+                    alignItems: "center",
                   }}
-                  key={index}
-                />
-              ))}
+                >
+                  <Text
+                    style={{
+                      fontFamily: "Poppins",
+                      fontSize: 16,
+                      fontWeight: 600,
+
+                      color: COLORS.gray,
+                    }}
+                  >
+                    No assigned categories
+                  </Text>
+                </View>
+              ) : (
+                categories?.map((category, index) => (
+                  <Board
+                    boardName={category.category_name}
+                    boardBackground={category.background_color}
+                    categoryId={category.id}
+                    image={category.image}
+                    creatorId={category.created_by}
+                    creatorName={category.creatorName}
+                    actionHandler={() => {
+                      router.push({
+                        pathname:
+                          "/screens/guardian/user/category/[categoryId]",
+                        params: {
+                          categoryId: category.id,
+                          userId: userId as string,
+                          creatorId: category.created_by,
+                        },
+                      });
+                    }}
+                    key={index}
+                  />
+                ))
+              )}
             </View>
           </View>
         </ScrollView>
+        <FabMenu
+          page="learnerProfile"
+          actions={{
+            assign_category: () => setActiveModal("assign_category"),
+          }}
+        />
       </View>
     </>
   );
@@ -159,9 +187,7 @@ const styles = StyleSheet.create({
 
     alignItems: "center",
 
-    gap: 20,
-
-    backgroundColor: COLORS.white,
+    gap: 15,
 
     paddingVertical: 20,
   },

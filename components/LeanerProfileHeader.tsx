@@ -25,7 +25,9 @@ const LearnerProfileHeader = (props: profileProps) => {
         </View>
         <View style={styles.nameAgeContainer}>
           <Text style={styles.name}>{props.name}</Text>
-          <Text style={styles.age}>{props.age} Years Old</Text>
+          <Text style={styles.age}>
+            {props.age ? props.age : "n/a"} Years Old
+          </Text>
         </View>
       </View>
 

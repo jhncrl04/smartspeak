@@ -1,7 +1,10 @@
 import getCurrentUid from "@/helper/getCurrentUid";
 import imageToBase64 from "@/helper/imageToBase64";
-import auth from "@react-native-firebase/auth";
-import firestore, { arrayUnion } from "@react-native-firebase/firestore";
+import auth, { FirebaseAuthTypes } from "@react-native-firebase/auth";
+import firestore, {
+  arrayUnion,
+  FirebaseFirestoreTypes,
+} from "@react-native-firebase/firestore";
 
 const userCollection = firestore().collection("users");
 
@@ -275,4 +278,40 @@ export const updateUserPassword = async (
   } catch (err: any) {
     return { success: false, message: err.message };
   }
+};
+
+import { useAuthStore } from "@/stores/userAuthStore";
+
+export const setLoginState = (
+  firebaseUser:
+    | FirebaseFirestoreTypes.DocumentData
+    | FirebaseAuthTypes.User
+    | undefined,
+  userDoc: FirebaseFirestoreTypes.DocumentData
+) => {
+  const login = useAuthStore.getState().login;
+
+  login({
+    fname: userDoc.first_name,
+    lname: userDoc.last_name,
+    email: userDoc.email,
+    phoneNumber: userDoc.phone_number as string,
+    profile: userDoc.profile_pic as string,
+    role: userDoc.role,
+    uid: firebaseUser?.uid,
+  });
+};
+
+export const checkVerification = async () => {
+  const user = auth().currentUser;
+  if (user) {
+    await user.reload();
+    if (user.emailVerified) {
+      console.log("✅ Email is verified!");
+      return true;
+    } else {
+      return false;
+    }
+  }
+  return false;
 };

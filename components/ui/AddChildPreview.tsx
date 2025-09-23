@@ -1,4 +1,5 @@
 import COLORS from "@/constants/Colors";
+import { addStudentToSection } from "@/services/sectionService";
 import { addAsStudent } from "@/services/userService";
 import { useState } from "react";
 import { Image, StyleSheet, Text, View } from "react-native";
@@ -8,20 +9,23 @@ type previewProps = {
   learnerName: string;
   learnerProfile?: string;
   learnerId: string;
+  sectionId?: string;
 };
 
 const AddChildPreview = ({
   learnerName,
   learnerProfile,
   learnerId,
+  sectionId,
 }: previewProps) => {
   const [buttonTitle, setButtonTitle] = useState("Add");
   const [isButtonDisabled, setIsButtonDisabled] = useState(false);
 
-  const handleAddEvent = async (learnerId: string) => {
+  const handleAddEvent = async (learnerId: string, sectionId: string) => {
     const result = await addAsStudent(learnerId);
+    const sectionResult = await addStudentToSection(learnerId, sectionId);
 
-    if (result.success) {
+    if (result.success && sectionResult.success) {
       setIsButtonDisabled(true);
       setButtonTitle("Added");
     }
@@ -38,7 +42,7 @@ const AddChildPreview = ({
           title={buttonTitle}
           disabled={isButtonDisabled}
           clickHandler={() => {
-            handleAddEvent(learnerId);
+            handleAddEvent(learnerId, sectionId as string);
           }}
         />
       </View>
