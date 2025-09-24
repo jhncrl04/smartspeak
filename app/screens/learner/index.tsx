@@ -9,13 +9,14 @@ import * as ScreenOrientation from "expo-screen-orientation";
 import * as Speech from "expo-speech";
 import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Animated, Dimensions, FlatList, Image, Modal, StyleSheet, Text, TouchableOpacity, View, } from "react-native";
+import { RFValue } from "react-native-responsive-fontsize";
 import {
   heightPercentageToDP as hp,
   widthPercentageToDP as wp,
 } from "react-native-responsive-screen";
 
 export default function HomeScreen() {
-
+  
   // Get user data from auth store
   const user = useAuthStore((state) => state.user);
 
@@ -1047,7 +1048,7 @@ const styles = StyleSheet.create({
 
   loadingText: {
     marginTop: 10,
-    fontSize: 16,
+    fontSize: RFValue(12),
     color: "#9B72CF",
     fontWeight: "500",
   },
@@ -1064,9 +1065,9 @@ const styles = StyleSheet.create({
 
   notificationBox: {
     backgroundColor: "#FF6B6B",
-    paddingVertical: hp(1),
-    paddingHorizontal: wp(4),
-    borderRadius: wp(2),
+    paddingVertical: height * 0.02,
+    paddingHorizontal: width * 0.02,
+    borderRadius: width * 0.01,
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
@@ -1079,7 +1080,7 @@ const styles = StyleSheet.create({
 
   notificationText: {
     color: "#fafafa",
-    fontSize: wp(2.2),
+    fontSize: RFValue(8),
     fontWeight: "500",
     textAlign: "center",
     fontFamily: "Poppins",
@@ -1087,26 +1088,12 @@ const styles = StyleSheet.create({
 
   // HEADER STYLES
   header: {
-    paddingHorizontal: wp(8),
-    paddingVertical: hp(0.5),
+    paddingHorizontal: width * 0.04,
+    paddingVertical: height * 0.02,
     backgroundColor: "#E5E5E5",
-    height: hp(4),
     justifyContent: "center",
     alignItems: "flex-end",
     position: "relative",
-  },
-
-  userInfoContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: wp(2),
-  },
-
-  userName: {
-    fontSize: wp(2.5),
-    fontWeight: "500",
-    color: "#9B72CF",
-    fontFamily: "Poppins",
   },
 
   headerImage: {
@@ -1157,8 +1144,8 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: "#fafafa",
-    borderRadius: wp(2),
-    padding: wp(3),
+    borderRadius: width * 0.01,
+    padding: width * 0.02,
     minWidth: wp(25),
     alignItems: "center",
     shadowColor: "#000",
@@ -1171,24 +1158,24 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   modalTitle: {
-    fontSize: wp(3),
+    fontSize: RFValue(12),
     fontWeight: "700",
     color: "#9B72CF",
-    marginBottom: hp(2),
+    marginBottom: height * 0.04,
     fontFamily: "Poppins",
   },
   modalButton: {
     backgroundColor: "#9B72CF",
-    paddingVertical: hp(1),
-    paddingHorizontal: wp(2),
-    borderRadius: wp(2),
-    marginBottom: 15,
+    paddingVertical: height * 0.03,
+    paddingHorizontal: width * 0.02,
+    borderRadius: width * 0.01,
+    marginBottom: width * 0.015,
     minWidth: 200,
     alignItems: "center",
   },
   modalButtonText: {
     color: "white",
-    fontSize: wp(2.2),
+    fontSize: RFValue(8),
     fontWeight: "600",
     fontFamily: "Poppins",
   },
@@ -1199,12 +1186,12 @@ const styles = StyleSheet.create({
     color: "#fafafa",
   },
   cancelButton: {
-    paddingVertical: wp(1),
-    paddingHorizontal: wp(1),
+    paddingVertical: height * 0.01,
+    paddingHorizontal: width * 0.01,
   },
   cancelButtonText: {
     color: "#434343",
-    fontSize: wp(2.2),
+    fontSize: RFValue(8),
     fontFamily: "Poppins",
   },
 
@@ -1214,29 +1201,28 @@ const styles = StyleSheet.create({
   },
 
   firstContainer: {
-    height: isTablet ? hp(7) : hp(11), // Increased for mobile
+    paddingVertical: height * 0.02,
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: wp(2.5),
   },
 
   sentenceStrip: {
     backgroundColor: "#9B72CF",
-    height: isTablet ? hp(5) : hp(9), // Increased for mobile
+    height: isTablet ? hp(5) : height * 0.19,
     flexDirection: "row",
-    gap: wp(1),
+    gap: width * 0.01,
     justifyContent: "space-between",
     alignItems: "center",
-    borderRadius: wp(2),
-    paddingHorizontal: wp(2),
+    borderRadius: width * 0.01,
+    paddingHorizontal: width * 0.01,
   },
 
   button: {
     backgroundColor: "#fafafa",
-    paddingVertical: hp(1.5),
-    paddingHorizontal: wp(1),
-    borderRadius: wp(2),
-    height: isTablet ? hp(4) : hp(6), // Increased for mobile
+    paddingVertical: height * 0.01,
+    paddingHorizontal: width * 0.01,
+    borderRadius: width * 0.01,
+    height: isTablet ? hp(4) : height * 0.14, 
     justifyContent: "center",
     alignItems: "center",
   },
@@ -1249,7 +1235,7 @@ const styles = StyleSheet.create({
   },
 
   buttonText: {
-    fontSize: wp(2),
+    fontSize: RFValue(6),
     fontFamily: "Poppins",
     letterSpacing: 0.5,
     fontWeight: "bold",
@@ -1265,7 +1251,7 @@ const styles = StyleSheet.create({
     width: wp(3),
     height: hp(3),
     resizeMode: "contain",
-    marginBottom: wp(0.2),
+    marginBottom: width * 0.002,
   },
 
   imageBtnActive: {
@@ -1275,40 +1261,39 @@ const styles = StyleSheet.create({
   sentence: {
     backgroundColor: "#fafafa",
     flex: 1,
-    height: isTablet ? hp(4) : hp(8),
-    borderRadius: wp(2),
+    height: isTablet ? hp(4) : height * 0.17,
+    borderRadius: width * 0.01,
     justifyContent: "center",
     alignItems: "center",
   },
 
   dropHint: {
     color: "#9B72CF",
-    fontSize: wp(2.6),
+    fontSize: RFValue(8),
     textAlign: "center",
     opacity: 0.5,
   },
 
   sentenceCardsContainer: {
     alignItems: "center",
-    paddingHorizontal: wp(1),
   },
 
   // CARDS IN SENTENCE STRIP - Each card now uses its own stored category color
   sentenceCard: {
     // backgroundColor is now set dynamically using card.categoryColor
-    borderRadius: wp(2),
+    borderRadius: width * 0.01,
     marginRight: wp(0.5),
     alignItems: "center",
     justifyContent: "center",
-    width: wp(16),
-    height: isTablet ? hp(3) : hp(7),
+    width: width * 0.08,
+    height: isTablet ? hp(3) : height * 0.16,
     overflow: "hidden",
     flexDirection: "column",
   },
 
   sentenceCardImageContainer: {
-    width: wp(16),
-    height: (isTablet ? hp(3) : hp(7)) * 0.8,
+    width: width * 0.08,
+    height: (height * 0.16) * 0.7,
     backgroundColor: "#9B72CF",
     overflow: "hidden",
   },
@@ -1321,17 +1306,16 @@ const styles = StyleSheet.create({
   },
 
   sentenceCardTextContainer: {
-    width: wp(16),
-    height: (isTablet ? hp(10) : hp(13)) * 0.2, // 30% of updated sentence card height
+    width: width * 0.08,
+    height: (height * 0.16) * 0.3, // 30% of updated sentence card height
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: wp(0.5),
-    paddingVertical: wp(0.2),
   },
 
   sentenceCardText: {
     color: "#fafafa",
-    fontSize: wp(1.4),
+    fontSize: RFValue(6),
     fontWeight: "500",
     textAlign: "center",
     fontFamily: "Poppins",
@@ -1341,18 +1325,17 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingBottom: hp(1),
   },
 
   // DISPLAYED CARDS - Uses current category color
   cardsContainer: {
     justifyContent: "space-around",
-    borderRadius: wp(1.5),
+    borderRadius: width * 0.01,
   },
 
   card: {
     // backgroundColor is now set dynamically using current category color
-    borderRadius: wp(2),
+    borderRadius: width * 0.01,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
@@ -1391,13 +1374,13 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins",
     fontWeight: "500",
     lineHeight: 16,
-    fontSize: wp(2.2),
+    fontSize: RFValue(8),
   },
 
   // FOOTER STYLES
   footer: {
     backgroundColor: "#E5E5E5",
-    height: hp(4),
+    flex: 0,
     justifyContent: "center",
   },
 
@@ -1414,12 +1397,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: wp(1.5),
-    paddingHorizontal: wp(6),
+    gap: width * 0.01,
+    paddingHorizontal: width * 0.03,
     borderRightWidth: 1,
     borderColor: "#9B72CF",
     minWidth: wp(18),
-    height: hp(3),
   },
 
   categoryInfosActive: {
@@ -1428,12 +1410,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    height: hp(4),
-    gap: wp(1.5),
-    borderBottomLeftRadius: wp(2),
-    borderBottomRightRadius: wp(2),
-    paddingHorizontal: wp(6),
-    paddingVertical: hp(1),
+    height: height * 0.10,
+    gap: width * 0.01,
+    borderBottomLeftRadius: width * 0.01,
+    borderBottomRightRadius: width * 0.01,
     borderRightWidth: 1,
     borderColor: "#9B72CF",
   },
@@ -1443,20 +1423,19 @@ const styles = StyleSheet.create({
   },
 
   categoryImage: {
-    borderRadius: wp(0.5),
+    borderRadius: width * 0.005,
     resizeMode: "contain",
     aspectRatio: 1,
-    width: wp(4),
-    height: hp(4),
+    width: width * 0.02,
+    height: height * 0.02,
   },
 
   categoryText: {
-    fontSize: wp(2.2),
+    fontSize: RFValue(8),
     fontWeight: "500",
     color: "#9B72CF",
     fontFamily: "Poppins",
     textAlign: "left",
     justifyContent: 'center',
-    marginTop: 0,
   },
 });

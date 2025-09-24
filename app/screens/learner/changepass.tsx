@@ -26,6 +26,7 @@ import {
 // ✅ Use React Native Firebase instead of web SDK
 import auth from "@react-native-firebase/auth";
 import firestore from "@react-native-firebase/firestore";
+import { RFValue } from "react-native-responsive-fontsize";
 
 export default function HomeScreen() {
   const [fontsLoaded] = useFonts({
@@ -370,6 +371,8 @@ export default function HomeScreen() {
   );
 }
 
+const { width, height } = Dimensions.get("window");
+
 const styles = StyleSheet.create({
   image: {
     width: wp(3),
@@ -390,33 +393,35 @@ const styles = StyleSheet.create({
     zIndex: 9999,
     alignItems: "center",
   },
-  notificationBox: {
-    paddingVertical: hp(1),
-    paddingHorizontal: wp(4),
-    borderRadius: wp(2),
+ notificationBox: {
+    paddingVertical: height * 0.02,
+    paddingHorizontal: width * 0.02,
+    borderRadius: width * 0.01,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 8,
   },
   notificationText: {
     color: "#fafafa",
+    fontSize: RFValue(8),
     fontFamily: "Poppins",
-    fontSize: wp(2.2),
-    fontWeight: "500",
+    textAlign: "center",
+    fontWeight: "600",
   },
-
-  // HEADER STYLES
-  header: {
-    paddingHorizontal: wp(8),
-    paddingVertical: hp(0.5),
+   header: {
+    paddingHorizontal: width * 0.04,
+    paddingVertical: height * 0.02,
     backgroundColor: "#E5E5E5",
-    height: hp(4),
-    display: "flex",
     justifyContent: "center",
     alignItems: "flex-start",
+    position: "relative",
   },
+
 
   // BODY STYLES
   body: {
@@ -429,12 +434,12 @@ const styles = StyleSheet.create({
   },
 
   // LAYER 1
-  layer1: {
-    width: wp(160),
+ layer1: {
+    width: width * 0.8,
     borderBottomWidth: 1,
     borderColor: "rgba(67, 67, 67, 0.5)",
-    paddingHorizontal: wp(1),
-    paddingVertical: wp(1),
+    paddingHorizontal: width * 0.01,
+    paddingVertical: height * 0.02,
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
@@ -442,19 +447,18 @@ const styles = StyleSheet.create({
   ProfileContainer: {
     display: "flex",
     flexDirection: "row",
-    marginTop: hp(1),
   },
   ProfileImage: {
-    width: wp(15),
-    height: wp(15),
-    borderRadius: wp(9),
+    width: width * 0.08,
+    height: height * 0.15,
+    borderRadius: width * 0.01,
     resizeMode: "cover",
-    marginRight: wp(1),
+    marginRight: width * 0.01,
   },
   ProfileImageLoading: {
-    width: wp(15),
-    height: wp(15),
-    borderRadius: wp(9),
+    width: width * 0.08,
+    height: height * 0.15,
+    borderRadius: width * 0.01,
     backgroundColor: "#f0f0f0",
     marginRight: wp(1),
     justifyContent: "center",
@@ -462,13 +466,13 @@ const styles = StyleSheet.create({
   },
   // LAYER 2
   layer2: {
-    width: wp(160),
-    paddingHorizontal: wp(1),
-    paddingVertical: wp(1),
+    width: width * 0.8,
+    paddingHorizontal: width * 0.01,
+    paddingVertical: height * 0.02,
   },
   LayerTitle: {
     fontFamily: "Poppins",
-    fontSize: wp(2.4),
+    fontSize: RFValue(8),
     color: "#434343",
     fontWeight: "500",
     letterSpacing: 0.5,
@@ -480,13 +484,13 @@ const styles = StyleSheet.create({
   },
   InputTitle: {
     fontFamily: "Poppins",
-    fontSize: wp(2.2),
+    fontSize: RFValue(8),
     color: "#434343",
     opacity: 0.7,
     fontWeight: "400",
     letterSpacing: 0.5,
     textAlign: "center",
-    marginVertical: hp(0.5),
+    marginVertical: height * 0.005,
   },
   InputTitleEditing: {
     color: "#434343",
@@ -494,17 +498,17 @@ const styles = StyleSheet.create({
   },
   InputData: {
     fontFamily: "Poppins",
-    fontSize: wp(2.2),
+    fontSize: RFValue(8),
     color: "#434343",
     opacity: 0.7,
     fontWeight: "500",
     letterSpacing: 0.5,
-    borderRadius: wp(1),
+    borderRadius: width * 0.01,
     borderWidth: 1,
     borderColor: "rgba(67, 67, 67, 0.7)",
     textAlign: "center",
-    padding: wp(0.5),
-    marginBottom: hp(0.5),
+    padding: width * 0.002,
+    marginBottom: width * 0.005,
     justifyContent: "center",
     alignSelf: "center",
     width: wp(60),
@@ -518,39 +522,39 @@ const styles = StyleSheet.create({
   },
   EditBtn: {
     backgroundColor: "#9B72CF",
-    paddingVertical: hp(1),
-    paddingHorizontal: wp(8),
-    borderRadius: wp(1),
-    marginTop: hp(1),
+    paddingVertical: height * 0.02,
+    paddingHorizontal: width * 0.04,
+    borderRadius: width * 0.01,
+    marginTop: height * 0.01,
   },
   ButtonContainer: {
     flexDirection: "row",
-    gap: wp(2),
-    marginTop: hp(0.5),
+    gap: width * 0.02,
+    marginTop: height * 0.01,
   },
   CancelBtn: {
     borderColor: "#9B72CF",
     borderWidth: 1,
-    paddingVertical: hp(1),
-    paddingHorizontal: wp(4),
-    borderRadius: wp(1),
+    paddingVertical: height * 0.02,
+    paddingHorizontal: width * 0.04,
+    borderRadius: width * 0.01,
   },
   SaveBtn: {
     backgroundColor: "#9B72CF",
-    paddingVertical: hp(1),
-    paddingHorizontal: wp(4),
-    borderRadius: wp(1),
+    paddingVertical: height * 0.02,
+    paddingHorizontal: width * 0.04,
+    borderRadius: width * 0.01,
   },
   BtnText: {
     fontFamily: "Poppins",
-    fontSize: wp(2.2),
+    fontSize: RFValue(6),
     color: "#fafafa",
     fontWeight: "500",
     letterSpacing: 0.5,
   },
   cancelBtnText: {
     fontFamily: "Poppins",
-    fontSize: wp(2.2),
+    fontSize: RFValue(6),
     color: "#9B72CF",
     fontWeight: "500",
     letterSpacing: 0.5,
@@ -559,7 +563,7 @@ const styles = StyleSheet.create({
   // FOOTER STYLES
   footer: {
     backgroundColor: "#E5E5E5",
-    height: hp(4),
+    flex: 0,
     justifyContent: "center",
   },
   categoryContainer: {
@@ -569,23 +573,21 @@ const styles = StyleSheet.create({
     minWidth: "100%",
   },
   CategoryImage: {
-    borderRadius: wp(0.5),
+    borderRadius: width * 0.005,
     resizeMode: "contain",
     aspectRatio: 1,
-    width: wp(4),
-    height: hp(4),
+    width: width * 0.02,
+    height: height * 0.02,
   },
   categoryInfos: {
     display: "flex",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: wp(1.5),
-    paddingHorizontal: wp(6),
+    gap: width * 0.01,
+    paddingHorizontal: width * 0.03,
     borderRightWidth: 1,
     borderColor: "#9B72CF",
-    minWidth: wp(18),
-    height: hp(3),
   },
   categoryInfosActive: {
     backgroundColor: "#fafafa",
@@ -593,17 +595,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    height: hp(4),
-    gap: wp(1.5),
-    borderBottomLeftRadius: wp(2),
-    borderBottomRightRadius: wp(2),
-    paddingHorizontal: wp(6),
-    paddingVertical: hp(1),
+    height: height * 0.10,
+    gap: width * 0.01,
+    borderBottomLeftRadius: width * 0.01,
+    borderBottomRightRadius: width * 0.01,
+    paddingHorizontal: width * 0.03,
     borderRightWidth: 1,
     borderColor: "#9B72CF",
   },
   categoryText: {
-    fontSize: wp(2.2),
+    fontSize: RFValue(8),
     fontWeight: "500",
     color: "#9B72CF",
     fontFamily: "Poppins",
