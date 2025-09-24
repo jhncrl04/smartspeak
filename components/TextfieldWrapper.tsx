@@ -6,11 +6,18 @@ type Props = {
   children?: ReactNode;
   label: string;
   isFlex?: boolean;
+  isFullWidth?: boolean;
 };
 
-const TextFieldWrapper = ({ children, label, isFlex }: Props) => {
+const TextFieldWrapper = ({ children, label, isFlex, isFullWidth }: Props) => {
   return (
-    <View style={[styles.container, isFlex && { flex: 1 }]}>
+    <View
+      style={[
+        styles.container,
+        isFlex && { flex: 1 },
+        isFullWidth && { width: "100%" },
+      ]}
+    >
       <Text style={styles.label}>{label}</Text>
       {children}
     </View>

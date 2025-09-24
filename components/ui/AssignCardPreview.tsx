@@ -37,7 +37,9 @@ const AssignCardPreview = ({
   return (
     <View style={styles.categoryPreview}>
       <View style={styles.categoryInfoContainer}>
-        <Image source={{ uri: image }} style={styles.categoryImage} />
+        <View style={styles.imageContainer}>
+          <Image source={{ uri: image }} style={styles.categoryImage} />
+        </View>
         <Text style={styles.categoryName}>{cardName}</Text>
       </View>
       <View style={styles.buttonContainer}>
@@ -62,7 +64,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexDirection: "row",
   },
-  categoryImage: { width: 50, height: 50, borderRadius: 50 },
+  imageContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 50,
+    overflow: "hidden",
+  },
+  categoryImage: { width: "100%", height: "100%" },
   categoryName: { fontSize: 16, fontFamily: "Poppins", color: COLORS.gray },
   buttonContainer: {
     width: 75,

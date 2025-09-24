@@ -1,17 +1,26 @@
 import ActionLink from "@/components/ActionLink";
 import PrimaryButton from "@/components/PrimaryButton";
 import COLORS from "@/constants/Colors";
-import { router } from "expo-router";
+import { useAuthStore } from "@/stores/userAuthStore";
+import { Redirect, router } from "expo-router";
+import { useEffect, useState } from "react";
 import { Image, StyleSheet, Text, View } from "react-native";
 
 const index = () => {
-  // const user = useAuthStore((state) => state.user);
+  const user = useAuthStore((state) => state.user);
+  const [isReady, setIsReady] = useState(false);
 
-  // useEffect(() => {
-  //   if (user?.role) {
-  //     router.replace(`/screens/${user.role.toLowerCase()}` as any);
-  //   }
-  // }, [user]);
+  useEffect(() => {
+    // Allow time for auth state to hydrate
+    const timer = setTimeout(() => setIsReady(true), 100);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (!isReady) return null; // Loading state
+
+  if (user) {
+    return <Redirect href={`/screens/${user.role.toLowerCase()}` as any} />;
+  }
 
   return (
     <View style={styles.container}>

@@ -9,7 +9,7 @@ type DropdownProps = {
   dropdownItems: item[];
   placeholder: string;
   value: string;
-  onChange: (value: string) => void;
+  onChange: (value: string, label?: string) => void;
   isDisabled?: boolean;
 };
 
@@ -33,21 +33,20 @@ const MyDropdown = (props: DropdownProps) => {
           styles.selectedTextStyle,
           props.isDisabled && styles.disabledText,
         ]}
-        iconStyle={styles.iconStyle}
         data={props.dropdownItems}
-        maxHeight={300}
+        maxHeight={200}
         mode="auto"
         labelField="label"
         valueField="value"
-        placeholder={!isFocus ? props.placeholder : "..."}
+        placeholder={!isFocus ? props.placeholder : ""}
         value={props.value}
         onFocus={() => setIsFocus(true)}
         onBlur={() => setIsFocus(false)}
         onChange={(item) => {
-          props.onChange(item.value);
+          props.onChange(item.value, item.label);
           setIsFocus(false);
         }}
-        dropdownPosition="top"
+        containerStyle={styles.dropdownContainer}
       />
     </>
   );
@@ -55,33 +54,42 @@ const MyDropdown = (props: DropdownProps) => {
 
 const styles = StyleSheet.create({
   dropdown: {
+    // flex: 1,
     paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingVertical: 8,
     minWidth: 100,
+    maxHeight: 40,
     borderColor: COLORS.gray,
-    borderWidth: 0.5,
+    borderWidth: 1,
     borderRadius: 5,
   },
   dropdownContainer: {
-    marginTop: 0, // 👈 removes gap between input and dropdown list
-    borderWidth: 0.5,
+    margin: 0, // 👈 removes gap between input and dropdown list
+    padding: 0,
+    borderWidth: 1,
     borderColor: COLORS.gray,
     borderRadius: 5,
+
+    overflow: "hidden",
   },
   dropdownItem: {
-    paddingVertical: 8,
-    paddingHorizontal: 10,
+    paddingVertical: 0,
+    paddingHorizontal: 0,
   },
   disabledDropdown: {
     backgroundColor: COLORS.lightGray,
     borderColor: COLORS.lightGray,
   },
   placeholderStyle: {
+    fontFamily: "Poppins",
     color: COLORS.gray,
     fontSize: 14,
   },
   selectedTextStyle: {
+    fontFamily: "Poppins",
     fontSize: 14,
+    flex: 1,
+    textAlign: "left",
   },
   disabledText: {
     color: COLORS.gray,

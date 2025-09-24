@@ -1,12 +1,14 @@
 import ActionLink from "@/components/ActionLink";
-import AddCard from "@/components/AddCard";
+import FabMenu from "@/components/FabMenu";
 import LearnerProfileHeader from "@/components/LeanerProfileHeader";
 import PageHeader from "@/components/PageHeader";
 import PecsCard from "@/components/PecsCard";
 import Sidebar from "@/components/Sidebar";
+import AssignCardModal from "@/components/ui/AssignCardModal";
 import HorizontalLine from "@/components/ui/HorizontalLine";
 import COLORS from "@/constants/Colors";
 import { calculateAge } from "@/helper/calculateAge";
+import getCurrentUid from "@/helper/getCurrentUid";
 import {
   getAssignedCards,
   listenAssignedCardWithCategory,
@@ -14,14 +16,14 @@ import {
 import { getStudentInfo } from "@/services/userService";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 
 const LearnerProfileCategory = () => {
   const handleNavigation = (screen: string) => {
     router.push(screen as any);
   };
 
-  const { userId, categoryId } = useLocalSearchParams();
+  const { userId, categoryId, creatorId } = useLocalSearchParams();
 
   const [userInfo, setUserInfo] = useState<any>(null);
 
@@ -71,14 +73,35 @@ const LearnerProfileCategory = () => {
     return () => unsubscribe();
   }, [userId, categoryId]);
 
+  const uid = getCurrentUid();
+
+  const [activeModal, setActiveModal] = useState<"assign-card" | null>(null);
+
   return (
     <>
+      <AssignCardModal
+        visible={activeModal === "assign-card"}
+        categoryId={categoryId as string}
+        onClose={() => setActiveModal(null)}
+        learnerId={userId as string}
+      />
       <View style={styles.container}>
         <Sidebar userRole="teacher" onNavigate={handleNavigation} />
         <ScrollView showsVerticalScrollIndicator={false}>
           <View style={styles.pageContainer}>
             <View style={styles.headerContainer}>
-              <ActionLink text="Return" clickHandler={router.back} />
+              <View>
+                {creatorId !== uid && (
+                  <View style={styles.warningBox}>
+                    <Text style={styles.warningText}>
+                      This are view only category. Editing and deleting is
+                      disabled.
+                    </Text>
+                  </View>
+                )}
+
+                <ActionLink text="Return" clickHandler={router.back} />
+              </View>
               <LearnerProfileHeader
                 profile={userInfo?.profile_pic}
                 name={`${userInfo?.first_name} ${userInfo?.last_name}`}
@@ -100,12 +123,6 @@ const LearnerProfileCategory = () => {
               />
             </View>
             <View style={styles.boardContainer}>
-              <AddCard
-                cardType="card"
-                action="assign"
-                learnerId={userId as string}
-                categoryId={categoryId as string}
-              />
               {cards?.map((card, index) => (
                 <PecsCard
                   action="Unassign"
@@ -116,17 +133,39 @@ const LearnerProfileCategory = () => {
                   categoryColor={card.background_color}
                   image={card.image}
                   key={index}
+                  isDisabled={uid !== card.created_by}
+                  creatorId={card.created_by}
                 />
               ))}
             </View>
           </View>
         </ScrollView>
+        {uid === (creatorId as string) && (
+          <FabMenu
+            page="learnerAssignedCategory"
+            actions={{ assign_card: () => setActiveModal("assign-card") }}
+          />
+        )}
       </View>
     </>
   );
 };
 
 const styles = StyleSheet.create({
+  warningBox: {
+    backgroundColor: COLORS.errorBg,
+    borderLeftWidth: 5,
+    borderLeftColor: COLORS.errorText,
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+  warningText: {
+    color: COLORS.errorText,
+    fontWeight: "600",
+    fontSize: 14,
+  },
+
   container: {
     flex: 1,
 
@@ -136,8 +175,6 @@ const styles = StyleSheet.create({
   pageContainer: {
     flex: 1,
     flexDirection: "column",
-
-    backgroundColor: COLORS.white,
 
     gap: 5,
 
@@ -164,9 +201,7 @@ const styles = StyleSheet.create({
 
     alignItems: "center",
 
-    gap: 20,
-
-    backgroundColor: COLORS.white,
+    gap: 15,
 
     paddingVertical: 20,
   },

@@ -2,8 +2,7 @@ import PrimaryButton from "@/components/PrimaryButton";
 import TextFieldWrapper from "@/components/TextfieldWrapper";
 import COLORS from "@/constants/Colors";
 import { useSignupForm } from "@/context/signupContext";
-import { router } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Alert,
   ScrollView,
@@ -13,10 +12,75 @@ import {
   View,
 } from "react-native";
 
+import MyDropdown from "@/components/ui/MyDropdown";
+import Constants from "expo-constants";
+import { router } from "expo-router";
+
+const pscgApi = Constants.expoConfig?.extra?.PSGC_API;
+
 const PersonalDetailsScreen = () => {
   const [errorMsg, setErrorMsg] = useState("This is an error message");
 
   const { formData, setFormData } = useSignupForm();
+
+  const [regions, setRegions] = useState([]);
+  const [provinces, setProvinces] = useState([]);
+  const [cities, setCities] = useState([]);
+
+  const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
+  const [selectedProvince, setSelectedProvince] = useState<string | null>(null);
+  const [selectedCity, setSelectedCity] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch(`${pscgApi}/regions`)
+      .then((res) => res.json())
+      .then((data) => {
+        const formatted = data
+          .map((item: any) => ({
+            label: item.name,
+            value: item.code,
+          }))
+          .sort((a: any, b: any) => a.label.localeCompare(b.label));
+        setRegions(formatted);
+      })
+      .catch((err) => console.error("Error fetching regions:", err));
+  }, []);
+
+  useEffect(() => {
+    if (!selectedRegion) return;
+
+    fetch(`${pscgApi}/regions/${selectedRegion}/provinces`)
+      .then((res) => res.json())
+      .then((data) => {
+        const formatted = data
+          .map((item: any) => ({
+            label: item.name,
+            value: item.code,
+          }))
+          .sort((a: any, b: any) => a.label.localeCompare(b.label));
+        setProvinces(formatted);
+        setSelectedProvince(null); // reset when region changes
+      })
+      .catch((err) => console.error("Error fetching provinces:", err));
+  }, [selectedRegion]);
+
+  useEffect(() => {
+    if (!selectedProvince) return;
+
+    fetch(`${pscgApi}/provinces/${selectedProvince}/cities-municipalities`)
+      .then((res) => res.json())
+      .then((data) => {
+        const formatted = data
+          .map((item: any) => ({
+            label: item.name,
+            value: item.code,
+          }))
+          .sort((a: any, b: any) => a.label.localeCompare(b.label));
+        setCities(formatted);
+        setSelectedCity(null); // reset when province changes
+      })
+      .catch((err) => console.error("Error fetching cities:", err));
+  }, [selectedProvince]);
 
   return (
     <View style={styles.container}>
@@ -25,7 +89,7 @@ const PersonalDetailsScreen = () => {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.headerContainer}>
-          <Text style={styles.stepIndicator}>Step 2 of 3</Text>
+          <Text style={styles.stepIndicator}>Step 2 of 4</Text>
           <Text style={styles.header}>Let's Get to Know You.</Text>
         </View>
 
@@ -63,18 +127,76 @@ const PersonalDetailsScreen = () => {
               value={formData.phone_number}
             />
           </TextFieldWrapper>
+
+          <View style={styles.addressContainer}>
+            <TextFieldWrapper isFlex={true} label="Region">
+              <MyDropdown
+                dropdownItems={regions}
+                onChange={(value, label) => {
+                  setSelectedRegion(value);
+
+                  setFormData({
+                    ...formData,
+                    region: value,
+                    region_name: label as string,
+                  });
+
+                  setSelectedProvince(null);
+                  setSelectedCity(null);
+                }}
+                placeholder="Region"
+                value={selectedRegion as string}
+              />
+            </TextFieldWrapper>
+            <TextFieldWrapper isFlex={true} label="Province">
+              <MyDropdown
+                isDisabled={!selectedRegion}
+                dropdownItems={provinces}
+                onChange={(value, label) => {
+                  setSelectedProvince(value);
+
+                  setFormData({
+                    ...formData,
+                    province: value,
+                    province_name: label as string,
+                  });
+
+                  setSelectedCity(null);
+                }}
+                placeholder="Province"
+                value={selectedProvince as string}
+              />
+            </TextFieldWrapper>
+            <TextFieldWrapper isFlex={true} label="City">
+              <MyDropdown
+                isDisabled={!selectedProvince}
+                dropdownItems={cities}
+                onChange={(value, label) => {
+                  setSelectedCity(value);
+
+                  setFormData({
+                    ...formData,
+                    municipality: value,
+                    municipality_name: label as string,
+                  });
+                }}
+                placeholder="City"
+                value={selectedCity as string}
+              />
+            </TextFieldWrapper>
+          </View>
         </View>
 
         <View>
           <PrimaryButton
             title={"Next"}
-            clickHandler={() =>
+            clickHandler={() => {
               proceedToStepThree(
                 formData.first_name,
                 formData.last_name,
                 formData.phone_number
-              )
-            }
+              );
+            }}
           />
           {/* <ButtonSeparator />
           <SecondaryButton
@@ -95,7 +217,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: "5%",
-    paddingVertical: 10,
+    paddingVertical: 25,
     gap: 8,
   },
   headerContainer: {
@@ -131,6 +253,7 @@ const styles = StyleSheet.create({
     height: 100,
   },
   inputContainer: {
+    flex: 1,
     gap: 0,
   },
   textbox: {
@@ -142,6 +265,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
 
     fontSize: 18,
+  },
+  addressContainer: {
+    flex: 1,
+
+    gap: 10,
+    flexDirection: "row",
   },
 });
 
@@ -167,7 +296,7 @@ const proceedToStepThree = (
   phoneNum: string
 ) => {
   if (isDataValid(firstName, lastName, phoneNum)) {
-    router.push("/screens/signup/credentials");
+    router.push("/credentials");
   }
 };
 

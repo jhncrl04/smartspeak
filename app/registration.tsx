@@ -22,7 +22,7 @@ const SignupScreen = () => {
       <View></View>
       <View style={styles.formContainer}>
         <View style={styles.headerContainer}>
-          <Text style={styles.stepIndicator}>Step 1 of 3</Text>
+          <Text style={styles.stepIndicator}>Step 1 of 4</Text>
           <Text style={styles.header}>Select Your Role.</Text>
         </View>
         <View style={styles.buttonContainer}>

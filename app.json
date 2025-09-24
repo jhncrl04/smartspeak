@@ -11,9 +11,6 @@
       "supportsTablet": true,
       "runtimeVersion": {
         "policy": "appVersion"
-      },
-      "infoPlist": {
-        "UIEdgeToEdgeExtendedLayout": false
       }
     },
     "androidStatusBar": {
@@ -28,7 +25,6 @@
       },
       "package": "com.smartspeak.Smartspeak",
       "versionCode": 1,
-      "edgeToEdgeEnabled": false,
       "permissions": [
         "android.permission.RECORD_AUDIO",
         "android.permission.MODIFY_AUDIO_SETTINGS"
@@ -107,8 +103,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "515171c6-8257-41eb-8907-786edcb9a83e"
-      }
+        "projectId": "54d13d26-16f8-47dc-b4dd-3d62360b086a"
+      },
+      "PSGC_API": "https://psgc.cloud/api"
     },
     "owner": "keurt2004"
   }

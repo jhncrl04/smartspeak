@@ -1,14 +1,18 @@
 import COLORS from "@/constants/Colors";
 import { StyleSheet, Text, TouchableOpacity } from "react-native";
 
-type buttonDetail = { title: string; clickHandler: () => void };
+type buttonDetail = {
+  title: string;
+  clickHandler: () => void;
+  disabled?: boolean;
+};
 
 const SecondaryButton = (props: buttonDetail) => {
   const styles = StyleSheet.create({
     buttonContainer: {
       flexGrow: 1,
 
-      borderColor: COLORS.accent,
+      borderColor: props.disabled ? COLORS.gray : COLORS.accent,
       borderWidth: 1.5,
       borderRadius: 5,
 
@@ -22,7 +26,7 @@ const SecondaryButton = (props: buttonDetail) => {
       fontSize: 14,
       fontFamily: "Poppins",
       fontWeight: "700",
-      color: COLORS.accent,
+      color: props.disabled ? COLORS.gray : COLORS.accent,
     },
   });
 

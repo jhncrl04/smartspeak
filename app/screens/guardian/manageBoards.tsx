@@ -1,9 +1,9 @@
-import AddCard from "@/components/AddCard";
 import Board from "@/components/Board";
+import FabMenu from "@/components/FabMenu";
 import PageHeader from "@/components/PageHeader";
 import Sidebar from "@/components/Sidebar";
-import COLORS from "@/constants/Colors";
-import { getCategories } from "@/services/categoryService";
+import AddCategoryModal from "@/components/ui/AddCategoryModal";
+import { listenCategories } from "@/services/categoryService";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
@@ -16,47 +16,61 @@ const ManageBoardsScreen = () => {
   const [categories, setCategories] = useState<any[]>([]);
 
   useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const data = await getCategories();
-        setCategories(data);
-      } catch (err) {
-        console.error("Error fetching categories: ", err);
-      }
-    };
-    fetchCategories();
+    const unsubscribe = listenCategories((categories) => {
+      setCategories(categories);
+    });
+
+    return () => unsubscribe();
   }, []);
 
-  return (
-    <View style={styles.container}>
-      <Sidebar userRole="teacher" onNavigate={handleNavigation} />
-      <View style={styles.mainContentContainer}>
-        <PageHeader
-          collectionToSearch="pecsCategories"
-          query="category"
-          onSearch={() => {}}
-          pageTitle="Manage Categories"
-          hasFilter={true}
-          searchPlaceholder="Search Category"
-        />
-        <View style={styles.boardContainer}>
-          <AddCard cardType="board" action="add" />
+  const [activeModal, setActiveModal] = useState<"add" | null>(null);
 
-          {categories.map((category, index) => (
-            <Board
-              categoryId={category.id}
-              actionHandler={() => {
-                router.push(`/screens/teacher/category/${category.id}` as any);
-              }}
-              key={index}
-              image={category.image}
-              boardName={category.category_name}
-              boardBackground={category.background_color}
-            />
-          ))}
+  return (
+    <>
+      <AddCategoryModal
+        visible={activeModal === "add"}
+        onClose={() => setActiveModal(null)}
+      />
+      <View style={styles.container}>
+        <Sidebar userRole="teacher" onNavigate={handleNavigation} />
+        <View style={styles.mainContentContainer}>
+          <PageHeader
+            collectionToSearch="pecsCategories"
+            query="category"
+            onSearch={() => {}}
+            pageTitle="Manage Categories"
+            hasFilter={true}
+            searchPlaceholder="Search Category"
+          />
+          <View style={styles.boardContainer}>
+            {categories.map((category, index) => (
+              <Board
+                categoryId={category.id}
+                actionHandler={() => {
+                  router.push({
+                    pathname: "/screens/guardian/category/[categoryId]",
+                    params: {
+                      categoryId: category.id,
+                      creatorId: category.created_by,
+                    },
+                  });
+                }}
+                key={index}
+                image={category.image}
+                boardName={category.category_name}
+                boardBackground={category.background_color}
+                creatorName={category.creatorName}
+                creatorId={category.created_by}
+              />
+            ))}
+          </View>
         </View>
+        <FabMenu
+          page="manageBoards"
+          actions={{ add: () => setActiveModal("add") }}
+        />
       </View>
-    </View>
+    </>
   );
 };
 
@@ -87,9 +101,7 @@ const styles = StyleSheet.create({
 
     alignItems: "center",
 
-    gap: 20,
-
-    backgroundColor: COLORS.white,
+    gap: 15,
   },
 });
 

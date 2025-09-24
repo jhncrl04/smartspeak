@@ -52,7 +52,10 @@ const SettingScreen = () => {
         "Sorry, camera roll permission is needed to upload."
       );
     } else {
-      const result = await ImagePicker.launchImageLibraryAsync();
+      const result = await ImagePicker.launchImageLibraryAsync({
+        allowsEditing: true,
+        quality: 1,
+      });
 
       if (!result.canceled) {
         const uri = result.assets[0].uri;
@@ -157,9 +160,7 @@ const SettingScreen = () => {
               />
               <View>
                 <Text style={styles.profileLabel}>Profile Picture</Text>
-                <Text style={styles.profileSublabel}>
-                  PNG or JPEG under 15mb
-                </Text>
+                <Text style={styles.profileSublabel}>PNG or JPEG</Text>
               </View>
             </View>
             <View style={{ width: "35%" }}>

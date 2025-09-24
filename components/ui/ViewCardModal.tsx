@@ -23,6 +23,7 @@ import {
 import { getCategories } from "@/services/categoryService";
 import { useEffect, useState } from "react";
 import SecondaryButton from "../SecondaryButton";
+import TextFieldWrapper from "../TextfieldWrapper";
 
 type Props = {
   visible: boolean;
@@ -30,6 +31,7 @@ type Props = {
   cardId: string;
   learnerId: string;
   action: string;
+  isDisabled?: boolean;
 };
 
 const ViewCardModal = ({
@@ -38,6 +40,7 @@ const ViewCardModal = ({
   cardId,
   learnerId,
   action,
+  isDisabled,
 }: Props) => {
   // image upload functionalities
   const [image, setImage] = useState("");
@@ -139,7 +142,11 @@ const ViewCardModal = ({
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
             <Icon name="x" size={20} color={COLORS.gray} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.imageContainer} onPress={pickImage}>
+          <TouchableOpacity
+            style={styles.imageContainer}
+            onPress={pickImage}
+            disabled={isDisabled}
+          >
             {image !== "" ? (
               <Image source={{ uri: image }} style={styles.imagePreview} />
             ) : (
@@ -149,28 +156,35 @@ const ViewCardModal = ({
           <View style={styles.mainContainer}>
             <View style={styles.inputContainer}>
               <View style={styles.cardInfo}>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Name"
-                  placeholderTextColor={COLORS.gray}
-                  value={cardName}
-                  onChangeText={setCardName}
-                />
-                <View style={styles.dropdownWrapper}>
-                  <MyDropdown
-                    isDisabled={true}
-                    dropdownItems={dropdownItems}
-                    placeholder="Category"
-                    value={selectedCategory}
-                    onChange={(val) => setSelectedCategory(val)}
+                <TextFieldWrapper label="Card Name" isFlex={true}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder=""
+                    placeholderTextColor={COLORS.gray}
+                    value={cardName}
+                    onChangeText={setCardName}
+                    focusable={!isDisabled}
+                    editable={!isDisabled}
                   />
-                </View>
+                </TextFieldWrapper>
+                <TextFieldWrapper label="Category Name">
+                  <View style={styles.dropdownWrapper}>
+                    <MyDropdown
+                      isDisabled={true}
+                      dropdownItems={dropdownItems}
+                      placeholder=""
+                      value={selectedCategory}
+                      onChange={(val) => setSelectedCategory(val)}
+                    />
+                  </View>
+                </TextFieldWrapper>
               </View>
             </View>
 
             <View style={styles.buttonContainer}>
               <PrimaryButton
                 title="Update"
+                disabled={isDisabled}
                 clickHandler={() => {
                   handleAction(cardId, "Update");
                 }}
@@ -178,6 +192,7 @@ const ViewCardModal = ({
 
               <SecondaryButton
                 title={action}
+                disabled={isDisabled}
                 clickHandler={() => {
                   handleAction(cardId, action);
                 }}

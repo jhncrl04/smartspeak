@@ -1,97 +1,197 @@
 import ActionLink from "@/components/ActionLink";
-import AddCard from "@/components/AddCard";
+import FabMenu from "@/components/FabMenu";
 import PageHeader from "@/components/PageHeader";
 import PecsCard from "@/components/PecsCard";
 import Sidebar from "@/components/Sidebar";
+import AddPecsModal from "@/components/ui/AddPecsModal";
 import EditCategoryModal from "@/components/ui/EditCategoryModal";
 import COLORS from "@/constants/Colors";
-import { listenCardsWithCategory } from "@/services/cardsService";
+import getCurrentUid from "@/helper/getCurrentUid";
+import { listenCardsWithCategoryEnhanced } from "@/services/cardsService";
+import { getCategoryWithId } from "@/services/categoryService";
 import { router } from "expo-router";
 import { useLocalSearchParams } from "expo-router/build/hooks";
 import { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator } from "react-native-paper";
 
 const ManageThisCategoryScreen = () => {
   const handleNavigation = (screen: string) => {
     router.push(screen as any);
   };
 
-  const { categoryId } = useLocalSearchParams();
+  const { categoryId, creatorId } = useLocalSearchParams();
 
   const [cards, setCards] = useState<any[]>([]);
-  const [categoryName, setCategoryName] = useState<string>("");
+  const [categoryName, setCategoryName] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | undefined>("");
 
   useEffect(() => {
     if (!categoryId) return;
 
-    const unsubscribe = listenCardsWithCategory(
-      categoryId,
-      (cards, categoryName) => {
+    const unsubscribe = listenCardsWithCategoryEnhanced(
+      categoryId as string,
+      (cards, categoryName, loading, error) => {
         setCards(cards);
         setCategoryName(categoryName);
+        setLoading(loading);
+        setError(error);
       }
     );
 
-    return () => unsubscribe();
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, [categoryId]);
 
-  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+  useEffect(() => {
+    const fetchCategoryDetails = async () => {
+      const category = await getCategoryWithId(categoryId as string);
+
+      setCategoryName(category?.category_name);
+    };
+
+    fetchCategoryDetails();
+  }, []);
+
+  const [activeModal, setActiveModal] = useState<
+    "add-card" | "edit-category" | null
+  >(null);
+
+  const uid = getCurrentUid();
 
   return (
     <>
       <EditCategoryModal
-        visible={isEditModalVisible}
-        onClose={() => setIsEditModalVisible(false)}
+        visible={activeModal === "edit-category"}
+        onClose={() => setActiveModal(null)}
         categoryId={categoryId as string}
+      />
+      <AddPecsModal
+        visible={activeModal === "add-card"}
+        categoryId={categoryId as string}
+        onClose={() => setActiveModal(null)}
       />
       <View style={styles.container}>
         <Sidebar userRole="teacher" onNavigate={handleNavigation} />
-        <View style={styles.mainContentContainer}>
-          <View style={styles.header}>
-            <View style={styles.actionLinkContainer}>
-              <ActionLink text="Return" clickHandler={router.back} />
-              <ActionLink
-                text="Edit"
-                clickHandler={() => setIsEditModalVisible(true)}
-              />
-            </View>
-            <PageHeader
-              collectionToSearch="cards"
-              onSearch={() => {}}
-              query="card"
-              pageTitle={`Manage ${categoryName} Cards`}
-              hasFilter={true}
-              searchPlaceholder="Search Card"
-            />
-          </View>
+        <ScrollView>
+          <View style={styles.mainContentContainer}>
+            <View style={styles.header}>
+              <View>
+                {creatorId !== uid && (
+                  <View style={styles.warningBox}>
+                    <Text style={styles.warningText}>
+                      This are view only card. Editing and deleting is disabled.
+                    </Text>
+                  </View>
+                )}
 
-          <ScrollView>
-            <View style={styles.cardContainer}>
-              <AddCard
-                cardType="card"
-                action="add"
-                categoryId={categoryId as string}
+                <ActionLink text="Return" clickHandler={router.back} />
+              </View>
+              <PageHeader
+                collectionToSearch="cards"
+                onSearch={() => {}}
+                query="card"
+                pageTitle={`${categoryName} Cards`}
+                hasFilter={true}
+                searchPlaceholder="Search Card"
               />
-              {cards.map((card, index) => (
-                <PecsCard
-                  action="Delete"
-                  cardId={card.id}
-                  key={index}
-                  cardName={card.card_name}
-                  cardCategory={card.category_title}
-                  categoryColor={card.background_color}
-                  image={card.image}
-                />
-              ))}
             </View>
-          </ScrollView>
-        </View>
+
+            <View style={styles.cardContainer}>
+              {loading ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="large" color={COLORS.black} />
+                  <Text>Loading cards...</Text>
+                </View>
+              ) : error ? (
+                <View
+                  style={{
+                    flex: 1,
+                    justifyContent: "center",
+                    alignItems: "center",
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontFamily: "Poppins",
+                      fontSize: 16,
+                      fontWeight: 600,
+
+                      color: COLORS.errorText,
+                    }}
+                  >
+                    {error}
+                  </Text>
+                </View>
+              ) : cards.length === 0 ? (
+                <View
+                  style={{
+                    flex: 1,
+                    justifyContent: "center",
+                    alignItems: "center",
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontFamily: "Poppins",
+                      fontSize: 16,
+                      fontWeight: 600,
+
+                      color: COLORS.gray,
+                    }}
+                  >
+                    No cards found in this category.
+                  </Text>
+                </View>
+              ) : (
+                cards.map((card, index) => (
+                  <PecsCard
+                    action="Delete"
+                    cardId={card.id}
+                    key={index}
+                    cardName={card.card_name}
+                    cardCategory={card.category_title}
+                    categoryColor={card.background_color}
+                    image={card.image}
+                    isDisabled={uid !== card.created_by}
+                    creatorId={card.created_by}
+                  />
+                ))
+              )}
+            </View>
+          </View>
+        </ScrollView>
+        {uid === (creatorId as string) && (
+          <FabMenu
+            page="specificBoards"
+            actions={{
+              add_card: () => setActiveModal("add-card"),
+              edit_category: () => setActiveModal("edit-category"),
+            }}
+          />
+        )}
       </View>
     </>
   );
 };
 
 const styles = StyleSheet.create({
+  warningBox: {
+    backgroundColor: COLORS.errorBg,
+    borderLeftWidth: 5,
+    borderLeftColor: COLORS.errorText,
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+  warningText: {
+    color: COLORS.errorText,
+    fontWeight: "600",
+    fontSize: 14,
+  },
+
   container: {
     flex: 1,
 
@@ -126,9 +226,13 @@ const styles = StyleSheet.create({
 
     paddingVertical: 10,
 
-    gap: 20,
-
-    backgroundColor: COLORS.white,
+    gap: 15,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
   },
 });
 

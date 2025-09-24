@@ -11,7 +11,7 @@ const HorizontalLine = () => {
         transform: [{ translateY: "-50%" }, { translateX: "-50%" }],
         width: "100%",
         height: 0.3,
-        backgroundColor: COLORS.gray,
+        backgroundColor: COLORS.black,
       }}
     />
   );

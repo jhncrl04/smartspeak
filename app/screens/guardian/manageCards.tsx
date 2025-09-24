@@ -1,12 +1,13 @@
-import AddCard from "@/components/AddCard";
+import FabMenu from "@/components/FabMenu";
 import PageHeader from "@/components/PageHeader";
 import PecsCard from "@/components/PecsCard";
 import Sidebar from "@/components/Sidebar";
+import AddPecsModal from "@/components/ui/AddPecsModal";
 import COLORS from "@/constants/Colors";
 import { listenToCards } from "@/services/cardsService";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 
 const ManageCardsScreen = () => {
   const handleNavigation = (screen: string) => {
@@ -23,35 +24,70 @@ const ManageCardsScreen = () => {
     return () => unsubscribe(); // clean up listener on unmount
   }, []);
 
+  const [activeModal, setActiveModal] = useState<"add-card" | null>(null);
+
   return (
-    <View style={styles.container}>
-      <Sidebar userRole="teacher" onNavigate={handleNavigation} />
-      <View style={styles.mainContentContainer}>
-        <PageHeader
-          collectionToSearch="cards"
-          onSearch={() => {}}
-          query="card"
-          pageTitle="Manage Cards"
-          hasFilter={true}
-          searchPlaceholder="Search Card"
+    <>
+      <AddPecsModal
+        visible={activeModal === "add-card"}
+        onClose={() => setActiveModal(null)}
+      />
+      <View style={styles.container}>
+        <Sidebar userRole="teacher" onNavigate={handleNavigation} />
+        <View style={styles.mainContentContainer}>
+          <PageHeader
+            collectionToSearch="cards"
+            onSearch={() => {}}
+            query="card"
+            pageTitle="Manage Cards"
+            hasFilter={true}
+            searchPlaceholder="Search Card"
+          />
+          <ScrollView>
+            <View style={styles.cardContainer}>
+              {cards.length === 0 ? (
+                <View
+                  style={{
+                    flex: 1,
+                    justifyContent: "center",
+                    alignItems: "center",
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontFamily: "Poppins",
+                      fontSize: 16,
+                      fontWeight: 600,
+
+                      color: COLORS.gray,
+                    }}
+                  >
+                    No cards found.
+                  </Text>
+                </View>
+              ) : (
+                cards.map((card, index) => (
+                  <PecsCard
+                    action="Delete"
+                    key={index}
+                    cardName={card.card_name}
+                    cardCategory={card.category_title}
+                    categoryColor={card.background_color}
+                    image={card.image}
+                    cardId={card.id}
+                    creatorId={card.created_by}
+                  />
+                ))
+              )}
+            </View>
+          </ScrollView>
+        </View>
+        <FabMenu
+          page="manageCards"
+          actions={{ add: () => setActiveModal("add-card") }}
         />
-        <ScrollView>
-          <View style={styles.cardContainer}>
-            <AddCard cardType="card" action="add" />
-            {cards.map((card, index) => (
-              <PecsCard
-                cardId={card.id}
-                key={index}
-                cardName={card.cardName}
-                cardCategory={card.categoryTitle}
-                categoryColor={card.backgroundColor}
-                image={card.image}
-              />
-            ))}
-          </View>
-        </ScrollView>
       </View>
-    </View>
+    </>
   );
 };
 
@@ -82,9 +118,7 @@ const styles = StyleSheet.create({
 
     alignItems: "center",
 
-    gap: 20,
-
-    backgroundColor: COLORS.white,
+    gap: 15,
   },
 });
 

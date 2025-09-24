@@ -115,7 +115,7 @@ const saveUserInfo = async (
       updateChildrenList(uid, childUser.guardian_id);
     }
   } else {
-    router.replace(`/screens/login`);
+    router.replace(`/accountVerification`);
   }
 };
 

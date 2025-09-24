@@ -10,7 +10,7 @@ type cardType = "profile" | "add card";
 type profile = {
   cardType: cardType;
   name: string;
-  age: number;
+  age: number | null;
   gender: string;
   learnerId: string;
   image: string | null;
@@ -147,7 +147,7 @@ const LearnerCard = (props: profile) => {
             ellipsizeMode="tail"
             style={styles.profileInfo}
           >
-            {props.gender}
+            {props.gender ? props.gender : "n/a"}
           </Text>
         </View>
       </View>
