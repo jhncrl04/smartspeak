@@ -31,8 +31,6 @@
       "edgeToEdgeEnabled": false,
       "permissions": [
         "android.permission.RECORD_AUDIO",
-        "android.permission.MODIFY_AUDIO_SETTINGS",
-        "android.permission.RECORD_AUDIO",
         "android.permission.MODIFY_AUDIO_SETTINGS"
       ],
       "runtimeVersion": "1.0.0"
@@ -109,11 +107,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "54d13d26-16f8-47dc-b4dd-3d62360b086a"
+        "projectId": "515171c6-8257-41eb-8907-786edcb9a83e"
       }
     },
-    "updates": {
-      "url": "https://u.expo.dev/54d13d26-16f8-47dc-b4dd-3d62360b086a"
-    }
+    "owner": "keurt2004"
   }
 }
