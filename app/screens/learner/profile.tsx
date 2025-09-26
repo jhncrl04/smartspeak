@@ -1,6 +1,5 @@
 import { ThemedView } from "@/components/ThemedView";
 import { useAuthStore } from "@/stores/userAuthStore";
-import DateTimePicker from '@react-native-community/datetimepicker';
 import * as FileSystem from "expo-file-system";
 import { useFonts } from "expo-font";
 import * as ImagePicker from "expo-image-picker";
@@ -30,6 +29,7 @@ import {
   heightPercentageToDP as hp,
   widthPercentageToDP as wp,
 } from "react-native-responsive-screen";
+// Removed DateTimePicker import - using alternative approach
 
 // React Native Firebase SDK imports
 import firestore from "@react-native-firebase/firestore";
@@ -182,17 +182,49 @@ export default function ProfileScreen() {
     setShowGenderDropdown(false);
   };
 
-  // Handle date selection - UPDATED
-  const handleDateChange = (event: any, selectedDate?: Date) => {
-    if (Platform.OS === 'android') {
-      setShowDatePicker(false);
+  // Handle date selection - UPDATED (without external date picker)
+  const handleDateChange = (dateString: string) => {
+    // Try to parse various date formats
+    let parsedDate: Date | null = null;
+    
+    // Try different date formats
+    const formats = [
+      /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/, // MM/DD/YYYY or M/D/YYYY
+      /^(\d{1,2})-(\d{1,2})-(\d{4})$/, // MM-DD-YYYY or M-D-YYYY
+      /^(\d{4})-(\d{1,2})-(\d{1,2})$/, // YYYY-MM-DD or YYYY-M-D
+      /^(\d{1,2})\.(\d{1,2})\.(\d{4})$/, // MM.DD.YYYY or M.D.YYYY
+    ];
+    
+    for (let i = 0; i < formats.length; i++) {
+      const match = dateString.match(formats[i]);
+      if (match) {
+        let day, month, year;
+        
+        if (i === 2) { // YYYY-MM-DD format
+          year = parseInt(match[1]);
+          month = parseInt(match[2]) - 1; // Month is 0-indexed
+          day = parseInt(match[3]);
+        } else { // MM/DD/YYYY, MM-DD-YYYY, MM.DD.YYYY formats
+          month = parseInt(match[1]) - 1; // Month is 0-indexed
+          day = parseInt(match[2]);
+          year = parseInt(match[3]);
+        }
+        
+        // Validate date ranges
+        if (year >= 1900 && year <= new Date().getFullYear() && 
+            month >= 0 && month <= 11 && 
+            day >= 1 && day <= 31) {
+          parsedDate = new Date(year, month, day);
+          break;
+        }
+      }
     }
     
-    if (selectedDate) {
-      setSelectedDate(selectedDate);
+    if (parsedDate && !isNaN(parsedDate.getTime())) {
+      setSelectedDate(parsedDate);
       
-      // Format date for display
-      const formattedDate = selectedDate.toLocaleDateString('en-US', {
+      // Format date for display (MM/DD/YYYY)
+      const formattedDate = parsedDate.toLocaleDateString('en-US', {
         month: '2-digit',
         day: '2-digit',
         year: 'numeric'
@@ -202,27 +234,30 @@ export default function ProfileScreen() {
       updateFormData("dob", formattedDate);
       
       // Store the timestamp for Firebase - CRITICAL FIX
-      setDobTimestamp(firestore.Timestamp.fromDate(selectedDate));
+      setDobTimestamp(firestore.Timestamp.fromDate(parsedDate));
       
-      console.log("Date selected:", selectedDate);
+      console.log("Date parsed successfully:", parsedDate);
       console.log("Formatted date:", formattedDate);
-      console.log("Firebase timestamp:", firestore.Timestamp.fromDate(selectedDate));
+      console.log("Firebase timestamp:", firestore.Timestamp.fromDate(parsedDate));
+      
+      return true; // Success
+    } else {
+      console.log("Invalid date format entered:", dateString);
+      return false; // Failed to parse
     }
   };
 
-  // Add this new function to handle manual date input
+  // Handle manual date input with validation
   const handleManualDateInput = (text: string) => {
     updateFormData("dob", text);
     
-    // Try to parse the manually entered date
-    const parsedDate = new Date(text);
-    if (!isNaN(parsedDate.getTime())) {
-      setSelectedDate(parsedDate);
-      setDobTimestamp(firestore.Timestamp.fromDate(parsedDate));
-      console.log("Manual date parsed successfully:", parsedDate);
-    } else {
-      console.log("Invalid date format entered:", text);
-      // You might want to show a validation message here
+    // Only try to parse if the user has entered a reasonable length string
+    if (text.length >= 8) { // Minimum for MM/DD/YY format
+      const success = handleDateChange(text);
+      if (!success && text.length >= 10) {
+        // Show validation message only for complete entries that failed to parse
+        console.log("Please enter a valid date format (MM/DD/YYYY, MM-DD-YYYY, or YYYY-MM-DD)");
+      }
     }
   };
 
@@ -463,13 +498,15 @@ export default function ProfileScreen() {
   const handleCancel = () => {
     setIsEditing(false);
     setShowGenderDropdown(false); // Close dropdown if open
-    setShowDatePicker(false); // Close date picker if open
     // Reset to original data
     setFormData(originalData);
-    // Reset DOB related states
-    const dobTimestamp = originalData.dob;
-    if (dobTimestamp) {
-      setSelectedDate(new Date(dobTimestamp));
+    // Reset DOB related states to original
+    if (originalData.dob) {
+      const originalDate = new Date(originalData.dob);
+      if (!isNaN(originalDate.getTime())) {
+        setSelectedDate(originalDate);
+        setDobTimestamp(firestore.Timestamp.fromDate(originalDate));
+      }
     }
   };
 
@@ -694,7 +731,8 @@ export default function ProfileScreen() {
 
                 {/* Student ID */}
                 <Text style={styles.ProfileSubText}>
-                  {formData?.studId || "No Student ID"}
+                  {/* {formData?.studId || "No Student ID"} */}
+                  Section:
                 </Text>
               </View>
             </View>
@@ -806,7 +844,7 @@ export default function ProfileScreen() {
                 </Text>
                 {isEditing ? (
                   <View>
-                    <TouchableOpacity
+                    {/* <TouchableOpacity
                       style={[styles.InputData, styles.InputDataEditing, styles.datePickerButton]}
                       onPress={() => setShowDatePicker(true)}
                     >
@@ -814,11 +852,11 @@ export default function ProfileScreen() {
                         {formData.dob || "Select Date"}
                       </Text>
                       <Text style={styles.dropdownArrow}>📅</Text>
-                    </TouchableOpacity>
+                    </TouchableOpacity> */}
                     
                     {/* Alternative: Manual text input */}
                     <TextInput
-                      style={[styles.InputData, styles.InputDataEditing, { marginTop: 5 }]}
+                      style={[styles.InputData, styles.InputDataEditing]}
                       value={formData.dob}
                       onChangeText={handleManualDateInput}
                       placeholder="MM/DD/YYYY or MM-DD-YYYY"
