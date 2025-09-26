@@ -10,12 +10,13 @@ type queryType =
   | "myStudent"
   | "card"
   | "category"
-  | "assignCategory";
+  | "assignCategory"
+  | "local"; // ➕ for local filtering
 
 type searchbarProps = {
   placeholder: string;
-  onSearch: (results: any[]) => void; // send back results instead of just query
-  collectionToSearch: collectionType;
+  onSearch: (results: any[] | string) => void; // local → string, remote → array
+  collectionToSearch?: collectionType; // optional if local
   query: queryType;
 };
 
@@ -24,11 +25,18 @@ const MySearchBar = (props: searchbarProps) => {
 
   const handleChange = (text: string) => {
     setSearchText(text);
-    handleSearch(props.query, text, props.collectionToSearch);
+
+    if (props.query === "local") {
+      // ✅ For MessageScreen → just send query string
+      props.onSearch(text);
+    } else {
+      // ✅ For Firestore/DB search
+      handleSearch(props.query, text, props.collectionToSearch!);
+    }
   };
 
   const handleSearch = async (
-    query: string,
+    query: queryType,
     value: string,
     collection: collectionType
   ) => {
@@ -39,7 +47,7 @@ const MySearchBar = (props: searchbarProps) => {
 
     let results: any[] = [];
 
-    switch (props.query) {
+    switch (query) {
       case "newLearner":
         results = await searchAddLearner(collection, value);
         break;
@@ -57,7 +65,7 @@ const MySearchBar = (props: searchbarProps) => {
         break;
     }
 
-    console.log("Running query:", props.query);
+    console.log("Running query:", query);
     props.onSearch(results);
   };
 
@@ -78,14 +86,11 @@ const styles = StyleSheet.create({
   searchbar: {
     borderColor: COLORS.gray,
     borderBottomWidth: 1,
-
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "flex-end",
     gap: 10,
-
     paddingHorizontal: 10,
-
     flexGrow: 1,
   },
   searchbarInput: {

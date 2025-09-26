@@ -103,9 +103,8 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "54d13d26-16f8-47dc-b4dd-3d62360b086a"
-      },
-      "PSGC_API": "https://psgc.cloud/api"
+        "projectId": "515171c6-8257-41eb-8907-786edcb9a83e"
+      }
     },
     "owner": "keurt2004"
   }
