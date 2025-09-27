@@ -45,7 +45,8 @@ const MessageScreen = ({ userRole = "teacher" }: MessageScreenProps) => {
     }
     // Plain object like { seconds, nanoseconds }
     if (ts?.seconds && typeof ts.seconds === "number") {
-      const millis = ts.seconds * 1000 + Math.floor((ts.nanoseconds || 0) / 1e6);
+      const millis =
+        ts.seconds * 1000 + Math.floor((ts.nanoseconds || 0) / 1e6);
       const d = new Date(millis);
       if (!isNaN(d.getTime())) {
         return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -55,7 +56,10 @@ const MessageScreen = ({ userRole = "teacher" }: MessageScreenProps) => {
     // Already a JS Date
     if (ts instanceof Date) {
       if (!isNaN(ts.getTime())) {
-        return ts.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+        return ts.toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
       }
       return "";
     }
@@ -95,12 +99,15 @@ const MessageScreen = ({ userRole = "teacher" }: MessageScreenProps) => {
               .doc(currentUserId)
               .get();
 
-            if (currentUserDoc.exists) {
+            if (currentUserDoc.exists()) {
               const currentUserData = currentUserDoc.data();
               actualUserRole = currentUserData?.role?.toLowerCase() || userRole;
             }
           } catch (error) {
-            console.log("Could not fetch current user role, using prop:", userRole);
+            console.log(
+              "Could not fetch current user role, using prop:",
+              userRole
+            );
           }
         }
 
@@ -139,7 +146,9 @@ const MessageScreen = ({ userRole = "teacher" }: MessageScreenProps) => {
       setFilteredUsers(profileUsers);
     } else {
       const filtered = profileUsers.filter((user) => {
-        const fullName = `${user?.first_name || ""} ${user?.last_name || ""}`.toLowerCase();
+        const fullName = `${user?.first_name || ""} ${
+          user?.last_name || ""
+        }`.toLowerCase();
         const displayName = user?.display_name?.toLowerCase() || "";
         const query = searchQuery.toLowerCase();
 
@@ -168,13 +177,17 @@ const MessageScreen = ({ userRole = "teacher" }: MessageScreenProps) => {
         const chatsData = await Promise.all(
           snapshot.docs.map(async (doc) => {
             const chat = doc.data() as any;
-            const otherUserId = chat.participants?.find((id: string) => id !== currentUserId);
+            const otherUserId = chat.participants?.find(
+              (id: string) => id !== currentUserId
+            );
 
             const otherUserDoc = otherUserId
               ? await firestore().collection("users").doc(otherUserId).get()
               : null;
 
-            const otherUserData = otherUserDoc?.exists ? otherUserDoc.data() : null;
+            const otherUserData = otherUserDoc?.exists
+              ? otherUserDoc.data()
+              : null;
 
             return {
               id: doc.id,
@@ -182,7 +195,11 @@ const MessageScreen = ({ userRole = "teacher" }: MessageScreenProps) => {
               updatedAt: chat.updatedAt ?? chat.updated_at ?? null, // keep raw value (Timestamp/Date/null)
               otherUser: {
                 id: otherUserId,
-                name: otherUserData ? `${otherUserData.first_name || ""} ${otherUserData.last_name || ""}`.trim() : "Unknown",
+                name: otherUserData
+                  ? `${otherUserData.first_name || ""} ${
+                      otherUserData.last_name || ""
+                    }`.trim()
+                  : "Unknown",
                 profilePic: otherUserData?.profile_pic || null,
               },
             };
@@ -195,7 +212,8 @@ const MessageScreen = ({ userRole = "teacher" }: MessageScreenProps) => {
             const t = a.updatedAt;
             if (!t) return 0;
             if (typeof t?.toDate === "function") return t.toDate().getTime();
-            if (t?.seconds) return t.seconds * 1000 + Math.floor((t.nanoseconds || 0) / 1e6);
+            if (t?.seconds)
+              return t.seconds * 1000 + Math.floor((t.nanoseconds || 0) / 1e6);
             if (t instanceof Date) return t.getTime();
             if (typeof t === "number") return t;
             return 0;
@@ -205,7 +223,8 @@ const MessageScreen = ({ userRole = "teacher" }: MessageScreenProps) => {
             const t = b.updatedAt;
             if (!t) return 0;
             if (typeof t?.toDate === "function") return t.toDate().getTime();
-            if (t?.seconds) return t.seconds * 1000 + Math.floor((t.nanoseconds || 0) / 1e6);
+            if (t?.seconds)
+              return t.seconds * 1000 + Math.floor((t.nanoseconds || 0) / 1e6);
             if (t instanceof Date) return t.getTime();
             if (typeof t === "number") return t;
             return 0;
@@ -225,13 +244,12 @@ const MessageScreen = ({ userRole = "teacher" }: MessageScreenProps) => {
       <Sidebar userRole={userRole} onNavigate={handleNavigation} />
       <View style={styles.pageContainer}>
         <Text style={styles.header}>Messages</Text>
-        <View style={{ flexGrow: 0}}>
+        <View style={{ flexGrow: 0 }}>
           <MySearchBar
             placeholder={getSearchPlaceholder()}
             query="local"
             onSearch={handleSearch}
           />
-
         </View>
 
         {/* profile carousel */}
@@ -242,18 +260,26 @@ const MessageScreen = ({ userRole = "teacher" }: MessageScreenProps) => {
               <Text style={styles.loadingText}>Loading users...</Text>
             </View>
           ) : (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.scrollContent}
+            >
               {filteredUsers.length > 0 ? (
                 filteredUsers.map((user) => (
                   <ProfileBubble
                     key={user.id}
                     user={user}
-                    onPress={async (selectedUser) => {
+                    onPress={async (selectedUser: any) => {
                       const currentUserId = auth().currentUser?.uid;
                       const chatId =
-                        currentUserId < selectedUser.id ? `${currentUserId}_${selectedUser.id}` : `${selectedUser.id}_${currentUserId}`;
+                        currentUserId < selectedUser.id
+                          ? `${currentUserId}_${selectedUser.id}`
+                          : `${selectedUser.id}_${currentUserId}`;
 
-                      const chatRef = firestore().collection("chats").doc(chatId);
+                      const chatRef = firestore()
+                        .collection("chats")
+                        .doc(chatId);
                       const chatDoc = await chatRef.get();
 
                       if (!chatDoc.exists) {
@@ -267,20 +293,33 @@ const MessageScreen = ({ userRole = "teacher" }: MessageScreenProps) => {
 
                       router.push({
                         pathname: "/screens/chatScreen",
-                        params: { chatId, userId: selectedUser.id, name: `${selectedUser.first_name} ${selectedUser.last_name}` },
+                        params: {
+                          chatId,
+                          userId: selectedUser.id,
+                          name: `${selectedUser.first_name} ${selectedUser.last_name}`,
+                        },
                       });
                     }}
                   />
                 ))
               ) : (
-                <Text style={styles.noUsersText}>{searchQuery ? "No users found" : `No ${userRole === "guardian" ? "teachers" : "guardians"} available`}</Text>
+                <Text style={styles.noUsersText}>
+                  {searchQuery
+                    ? "No users found"
+                    : `No ${
+                        userRole === "guardian" ? "teachers" : "guardians"
+                      } available`}
+                </Text>
               )}
             </ScrollView>
           )}
         </View>
 
         {/* Conversations list (scrollable) */}
-        <ScrollView style={styles.messageContainer} showsVerticalScrollIndicator>
+        <ScrollView
+          style={styles.messageContainer}
+          showsVerticalScrollIndicator
+        >
           {conversations.length > 0 ? (
             conversations.map((chat) => (
               <ChatSnippet
@@ -292,7 +331,11 @@ const MessageScreen = ({ userRole = "teacher" }: MessageScreenProps) => {
                 onPress={() =>
                   router.push({
                     pathname: "/screens/chatScreen",
-                    params: { chatId: chat.id, userId: chat.otherUser.id, name: chat.otherUser.name },
+                    params: {
+                      chatId: chat.id,
+                      userId: chat.otherUser.id,
+                      name: chat.otherUser.name,
+                    },
                   })
                 }
               />
