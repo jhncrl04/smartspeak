@@ -14,7 +14,6 @@ import {
   FlatList,
   Image,
   Modal,
-  Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -68,7 +67,7 @@ const createLog = async (
       userName,
       action,
       beforeData,
-      afterData
+      afterData,
     });
 
     const logData = {
@@ -85,13 +84,13 @@ const createLog = async (
       user_id: userId,
       user_name: userName,
       user_type: "Learner",
-    }; 
+    };
 
     console.log("Log data to be saved:", logData);
-    
+
     const docRef = await firestore().collection("learnerAcctLogs").add(logData);
     console.log("Log created successfully with ID:", docRef.id);
-    
+
     return docRef.id;
   } catch (error) {
     console.error("Error creating log:", error);
@@ -114,7 +113,7 @@ export default function ProfileScreen() {
 
   // Gender dropdown state
   const [showGenderDropdown, setShowGenderDropdown] = useState<boolean>(false);
-  
+
   // Date picker states
   const [showDatePicker, setShowDatePicker] = useState<boolean>(false);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -186,7 +185,7 @@ export default function ProfileScreen() {
   const handleDateChange = (dateString: string) => {
     // Try to parse various date formats
     let parsedDate: Date | null = null;
-    
+
     // Try different date formats
     const formats = [
       /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/, // MM/DD/YYYY or M/D/YYYY
@@ -194,52 +193,62 @@ export default function ProfileScreen() {
       /^(\d{4})-(\d{1,2})-(\d{1,2})$/, // YYYY-MM-DD or YYYY-M-D
       /^(\d{1,2})\.(\d{1,2})\.(\d{4})$/, // MM.DD.YYYY or M.D.YYYY
     ];
-    
+
     for (let i = 0; i < formats.length; i++) {
       const match = dateString.match(formats[i]);
       if (match) {
         let day, month, year;
-        
-        if (i === 2) { // YYYY-MM-DD format
+
+        if (i === 2) {
+          // YYYY-MM-DD format
           year = parseInt(match[1]);
           month = parseInt(match[2]) - 1; // Month is 0-indexed
           day = parseInt(match[3]);
-        } else { // MM/DD/YYYY, MM-DD-YYYY, MM.DD.YYYY formats
+        } else {
+          // MM/DD/YYYY, MM-DD-YYYY, MM.DD.YYYY formats
           month = parseInt(match[1]) - 1; // Month is 0-indexed
           day = parseInt(match[2]);
           year = parseInt(match[3]);
         }
-        
+
         // Validate date ranges
-        if (year >= 1900 && year <= new Date().getFullYear() && 
-            month >= 0 && month <= 11 && 
-            day >= 1 && day <= 31) {
+        if (
+          year >= 1900 &&
+          year <= new Date().getFullYear() &&
+          month >= 0 &&
+          month <= 11 &&
+          day >= 1 &&
+          day <= 31
+        ) {
           parsedDate = new Date(year, month, day);
           break;
         }
       }
     }
-    
+
     if (parsedDate && !isNaN(parsedDate.getTime())) {
       setSelectedDate(parsedDate);
-      
+
       // Format date for display (MM/DD/YYYY)
-      const formattedDate = parsedDate.toLocaleDateString('en-US', {
-        month: '2-digit',
-        day: '2-digit',
-        year: 'numeric'
+      const formattedDate = parsedDate.toLocaleDateString("en-US", {
+        month: "2-digit",
+        day: "2-digit",
+        year: "numeric",
       });
-      
+
       // Update form data
       updateFormData("dob", formattedDate);
-      
+
       // Store the timestamp for Firebase - CRITICAL FIX
       setDobTimestamp(firestore.Timestamp.fromDate(parsedDate));
-      
+
       console.log("Date parsed successfully:", parsedDate);
       console.log("Formatted date:", formattedDate);
-      console.log("Firebase timestamp:", firestore.Timestamp.fromDate(parsedDate));
-      
+      console.log(
+        "Firebase timestamp:",
+        firestore.Timestamp.fromDate(parsedDate)
+      );
+
       return true; // Success
     } else {
       console.log("Invalid date format entered:", dateString);
@@ -250,13 +259,16 @@ export default function ProfileScreen() {
   // Handle manual date input with validation
   const handleManualDateInput = (text: string) => {
     updateFormData("dob", text);
-    
+
     // Only try to parse if the user has entered a reasonable length string
-    if (text.length >= 8) { // Minimum for MM/DD/YY format
+    if (text.length >= 8) {
+      // Minimum for MM/DD/YY format
       const success = handleDateChange(text);
       if (!success && text.length >= 10) {
         // Show validation message only for complete entries that failed to parse
-        console.log("Please enter a valid date format (MM/DD/YYYY, MM-DD-YYYY, or YYYY-MM-DD)");
+        console.log(
+          "Please enter a valid date format (MM/DD/YYYY, MM-DD-YYYY, or YYYY-MM-DD)"
+        );
       }
     }
   };
@@ -264,7 +276,7 @@ export default function ProfileScreen() {
   // Format timestamp to readable date
   const formatTimestampToDate = (timestamp: any): string => {
     if (!timestamp) return "";
-    
+
     try {
       let date;
       if (timestamp.toDate) {
@@ -278,11 +290,11 @@ export default function ProfileScreen() {
       } else {
         return "";
       }
-      
-      return date.toLocaleDateString('en-US', {
-        month: '2-digit',
-        day: '2-digit',
-        year: 'numeric'
+
+      return date.toLocaleDateString("en-US", {
+        month: "2-digit",
+        day: "2-digit",
+        year: "numeric",
       });
     } catch (error) {
       console.error("Error formatting timestamp:", error);
@@ -293,7 +305,7 @@ export default function ProfileScreen() {
   // Convert timestamp to Date object for picker
   const timestampToDate = (timestamp: any): Date => {
     if (!timestamp) return new Date();
-    
+
     try {
       if (timestamp.toDate) {
         return timestamp.toDate();
@@ -305,7 +317,7 @@ export default function ProfileScreen() {
     } catch (error) {
       console.error("Error converting timestamp to date:", error);
     }
-    
+
     return new Date();
   };
 
@@ -853,7 +865,7 @@ export default function ProfileScreen() {
                       </Text>
                       <Text style={styles.dropdownArrow}>📅</Text>
                     </TouchableOpacity> */}
-                    
+
                     {/* Alternative: Manual text input */}
                     <TextInput
                       style={[styles.InputData, styles.InputDataEditing]}
@@ -861,10 +873,10 @@ export default function ProfileScreen() {
                       onChangeText={handleManualDateInput}
                       placeholder="MM/DD/YYYY or MM-DD-YYYY"
                     />
-                    
-                    {/* Date Picker Modal */}
+
+                    {/* Date Picker Modal
                     {showDatePicker && (
-                      <DateTimePicker
+                      <DatePicker
                         value={selectedDate}
                         mode="date"
                         display={Platform.OS === 'ios' ? 'spinner' : 'default'}
@@ -872,7 +884,7 @@ export default function ProfileScreen() {
                         maximumDate={new Date()} // Prevent future dates
                         minimumDate={new Date(1900, 0, 1)} // Reasonable minimum date
                       />
-                    )}
+                    )} */}
                   </View>
                 ) : (
                   <Text style={styles.InputData}>{formData.dob || "N/A"}</Text>
@@ -890,7 +902,11 @@ export default function ProfileScreen() {
                 </Text>
                 {isEditing ? (
                   <TouchableOpacity
-                    style={[styles.InputData, styles.InputDataEditing, styles.genderDropdownButton]}
+                    style={[
+                      styles.InputData,
+                      styles.InputDataEditing,
+                      styles.genderDropdownButton,
+                    ]}
                     onPress={() => setShowGenderDropdown(true)}
                   >
                     <Text style={styles.genderDropdownText}>
@@ -1091,9 +1107,9 @@ const styles = StyleSheet.create({
   },
   // Date picker styles
   datePickerButton: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   datePickerText: {
     fontFamily: "Poppins",
@@ -1307,7 +1323,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    height: height * 0.10,
+    height: height * 0.1,
     gap: width * 0.01,
     borderBottomLeftRadius: width * 0.01,
     borderBottomRightRadius: width * 0.01,

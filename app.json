@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Smartspeak",
-    "slug": "Smartspeak",
+    "slug": "smartspeak",
     "version": "1.0.0",
     "icon": "./assets/images/icon.png",
     "scheme": "smartspeak",
@@ -103,7 +103,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "515171c6-8257-41eb-8907-786edcb9a83e"
+        "projectId": "cd7d0adc-eba7-4a98-a148-2c22d40a1b5d"
       }
     }
   }
