@@ -42,15 +42,6 @@
       "@react-native-firebase/crashlytics",
       "expo-router",
       [
-        "expo-build-properties",
-        {
-          "android": {
-            "compileSdkVersion": 34,
-            "targetSdkVersion": 34,
-            "buildToolsVersion": "34.0.0",
-            "minSdkVersion": 24
-          }
-        },
         "expo-splash-screen",
         {
           "image": "./assets/images/logo.png",
@@ -102,6 +93,17 @@
         "expo-audio",
         {
           "microphonePermission": "Smartspeak would like to access your microphone."
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 34,
+            "targetSdkVersion": 34,
+            "buildToolsVersion": "34.0.0",
+            "minSdkVersion": 24
+          }
         }
       ],
       "expo-web-browser"
