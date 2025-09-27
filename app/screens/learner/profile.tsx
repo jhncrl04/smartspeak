@@ -111,6 +111,7 @@ export default function ProfileScreen() {
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
   const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
+  const [sectionName, setSectionName] = useState<string>("No Section"); // Added section state
 
   // Gender dropdown state
   const [showGenderDropdown, setShowGenderDropdown] = useState<boolean>(false);
@@ -149,6 +150,45 @@ export default function ProfileScreen() {
   });
 
   const [slideAnim] = useState(new Animated.Value(-100));
+
+  // Function to fetch learner's section
+  const fetchLearnerSection = async (userId: string) => {
+    try {
+      console.log("Fetching sections for learner:", userId);
+      
+      // Get all sections
+      const sectionsSnapshot = await firestore()
+        .collection("sections")
+        .get();
+
+      let learnerSection = "No Section";
+
+      // Check each section to see if the learner is in the students array
+      for (const doc of sectionsSnapshot.docs) {
+        const sectionData = doc.data();
+        const students = sectionData.students || [];
+        
+        console.log(`Checking section ${doc.id}:`, {
+          name: sectionData.name,
+          students: students
+        });
+
+        // Check if current user ID is in the students array
+        if (students.includes(userId)) {
+          learnerSection = sectionData.name || "Unnamed Section";
+          console.log("Found section for learner:", learnerSection);
+          break;
+        }
+      }
+
+      setSectionName(learnerSection);
+      console.log("Final section name:", learnerSection);
+      
+    } catch (error) {
+      console.error("Error fetching learner section:", error);
+      setSectionName("No Section");
+    }
+  };
 
   // Show notification function
   const showNotification = (
@@ -464,6 +504,10 @@ export default function ProfileScreen() {
 
           setFormData(profileData);
           setOriginalData(profileData);
+          
+          // Fetch learner's section
+          await fetchLearnerSection(user.uid);
+          
           console.log("Fetched user + guardian data:", profileData);
           console.log("Profile image URL:", profilePicUrl);
           console.log("DOB timestamp:", dobTimestamp);
@@ -729,10 +773,9 @@ export default function ProfileScreen() {
                   {formData?.email || "No email available"}
                 </Text>
 
-                {/* Student ID */}
+                {/* Section - UPDATED */}
                 <Text style={styles.ProfileSubText}>
-                  {/* {formData?.studId || "No Student ID"} */}
-                  Section:
+                  Section: {sectionName}
                 </Text>
               </View>
             </View>
@@ -844,35 +887,13 @@ export default function ProfileScreen() {
                 </Text>
                 {isEditing ? (
                   <View>
-                    {/* <TouchableOpacity
-                      style={[styles.InputData, styles.InputDataEditing, styles.datePickerButton]}
-                      onPress={() => setShowDatePicker(true)}
-                    >
-                      <Text style={styles.datePickerText}>
-                        {formData.dob || "Select Date"}
-                      </Text>
-                      <Text style={styles.dropdownArrow}>📅</Text>
-                    </TouchableOpacity> */}
-                    
-                    {/* Alternative: Manual text input */}
+                    {/* Manual text input */}
                     <TextInput
                       style={[styles.InputData, styles.InputDataEditing]}
                       value={formData.dob}
                       onChangeText={handleManualDateInput}
                       placeholder="MM/DD/YYYY or MM-DD-YYYY"
                     />
-                    
-                    {/* Date Picker Modal */}
-                    {showDatePicker && (
-                      <DateTimePicker
-                        value={selectedDate}
-                        mode="date"
-                        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                        onChange={handleDateChange}
-                        maximumDate={new Date()} // Prevent future dates
-                        minimumDate={new Date(1900, 0, 1)} // Reasonable minimum date
-                      />
-                    )}
                   </View>
                 ) : (
                   <Text style={styles.InputData}>{formData.dob || "N/A"}</Text>
@@ -968,7 +989,7 @@ export default function ProfileScreen() {
 
 const { width, height } = Dimensions.get("window");
 
-// Styles with added date picker styles
+// Styles remain the same as your original code
 const styles = StyleSheet.create({
   image: {
     width: wp(3),
@@ -1027,10 +1048,10 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: "#fafafa",
-    borderRadius: width * 0.02,
-    padding: width * 0.04,
-    width: width * 0.6,
-    maxHeight: height * 0.5,
+    borderRadius: width * 0.01,
+    padding: width * 0.02,
+    width: width * 0.3,
+    maxHeight: height * 1,
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
@@ -1041,12 +1062,12 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   modalTitle: {
-    fontSize: RFValue(10),
+    fontSize: RFValue(12),
+    fontWeight: "700",
+    color: "#9B72CF",
+    marginBottom: height * 0.04,
     fontFamily: "Poppins",
-    fontWeight: "600",
-    color: "#434343",
     textAlign: "center",
-    marginBottom: height * 0.02,
   },
   dropdownItem: {
     paddingVertical: height * 0.015,
@@ -1056,22 +1077,22 @@ const styles = StyleSheet.create({
   },
   dropdownItemText: {
     fontSize: RFValue(8),
+    fontWeight: "600",
     fontFamily: "Poppins",
     color: "#434343",
     textAlign: "center",
   },
   modalCloseButton: {
-    marginTop: height * 0.02,
-    backgroundColor: "#9B72CF",
-    paddingVertical: height * 0.015,
-    borderRadius: width * 0.01,
+    marginTop: height * 0.03,
+    paddingVertical: height * 0.01,
+    paddingHorizontal: width * 0.01,
+    
   },
   modalCloseButtonText: {
+    color: "#434343",
     fontSize: RFValue(8),
     fontFamily: "Poppins",
-    color: "#fafafa",
     textAlign: "center",
-    fontWeight: "500",
   },
   genderDropdownButton: {
     flexDirection: "row",
