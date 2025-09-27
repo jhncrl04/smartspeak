@@ -1,4 +1,5 @@
 import COLORS from "@/constants/Colors";
+import { useAuthStore } from "@/stores/userAuthStore";
 import * as React from "react";
 import { StyleSheet, View } from "react-native";
 import { FAB, Portal, Provider } from "react-native-paper";
@@ -12,6 +13,8 @@ type PageType =
   | "specificBoards"
   | "manageCards"
   | "categories";
+
+const user = useAuthStore.getState().user;
 
 const FabMenu = ({
   page,
@@ -34,11 +37,17 @@ const FabMenu = ({
       },
     ],
     learnerProfile: [
-      {
-        icon: "delete",
-        label: "Remove Learner",
-        onPress: actions?.["remove-learner"],
-      },
+      user?.role.toLowerCase() === "teacher"
+        ? {
+            icon: "delete",
+            label: "Remove Learner",
+            onPress: actions?.["remove_learner"],
+          }
+        : {
+            icon: "delete",
+            label: "Remove Child",
+            onPress: actions?.["remove_child"],
+          },
       {
         icon: "minus-box-multiple-outline",
         label: "Assign Category",
@@ -69,6 +78,11 @@ const FabMenu = ({
         icon: "card-plus-outline",
         label: "Assign Card",
         onPress: actions?.["assign_card"],
+      },
+      {
+        icon: "minus-box-multiple-outline",
+        label: "Unassign Category",
+        onPress: actions?.["unassign_category"],
       },
     ],
     manageCards: [

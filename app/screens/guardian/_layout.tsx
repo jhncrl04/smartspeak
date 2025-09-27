@@ -16,7 +16,7 @@ const GuardianLayout = () => {
 
   return (
     <SidebarProvider>
-      <StatusBar hidden={true} />
+      <StatusBar hidden={true} translucent={true} />
       {/* <StatusBar barStyle={"default"} /> */}
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen

@@ -20,6 +20,8 @@ type cardProps = {
   name: string;
   category_id: string;
   image: string;
+  is_assignable: boolean;
+  created_for: string | null;
 };
 
 const cardCollection = firestore().collection("cards");
@@ -34,13 +36,14 @@ export const addCard = async (cardInfo: cardProps) => {
   const category = await getCategoryWithId(cardInfo.category_id);
   if (!category) throw new Error("Category not found");
 
-  const new_card = {
+  const new_card: any = {
     card_name: cardInfo.name,
     category_name: category.category_name,
     category_id: cardInfo.category_id,
     created_at: current_date,
     created_by: uid,
     image: base64Image,
+    created_for: cardInfo.created_for ?? "all",
   };
 
   const cardRef = await cardCollection.add(new_card);
@@ -53,9 +56,10 @@ export const addCard = async (cardInfo: cardProps) => {
     item_name: cardInfo.name,
     item_type: "Card",
     timestamp: current_date,
+    created_for: cardInfo.created_for ?? "all",
   };
 
-  await createLog(logBody);
+  createLog(logBody);
 };
 
 export const deleteCard = async (cardId: string) => {
@@ -119,7 +123,7 @@ const confirmCardDeletion = async (
   await cardRef.delete();
   Alert.alert("Card deleted");
 
-  await createLog(logBody);
+  createLog(logBody);
 };
 
 type cardType = {
@@ -516,7 +520,7 @@ export const assignCard = async (cardId: string, learnerId?: string) => {
       timestamp: new Date(),
     };
 
-    await createLog(logBody);
+    createLog(logBody);
   } catch (err) {
     console.error("Error assigning card: ", err);
   }

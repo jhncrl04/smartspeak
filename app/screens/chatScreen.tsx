@@ -38,7 +38,7 @@ export default function ChatScreen() {
       .collection("users")
       .doc(userId as string)
       .onSnapshot((doc) => {
-        if (doc.exists) {
+        if (doc.exists()) {
           const data = doc.data();
           setOtherProfilePic(data?.profile_pic || null);
         }
@@ -71,7 +71,8 @@ export default function ChatScreen() {
   const tsToMillis = (ts: any) => {
     if (!ts) return 0;
     if (typeof ts.toMillis === "function") return ts.toMillis();
-    if (ts.seconds) return ts.seconds * 1000 + Math.floor((ts.nanoseconds || 0) / 1e6);
+    if (ts.seconds)
+      return ts.seconds * 1000 + Math.floor((ts.nanoseconds || 0) / 1e6);
     const parsed = new Date(ts).getTime();
     return isNaN(parsed) ? 0 : parsed;
   };
@@ -79,7 +80,10 @@ export default function ChatScreen() {
   const formatTime = (ts: any) => {
     if (!ts) return "";
     const d = new Date(tsToMillis(ts));
-    return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+    return d.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+    });
   };
 
   const formatDateLabel = (ts: any) => {
@@ -104,7 +108,11 @@ export default function ChatScreen() {
     for (const m of sorted) {
       const dateStr = formatDateLabel(m.createdAt);
       if (dateStr !== lastDate) {
-        out.push({ type: "date", id: `date-${dateStr}-${m.id}`, date: dateStr });
+        out.push({
+          type: "date",
+          id: `date-${dateStr}-${m.id}`,
+          date: dateStr,
+        });
         lastDate = dateStr;
       }
       out.push({ type: "message", ...m });
@@ -134,14 +142,17 @@ export default function ChatScreen() {
         .collection("messages")
         .add(newMessage);
 
-      await firestore().collection("chats").doc(chatId as string).set(
-        {
-          participants: [currentUser.uid, userId],
-          lastMessage: text,
-          updatedAt: firestore.FieldValue.serverTimestamp(),
-        },
-        { merge: true }
-      );
+      await firestore()
+        .collection("chats")
+        .doc(chatId as string)
+        .set(
+          {
+            participants: [currentUser.uid, userId],
+            lastMessage: text,
+            updatedAt: firestore.FieldValue.serverTimestamp(),
+          },
+          { merge: true }
+        );
 
       setInput("");
     } catch (err) {
@@ -156,7 +167,10 @@ export default function ChatScreen() {
       <View style={styles.chatContainer}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
             <Text style={styles.backText}>Back</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{name}</Text>
@@ -288,6 +302,10 @@ const styles = StyleSheet.create({
     marginRight: 10,
     backgroundColor: COLORS.white,
   },
-  sendButton: { borderRadius: 22, justifyContent: "center", alignItems: "center" },
-  sendText: { color: COLORS.accent, fontSize: 38},
+  sendButton: {
+    borderRadius: 22,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  sendText: { color: COLORS.accent, fontSize: 38 },
 });

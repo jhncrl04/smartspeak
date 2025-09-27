@@ -40,6 +40,7 @@ const COLORS = {
   errorText: "#B91C1C",
   successBg: "#A5FFD5",
   successText: "#3F947F",
+  warningBg: "#FF9800",
 };
 
 export default COLORS;

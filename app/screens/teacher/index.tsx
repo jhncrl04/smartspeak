@@ -37,6 +37,7 @@ const ManageLearnersScreen = () => {
       try {
         const data = await getSectionsWithStudents();
         setSections(data);
+
         if (data.length > 0) setActiveSection(data[0].sectionId);
       } catch (err) {
         console.error("Error fetching sections:", err);
@@ -122,6 +123,7 @@ const ManageLearnersScreen = () => {
                     gender={student.gender}
                     image={student.profile_pic}
                     learnerId={student.id}
+                    onSection={activeSection}
                     name={`${student.first_name} ${student.last_name}`}
                     age={calculateAge(student.date_of_birth)}
                   />

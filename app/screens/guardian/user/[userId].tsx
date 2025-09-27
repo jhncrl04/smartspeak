@@ -1,18 +1,18 @@
-import ActionLink from "@/components/ActionLink";
 import Board from "@/components/Board";
 import FabMenu from "@/components/FabMenu";
 import LearnerProfileHeader from "@/components/LeanerProfileHeader";
-import PageHeader from "@/components/PageHeader";
 import Sidebar from "@/components/Sidebar";
 import AssignCategoryModal from "@/components/ui/AssignCategoryModal";
-import HorizontalLine from "@/components/ui/HorizontalLine";
+import PreviousReportsModal from "@/components/ui/PreviousReportModal";
 import COLORS from "@/constants/Colors";
 import { calculateAge } from "@/helper/calculateAge";
 import { listenAssignedCategories } from "@/services/categoryService";
 import { getStudentInfo } from "@/services/userService";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
+
+import Icon from "react-native-vector-icons/Octicons";
 
 const LearnerProfile = () => {
   const handleNavigation = (screen: string) => {
@@ -51,65 +51,54 @@ const LearnerProfile = () => {
     // cleanup on unmount
     return () => unsubscribe();
   }, [userId]);
+
   const age = calculateAge(userInfo?.date_of_birth);
 
   const [activeModal, setActiveModal] = useState<
     "assign_category" | "remove_learner" | null
   >(null);
 
+  const [isReportModalActive, setIsReportModalActive] = useState(false);
+
   return (
     <>
-      <AssignCategoryModal
-        visible={activeModal === "assign_category"}
-        learnerId={userId as string}
-        onClose={() => setActiveModal(null)}
-      />
-      <View style={styles.container}>
+      <SafeAreaView style={styles.container}>
         <Sidebar userRole="guardian" onNavigate={handleNavigation} />
-        <ScrollView showsVerticalScrollIndicator={false}>
-          <View style={styles.pageContainer}>
-            <View style={styles.headerContainer}>
-              <ActionLink text="Return" clickHandler={router.back} />
-              <LearnerProfileHeader
-                profile={userInfo?.profile_pic}
-                name={`${userInfo?.first_name} ${userInfo?.last_name}`}
-                age={calculateAge(userInfo?.date_of_birth)}
-                screen="guardian"
-              />
-              <View>
-                <HorizontalLine />
-              </View>
-            </View>
-            <View style={styles.pageHeaderContainer}>
-              <PageHeader
-                pageTitle="Assign Category"
-                onSearch={() => {}}
-                collectionToSearch="pecsCategories"
-                query="category"
-                hasFilter={true}
-                searchPlaceholder="Search Category"
-              />
-            </View>
-            <View style={styles.boardContainer}>
-              {categories && categories?.length <= 0 ? (
-                <View
-                  style={{
-                    flex: 1,
-                    justifyContent: "center",
-                    alignItems: "center",
-                  }}
-                >
-                  <Text
-                    style={{
-                      fontFamily: "Poppins",
-                      fontSize: 16,
-                      fontWeight: 600,
+        <ScrollView
+          style={styles.scrollContainer}
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+        >
+          <View style={styles.profileSection}>
+            <LearnerProfileHeader
+              profile={userInfo?.profile_pic}
+              name={`${userInfo?.first_name} ${userInfo?.last_name}`}
+              age={calculateAge(userInfo?.date_of_birth)}
+              buttonHandler={() => console.log("go to edit child profile")}
+              onViewReports={() => setIsReportModalActive(true)}
+              screen="guardian"
+            />
+          </View>
 
-                      color: COLORS.gray,
-                    }}
-                  >
-                    No assigned categories
+          {/* Categories Section */}
+          <View style={styles.categoriesSection}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Assigned Categories</Text>
+              <Text style={styles.sectionSubtitle}>
+                {categories?.length || 0} categories assigned
+              </Text>
+            </View>
+
+            <View style={styles.categoriesGrid}>
+              {categories && categories.length <= 0 ? (
+                <View style={styles.emptyState}>
+                  <Icon name="inbox" size={48} color={COLORS.gray} />
+                  <Text style={styles.emptyStateTitle}>
+                    No Categories Assigned
                   </Text>
+                  {/* <Text style={styles.emptyStateSubtitle}>
+                    Tap the + button above to assign categories to this student
+                  </Text> */}
                 </View>
               ) : (
                 categories?.map((category, index) => (
@@ -138,13 +127,27 @@ const LearnerProfile = () => {
             </View>
           </View>
         </ScrollView>
-        <FabMenu
-          page="learnerProfile"
-          actions={{
-            assign_category: () => setActiveModal("assign_category"),
-          }}
-        />
-      </View>
+      </SafeAreaView>
+
+      <AssignCategoryModal
+        visible={activeModal === "assign_category"}
+        learnerId={userId as string}
+        onClose={() => setActiveModal(null)}
+      />
+      <PreviousReportsModal
+        visible={isReportModalActive}
+        onClose={() => setIsReportModalActive(false)}
+        studentId={userId as string}
+        studentName={`${userInfo?.first_name} ${userInfo?.last_name}`}
+      />
+
+      <FabMenu
+        page="learnerProfile"
+        actions={{
+          assign_category: () => setActiveModal("assign_category"),
+          remove_child: () => console.log("Removing child"),
+        }}
+      />
     </>
   );
 };
@@ -156,40 +159,92 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 10,
   },
-  pageContainer: {
-    flex: 1,
-    flexDirection: "column",
-
+  mobileHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     backgroundColor: COLORS.white,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.lightGray || "#f0f0f0",
+    elevation: 2,
+    shadowColor: COLORS.black,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  backButton: {
+    padding: 8,
+    borderRadius: 20,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: COLORS.black,
+    fontFamily: "Poppins",
+  },
+  menuButton: {
+    padding: 8,
+    borderRadius: 20,
+  },
+  scrollContainer: {
+    flex: 1,
 
-    gap: 5,
-
-    paddingVertical: 10,
     paddingHorizontal: 30,
   },
-  headerContainer: {
-    gap: 10,
+  profileSection: {
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.gray || "#f8f8f8",
   },
-  pageHeaderContainer: {
-    gap: 5,
+  categoriesSection: {
+    flex: 1,
+    paddingTop: 20,
   },
-  buttonContainer: {
-    width: "45%",
-    height: 40,
-
+  sectionHeader: {
+    marginBottom: 10,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    lineHeight: 26,
+    fontWeight: "600",
+    color: COLORS.black,
+    fontFamily: "Poppins",
+  },
+  sectionSubtitle: {
+    fontSize: 14,
+    color: COLORS.gray,
+    fontFamily: "Poppins",
+  },
+  categoriesGrid: {
     flexDirection: "row",
-    gap: 10,
-  },
-  boardContainer: {
     flexWrap: "wrap",
-    flexGrow: 0,
-    flexDirection: "row",
-
+    rowGap: 10,
+    columnGap: 15,
+    paddingBottom: 30,
+  },
+  emptyState: {
+    flex: 1,
     alignItems: "center",
-
-    gap: 15,
-
-    paddingVertical: 20,
+    justifyContent: "center",
+    paddingVertical: 60,
+    paddingHorizontal: 32,
+  },
+  emptyStateTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: COLORS.black,
+    fontFamily: "Poppins",
+    marginTop: 16,
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  emptyStateSubtitle: {
+    fontSize: 14,
+    color: COLORS.gray,
+    fontFamily: "Poppins",
+    textAlign: "center",
+    lineHeight: 20,
   },
 });
 

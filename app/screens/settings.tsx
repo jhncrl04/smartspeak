@@ -43,42 +43,59 @@ const SettingScreen = () => {
   const [image, setImage] = useState(user?.profile);
   const [error, setError] = useState("");
 
-  const pickImage = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  const pickImage = async (useCamera: boolean = false) => {
+    try {
+      let permissionResult;
 
-    if (status !== "granted") {
-      Alert.alert(
-        "Permission Denied",
-        "Sorry, camera roll permission is needed to upload."
-      );
-    } else {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        allowsEditing: true,
-        quality: 1,
-      });
+      if (useCamera) {
+        // Camera permission
+        permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+      } else {
+        // Gallery permission
+        permissionResult =
+          await ImagePicker.requestMediaLibraryPermissionsAsync();
+      }
+
+      if (permissionResult.status !== "granted") {
+        Alert.alert(
+          "Permission Denied",
+          `Sorry, ${
+            useCamera ? "camera" : "media library"
+          } permission is needed to upload.`
+        );
+        return;
+      }
+
+      // Open camera or gallery
+      const result = useCamera
+        ? await ImagePicker.launchCameraAsync({
+            allowsEditing: true,
+            quality: 1,
+          })
+        : await ImagePicker.launchImageLibraryAsync({
+            allowsEditing: true,
+            quality: 1,
+          });
 
       if (!result.canceled) {
         const uri = result.assets[0].uri;
 
-        setError(""); // clear any error first
+        setError(""); // clear error first
 
-        try {
-          // try uploading
-          const uploadedBase64 = await uploadProfilePic(uri);
+        const uploadedBase64 = await uploadProfilePic(uri);
 
-          if (uploadedBase64) {
-            setImage(uploadedBase64);
-            updateUser({ profile: uploadedBase64 });
+        if (uploadedBase64) {
+          setImage(uploadedBase64);
+          updateUser({ profile: uploadedBase64 });
 
-            Alert.alert("Success", "Profile picture updated!");
-          } else {
-            Alert.alert("Upload Failed", "Please try again.");
-          }
-        } catch (err) {
-          console.error("Upload failed:", err);
-          Alert.alert("Upload Failed", "Something went wrong.");
+          Alert.alert("Success", "Profile picture updated!");
+        } else {
+          Alert.alert("Upload Failed", "Please try again.");
         }
       }
+    } catch (err) {
+      console.error("Upload failed:", err);
+      Alert.alert("Upload Failed", "Something went wrong.");
     }
   };
 

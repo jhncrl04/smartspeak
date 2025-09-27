@@ -1,11 +1,21 @@
 import imageToBase64 from "@/helper/imageToBase64";
 import { useAuthStore } from "@/stores/userAuthStore";
 import { CreateLogInput, DeleteLogInput, UpdateLog } from "@/types/log";
-import firestore, { arrayUnion } from "@react-native-firebase/firestore";
+import firestore, {
+  arrayRemove,
+  arrayUnion,
+} from "@react-native-firebase/firestore";
 import { Alert } from "react-native";
 import { createLog } from "./loggingService";
+import { getUserInfo } from "./userApi/Authentication";
 
-type categoryProps = { name: string; color: string; image: string };
+type categoryProps = {
+  name: string;
+  color: string;
+  image: string;
+  isAssignable?: boolean;
+  assignedLearnerId?: string | null;
+};
 
 const categoryCollection = firestore().collection("pecsCategories");
 
@@ -29,6 +39,13 @@ export const addCategory = async (categoryInfo: categoryProps) => {
     created_at: currentDate,
     created_by: uid,
     image: base64Image,
+    is_assignable: categoryInfo.isAssignable,
+    assigned_to: categoryInfo.isAssignable
+      ? []
+      : [categoryInfo.assignedLearnerId],
+    created_for: !categoryInfo.isAssignable
+      ? categoryInfo.assignedLearnerId
+      : "",
   };
 
   const categoryRef = await categoryCollection.add(newCategory);
@@ -43,7 +60,7 @@ export const addCategory = async (categoryInfo: categoryProps) => {
     timestamp: currentDate,
   };
 
-  await createLog(logBody);
+  createLog(logBody);
 };
 
 export const getCategories = async () => {
@@ -55,9 +72,15 @@ export const getCategories = async () => {
     .where("created_by", "==", uid)
     .get()
     .then((querySnapshot) => {
-      querySnapshot.forEach((doc) => {
+      querySnapshot.forEach(async (doc) => {
         const category = doc.data();
         category.id = doc.id;
+
+        if (category.is_assignable === false) {
+          const learner = await getUserInfo(category.assigned_to[0]);
+
+          category.assigned_to_name = `${learner?.first_name} ${learner?.last_name}`;
+        }
 
         categories.push(category);
       });
@@ -168,6 +191,21 @@ export const assignCategory = async (
     await categoryCollection
       .doc(categoryId)
       .update({ assigned_to: arrayUnion(learnerId) });
+  } catch (err) {
+    console.error("Error assigning category: ", err);
+  }
+};
+
+export const unassignCategory = async (
+  categoryId: string,
+  learnerId: string
+) => {
+  try {
+    await categoryCollection
+      .doc(categoryId)
+      .update({ assigned_to: arrayRemove(learnerId) });
+
+    return true;
   } catch (err) {
     console.error("Error assigning category: ", err);
   }

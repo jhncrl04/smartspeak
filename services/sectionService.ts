@@ -2,7 +2,10 @@ import getCurrentUid from "@/helper/getCurrentUid";
 import { useAuthStore } from "@/stores/userAuthStore";
 import { GradeAndSection } from "@/types/gradeSection";
 import { Learner } from "@/types/user";
-import firestore, { arrayUnion } from "@react-native-firebase/firestore";
+import firestore, {
+  arrayRemove,
+  arrayUnion,
+} from "@react-native-firebase/firestore";
 
 const sectionCollection = firestore().collection("sections");
 const gradeLevelCollection = firestore().collection("gradeLevels");
@@ -94,6 +97,22 @@ export const addStudentToSection = async (
     await sectionCollection
       .doc(sectionId)
       .update({ students: arrayUnion(learnerId) });
+
+    return { success: true };
+  } catch (error) {
+    console.log("Error adding student to section: ", error);
+    return { success: false };
+  }
+};
+
+export const removeStudentToSection = async (
+  learnerId: string,
+  sectionId: string
+) => {
+  try {
+    await sectionCollection
+      .doc(sectionId)
+      .update({ students: arrayRemove(learnerId) });
 
     return { success: true };
   } catch (error) {

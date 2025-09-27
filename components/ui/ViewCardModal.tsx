@@ -3,9 +3,11 @@ import {
   Alert,
   Image,
   Modal,
+  ScrollView,
   StyleSheet,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from "react-native";
 import Icon from "react-native-vector-icons/Octicons";
@@ -47,6 +49,8 @@ const ViewCardModal = ({
   const [error, setError] = useState("");
 
   const pickImage = async () => {
+    if (isDisabled) return;
+
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (status !== "granted") {
@@ -59,7 +63,6 @@ const ViewCardModal = ({
 
       if (!result.canceled) {
         const uri = result.assets[0].uri;
-
         setImage(uri);
         setError("");
       }
@@ -67,9 +70,9 @@ const ViewCardModal = ({
   };
 
   const [cardName, setCardName] = useState("");
-
-  const dropdownItems: any[] = [];
   const [categories, setCategories] = useState<any[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [card, setCard] = useState<any>(null);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -77,23 +80,11 @@ const ViewCardModal = ({
         const data = await getCategories();
         setCategories(data);
       } catch (err) {
-        console.error("Error fetching boards: ", err);
+        console.error("Error fetching categories: ", err);
       }
     };
     fetchCategories();
   }, []);
-
-  categories.forEach((category) => {
-    const categoryDetail = {
-      label: category.category_name,
-      value: category.id,
-    };
-
-    dropdownItems.push(categoryDetail);
-  });
-  const [selectedCategory, setSelectedCategory] = useState<string>("");
-
-  const [card, setCard] = useState<any>(null);
 
   useEffect(() => {
     const fetchCardInfo = async () => {
@@ -110,10 +101,15 @@ const ViewCardModal = ({
       }
     };
 
-    if (cardId) {
+    if (cardId && visible) {
       fetchCardInfo();
     }
-  }, [cardId]);
+  }, [cardId, visible]);
+
+  const dropdownItems = categories.map((category) => ({
+    label: category.category_name,
+    value: category.id,
+  }));
 
   const handleAction = (cardId: string, action: string) => {
     if (action === "Unassign") {
@@ -121,15 +117,21 @@ const ViewCardModal = ({
     } else if (action === "Delete") {
       deleteCard(cardId);
     } else if (action === "Update") {
+      if (cardName.trim() === "") {
+        Alert.alert("Error", "Please enter a card name.");
+        return;
+      }
       updateCard(cardId, cardName, image);
     }
 
     onClose();
   };
 
+  const canUpdate = cardName.trim() !== "";
+
   return (
     <Modal
-      animationType="fade"
+      animationType="slide"
       transparent={true}
       visible={visible}
       onRequestClose={() => {
@@ -138,67 +140,74 @@ const ViewCardModal = ({
       }}
     >
       <View style={styles.overlay}>
+        <TouchableWithoutFeedback onPress={onClose}>
+          <View style={styles.backdrop} />
+        </TouchableWithoutFeedback>
         <View style={styles.modalContainer}>
+          {/* Close button */}
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <Icon name="x" size={20} color={COLORS.gray} />
+            <Icon name="x" size={22} color={COLORS.gray} />
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.imageContainer}
-            onPress={pickImage}
-            disabled={isDisabled}
-          >
-            {image !== "" ? (
-              <Image source={{ uri: image }} style={styles.imagePreview} />
-            ) : (
-              <Icon name="image" size={40} color={COLORS.gray} />
-            )}
-          </TouchableOpacity>
-          <View style={styles.mainContainer}>
-            <View style={styles.inputContainer}>
-              <View style={styles.cardInfo}>
-                <TextFieldWrapper label="Card Name" isFlex={true}>
-                  <TextInput
-                    style={styles.input}
-                    placeholder=""
-                    placeholderTextColor={COLORS.gray}
-                    value={cardName}
-                    onChangeText={setCardName}
-                    focusable={!isDisabled}
-                    editable={!isDisabled}
-                  />
-                </TextFieldWrapper>
-                <TextFieldWrapper label="Category Name">
-                  <View style={styles.dropdownWrapper}>
-                    <MyDropdown
-                      isDisabled={true}
-                      dropdownItems={dropdownItems}
-                      placeholder=""
-                      value={selectedCategory}
-                      onChange={(val) => setSelectedCategory(val)}
-                    />
-                  </View>
-                </TextFieldWrapper>
-              </View>
-            </View>
 
+          {/* Scrollable content */}
+          <ScrollView
+            style={styles.mainContainer}
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Image Upload */}
+            <TouchableOpacity
+              style={styles.imageContainer}
+              onPress={pickImage}
+              disabled={isDisabled}
+            >
+              {image !== "" ? (
+                <Image source={{ uri: image }} style={styles.imagePreview} />
+              ) : (
+                <Icon name="image" size={50} color={COLORS.gray} />
+              )}
+              {!isDisabled && image !== "" && (
+                <View style={styles.imageOverlay}>
+                  <Icon name="pencil" size={16} color={COLORS.white} />
+                </View>
+              )}
+            </TouchableOpacity>
+
+            {/* Card Name */}
+            <TextFieldWrapper label="Card Name">
+              <TextInput
+                value={cardName}
+                onChangeText={setCardName}
+                placeholder="Card Name"
+                style={[styles.input, isDisabled && styles.inputDisabled]}
+                editable={!isDisabled}
+              />
+            </TextFieldWrapper>
+
+            {/* Category Selection */}
+            <TextFieldWrapper label="Category Name">
+              <MyDropdown
+                isDisabled={true}
+                dropdownItems={dropdownItems}
+                placeholder="Select Category"
+                value={selectedCategory}
+                onChange={(val) => setSelectedCategory(val)}
+              />
+            </TextFieldWrapper>
+
+            {/* Action Buttons */}
             <View style={styles.buttonContainer}>
               <PrimaryButton
                 title="Update"
-                disabled={isDisabled}
-                clickHandler={() => {
-                  handleAction(cardId, "Update");
-                }}
+                clickHandler={() => handleAction(cardId, "Update")}
+                disabled={isDisabled || !canUpdate}
               />
-
               <SecondaryButton
                 title={action}
+                clickHandler={() => handleAction(cardId, action)}
                 disabled={isDisabled}
-                clickHandler={() => {
-                  handleAction(cardId, action);
-                }}
               />
             </View>
-          </View>
+          </ScrollView>
         </View>
       </View>
     </Modal>
@@ -209,82 +218,82 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: COLORS.shadow,
-    justifyContent: "center",
-    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "flex-end", // pushes modal to right side
+  },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  modalContainer: {
+    width: "50%", // side sheet style
+    height: "100%",
+    backgroundColor: COLORS.white,
+    borderTopLeftRadius: 16,
+    borderBottomLeftRadius: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 25,
+    shadowColor: COLORS.black,
+    shadowOffset: { width: -2, height: 0 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 10,
+  },
+  closeButton: {
+    position: "absolute",
+    top: 12,
+    right: 16,
+    padding: 6,
+    zIndex: 10,
+  },
+  mainContainer: {
+    flex: 1,
   },
   imageContainer: {
-    aspectRatio: 1,
-
+    width: 100,
+    height: 100,
+    borderRadius: 12,
+    overflow: "hidden",
     justifyContent: "center",
     alignItems: "center",
-
     backgroundColor: COLORS.cardBg,
+    alignSelf: "center",
+    marginBottom: 20,
+    position: "relative",
   },
   imagePreview: {
     width: "100%",
     height: "100%",
     resizeMode: "cover",
   },
-  modalContainer: {
-    position: "relative",
-
-    width: "auto",
-    maxWidth: "80%",
-
-    backgroundColor: COLORS.white,
-    borderRadius: 5,
-    overflow: "hidden",
-
-    flexDirection: "row",
-
-    elevation: 5,
-    shadowColor: COLORS.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-  },
-  closeButton: {
+  imageOverlay: {
     position: "absolute",
-    top: 10,
-    right: 30,
-
-    zIndex: 1,
-
-    padding: 2,
-  },
-  inputContainer: { gap: 10 },
-  cardInfo: { flexDirection: "row", alignItems: "center", gap: 10 },
-  buttonContainer: {
-    gap: 10,
-
-    minHeight: 60,
-  },
-  mainContainer: {
-    flexGrow: 1,
-    flexShrink: 1,
-    flexBasis: 0,
-    alignSelf: "flex-start",
-
-    paddingVertical: 40,
-    paddingHorizontal: 30,
-    gap: 20,
+    bottom: 4,
+    right: 4,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: COLORS.accent,
+    justifyContent: "center",
+    alignItems: "center",
   },
   input: {
-    flex: 1,
-    paddingVertical: 5,
-    fontSize: 16,
-    lineHeight: 20,
-    minHeight: 40,
-
+    width: "100%",
     borderWidth: 1,
     borderColor: COLORS.gray,
-    borderRadius: 5,
+    borderRadius: 6,
     paddingHorizontal: 10,
+    paddingVertical: 8,
+    fontSize: 16,
   },
-  dropdownWrapper: {
-    minHeight: 40,
-    minWidth: 150,
-    flexShrink: 0,
+  inputDisabled: {
+    backgroundColor: COLORS.lightGray || "#f5f5f5",
+    color: COLORS.gray,
+  },
+  buttonContainer: {
+    marginTop: 15,
+    marginBottom: 10,
+    gap: 10,
   },
 });
+
 export default ViewCardModal;
