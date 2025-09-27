@@ -3,9 +3,12 @@ import {
   Alert,
   Image,
   Modal,
+  ScrollView,
   StyleSheet,
+  Text,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from "react-native";
 import Icon from "react-native-vector-icons/Octicons";
@@ -16,6 +19,8 @@ import * as ImagePicker from "expo-image-picker";
 
 import { addCard } from "@/services/cardsService";
 import { getCategories } from "@/services/categoryService";
+import { getChild, getStudents } from "@/services/userService";
+import { useAuthStore } from "@/stores/userAuthStore";
 import { useEffect, useState } from "react";
 import TextFieldWrapper from "../TextfieldWrapper";
 
@@ -24,6 +29,8 @@ type AddPecsModalProps = {
   onClose: () => void;
   categoryId?: string;
 };
+
+const user = useAuthStore.getState().user;
 
 const AddPecsModal = ({ visible, onClose, categoryId }: AddPecsModalProps) => {
   // image upload functionalities
@@ -43,7 +50,6 @@ const AddPecsModal = ({ visible, onClose, categoryId }: AddPecsModalProps) => {
 
       if (!result.canceled) {
         const uri = result.assets[0].uri;
-
         setImage(uri);
         setError("");
       }
@@ -53,14 +59,48 @@ const AddPecsModal = ({ visible, onClose, categoryId }: AddPecsModalProps) => {
   useEffect(() => {
     if (!visible) {
       setImage("");
+      setCardName("");
+      setIsSpecificLearnerCard(false);
+      if (!categoryId) {
+        setSelectedCategory("");
+      }
     }
-  }, [visible]);
+  }, [visible, categoryId]);
 
-  const [cardName, setCardName] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
+
+  const [cardName, setCardName] = useState("asdasd");
+  const [isSpecificLearnerCard, setIsSpecificLearnerCard] = useState(false);
+  const [selectedLearner, setSelectedLearner] = useState<string>("");
 
   const dropdownItems: any[] = [];
 
   const [categories, setCategories] = useState<any[]>([]);
+  const [selectedCategoryData, setSelectedCategoryData] = useState<any>(null);
+
+  const [students, setStudents] = useState<{ label: string; value: string }[]>([
+    { label: "", value: "" },
+  ]);
+
+  useEffect(() => {
+    const fetchStudents = async () => {
+      const students =
+        user?.role.toLowerCase() === "teacher"
+          ? await getStudents()
+          : await getChild();
+
+      const studentItems = students.map((student) => {
+        return {
+          label: `${student.first_name} ${student.last_name}`,
+          value: student.id,
+        };
+      });
+
+      setStudents(studentItems);
+    };
+
+    fetchStudents();
+  }, []);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -77,24 +117,55 @@ const AddPecsModal = ({ visible, onClose, categoryId }: AddPecsModalProps) => {
       setIsDropdownDisabled(true);
       setSelectedCategory(categoryId);
     }
-  }, []);
+  }, [categoryId]);
+
+  // Update selected category data when categories or selectedCategory changes
+  useEffect(() => {
+    if (selectedCategory && categories.length > 0) {
+      const categoryData = categories.find(
+        (cat) => cat.id === selectedCategory
+      );
+      setSelectedCategoryData(categoryData);
+
+      // Set default behavior based on category assignability
+      if (categoryData) {
+        if (categoryData.is_assignable !== false) {
+          // For assignable categories, default to assignable (false = assignable)
+          setIsSpecificLearnerCard(false);
+        } else {
+          // For non-assignable categories, default to specific learner (true = specific learner)
+          setIsSpecificLearnerCard(true);
+          setSelectedLearner(categoryData.assigned_to[0]);
+        }
+      }
+    }
+  }, [selectedCategory, categories]);
 
   categories.forEach((category) => {
+    const label =
+      category.is_assignable === false
+        ? `${category.category_name} (${category.assigned_to_name} use only)`
+        : category.category_name;
+
     const categoryDetail = {
-      label: category.category_name,
+      label: label,
       value: category.id,
     };
 
     dropdownItems.push(categoryDetail);
   });
 
-  const [selectedCategory, setSelectedCategory] = useState<string>("");
-
   const [isDropdownDisabled, setIsDropdownDisabled] = useState(false);
+
+  // Show card type selection only when category is assignable (gives user freedom to choose)
+  const showCardTypeSelection =
+    selectedCategoryData && selectedCategoryData.is_assignable !== false;
+
+  const canSubmit = image !== "" && cardName !== "" && selectedCategory !== "";
 
   return (
     <Modal
-      animationType="fade"
+      animationType="slide"
       transparent={true}
       visible={visible}
       onRequestClose={() => {
@@ -103,76 +174,147 @@ const AddPecsModal = ({ visible, onClose, categoryId }: AddPecsModalProps) => {
       }}
     >
       <View style={styles.overlay}>
+        <TouchableWithoutFeedback onPress={onClose}>
+          <View style={styles.backdrop} />
+        </TouchableWithoutFeedback>
         <View style={styles.modalContainer}>
+          {/* Close button */}
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <Icon name="x" size={20} color={COLORS.gray} />
+            <Icon name="x" size={22} color={COLORS.gray} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.imageContainer} onPress={pickImage}>
-            {image !== "" ? (
-              <Image source={{ uri: image }} style={styles.imagePreview} />
-            ) : (
-              <Icon name="image" size={40} color={COLORS.gray} />
+
+          {/* Scrollable content */}
+          <ScrollView
+            style={styles.mainContainer}
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Image Upload */}
+            <TouchableOpacity style={styles.imageContainer} onPress={pickImage}>
+              {image !== "" ? (
+                <Image source={{ uri: image }} style={styles.imagePreview} />
+              ) : (
+                <Icon name="image" size={50} color={COLORS.gray} />
+              )}
+            </TouchableOpacity>
+
+            {/* Card Name */}
+            <TextFieldWrapper label="Card Name">
+              <TextInput
+                value={cardName}
+                onChangeText={setCardName}
+                placeholder="Card Name"
+                style={styles.input}
+              />
+            </TextFieldWrapper>
+
+            {/* Category Selection */}
+            <TextFieldWrapper label="Category Name">
+              <MyDropdown
+                isDisabled={isDropdownDisabled}
+                dropdownItems={dropdownItems}
+                placeholder="Select Category"
+                value={selectedCategory}
+                onChange={(val) => setSelectedCategory(val)}
+              />
+            </TextFieldWrapper>
+
+            {/* Card Type Selection - Only show when category is assignable (gives user choice) */}
+            {showCardTypeSelection && (
+              <TextFieldWrapper label="Card Type">
+                <View style={styles.radioContainer}>
+                  {/* Assignable Option */}
+                  <TouchableOpacity
+                    style={styles.radioOption}
+                    onPress={() => setIsSpecificLearnerCard(false)}
+                  >
+                    <View
+                      style={[
+                        styles.radioButton,
+                        !isSpecificLearnerCard && styles.radioButtonSelected,
+                      ]}
+                    >
+                      {!isSpecificLearnerCard && (
+                        <View style={styles.radioButtonInner} />
+                      )}
+                    </View>
+                    <Text style={styles.radioLabel}>
+                      Assignable (Available to everyone)
+                    </Text>
+                  </TouchableOpacity>
+
+                  {/* Specific Learner Option */}
+                  <TouchableOpacity
+                    style={styles.radioOption}
+                    onPress={() => setIsSpecificLearnerCard(true)}
+                  >
+                    <View
+                      style={[
+                        styles.radioButton,
+                        isSpecificLearnerCard && styles.radioButtonSelected,
+                      ]}
+                    >
+                      {isSpecificLearnerCard && (
+                        <View style={styles.radioButtonInner} />
+                      )}
+                    </View>
+                    <Text style={styles.radioLabel}>Specific Learner Only</Text>
+                  </TouchableOpacity>
+                </View>
+              </TextFieldWrapper>
             )}
-          </TouchableOpacity>
-          <View style={styles.mainContainer}>
-            <View style={styles.inputContainer}>
-              <View style={styles.cardInfo}>
-                <TextFieldWrapper label="Card Name" isFlex={true}>
-                  <TextInput
-                    style={styles.input}
-                    placeholder=""
-                    placeholderTextColor={COLORS.gray}
-                    value={cardName}
-                    onChangeText={setCardName}
+
+            {isSpecificLearnerCard &&
+              selectedCategoryData?.is_assignable !== false && (
+                <TextFieldWrapper label="Select Learner">
+                  <MyDropdown
+                    dropdownItems={students}
+                    onChange={(value) => {
+                      setSelectedLearner(value as string);
+                    }}
+                    placeholder="Select a learner"
+                    value={selectedLearner}
                   />
                 </TextFieldWrapper>
+              )}
 
-                <TextFieldWrapper label="Category Name">
-                  <View style={styles.dropdownWrapper}>
-                    <MyDropdown
-                      isDisabled={isDropdownDisabled}
-                      dropdownItems={dropdownItems}
-                      placeholder=""
-                      value={selectedCategory}
-                      onChange={(val) => setSelectedCategory(val)}
-                    />
-                  </View>
-                </TextFieldWrapper>
-              </View>
-            </View>
-
-            <View>
+            {/* Submit Button */}
+            <View style={styles.buttonContainer}>
               <PrimaryButton
-                title="Save"
+                title="Add Card"
                 clickHandler={() => {
-                  if (
-                    image !== "" &&
-                    cardName !== "" &&
-                    selectedCategory !== ""
-                  ) {
-                    const card = {
-                      name: cardName,
-                      category_id: selectedCategory,
-                      image: image,
-                    };
-                    addCard(card)
-                      .then(() => {
-                        Alert.alert("Card added successfully");
-                        onClose();
-                      })
-                      .catch((err) => {
-                        console.error("Error uploading card:", err);
-                        Alert.alert("Error", "Failed to upload card.");
-                      });
-
-                    console.log("saving");
-                  } else {
-                    Alert.alert("Card detail missing.");
+                  if (!canSubmit) {
+                    if (image === "") {
+                      Alert.alert("Error", "Please select an image.");
+                    } else if (cardName === "") {
+                      Alert.alert("Error", "Please enter a card name.");
+                    } else if (selectedCategory === "") {
+                      Alert.alert("Error", "Please select a category.");
+                    }
+                    return;
                   }
+
+                  const card = {
+                    name: cardName,
+                    category_id: selectedCategory,
+                    image: image,
+                    is_assignable: !isSpecificLearnerCard,
+                    created_for: isSpecificLearnerCard ? selectedLearner : null,
+                  };
+
+                  addCard(card)
+                    .then(() => {
+                      Alert.alert("Success", "Card added successfully");
+                      onClose();
+                    })
+                    .catch((err) => {
+                      console.error("Error uploading card:", err);
+                      Alert.alert("Error", "Failed to upload card.");
+                    });
                 }}
+                disabled={!canSubmit}
               />
             </View>
-          </View>
+          </ScrollView>
         </View>
       </View>
     </Modal>
@@ -183,87 +325,120 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: COLORS.shadow,
-    justifyContent: "center",
-    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "flex-end", // pushes modal to right side
+  },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  modalContainer: {
+    width: "50%", // side sheet style
+    height: "100%",
+    backgroundColor: COLORS.white,
+    borderTopLeftRadius: 16,
+    borderBottomLeftRadius: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 25,
+    shadowColor: COLORS.black,
+    shadowOffset: { width: -2, height: 0 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 10,
+  },
+  closeButton: {
+    position: "absolute",
+    top: 12,
+    right: 16,
+    padding: 6,
+    zIndex: 10,
+  },
+  mainContainer: {
+    flex: 1,
   },
   imageContainer: {
-    aspectRatio: 1,
-
+    width: 100,
+    height: 100,
+    borderRadius: 12,
+    overflow: "hidden",
     justifyContent: "center",
     alignItems: "center",
-
     backgroundColor: COLORS.cardBg,
+    alignSelf: "center",
+    marginBottom: 20,
   },
   imagePreview: {
     width: "100%",
     height: "100%",
     resizeMode: "cover",
   },
-  modalContainer: {
-    position: "relative",
-
-    width: "auto",
-    maxWidth: "80%",
-
-    backgroundColor: COLORS.white,
-    borderRadius: 5,
-    overflow: "hidden",
-
-    flexDirection: "row",
-
-    elevation: 5,
-    shadowColor: COLORS.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-  },
-  closeButton: {
-    position: "absolute",
-    top: 10,
-    right: 30,
-
-    zIndex: 1,
-
-    padding: 2,
-  },
-  inputContainer: { gap: 10 },
-  cardInfo: { flexDirection: "row", alignItems: "center", gap: 10 },
-  buttonContainer: {
-    flexDirection: "row",
-    gap: 10,
-
-    minHeight: 60,
-
-    width: 250,
-    maxWidth: "auto",
-  },
-  mainContainer: {
-    flexGrow: 1,
-    flexShrink: 1,
-    flexBasis: 0,
-    alignSelf: "flex-start",
-
-    paddingVertical: 40,
-    paddingHorizontal: 30,
-    gap: 20,
-  },
   input: {
-    flex: 1,
-    paddingVertical: 5,
-    fontSize: 16,
-    lineHeight: 20,
-    minHeight: 40,
-
+    width: "100%",
     borderWidth: 1,
     borderColor: COLORS.gray,
-    borderRadius: 5,
+    borderRadius: 6,
     paddingHorizontal: 10,
+    paddingVertical: 8,
+    fontSize: 16,
   },
-  dropdownWrapper: {
-    minHeight: 40,
-    minWidth: 175,
-    flexShrink: 0,
-    gap: 0,
+  buttonContainer: {
+    marginTop: 15,
+    marginBottom: 10,
+  },
+  checkboxContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 8,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderWidth: 2,
+    borderColor: COLORS.gray,
+    borderRadius: 4,
+    marginRight: 10,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  checkboxChecked: {
+    backgroundColor: COLORS.accent,
+    borderColor: COLORS.accent,
+  },
+  checkboxLabel: {
+    fontSize: 16,
+    color: COLORS.black,
+    flex: 1,
+  },
+  radioContainer: {
+    paddingVertical: 8,
+  },
+  radioOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 8,
+  },
+  radioButton: {
+    width: 20,
+    height: 20,
+    borderWidth: 2,
+    borderColor: COLORS.gray,
+    borderRadius: 10,
+    marginRight: 12,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  radioButtonSelected: {
+    borderColor: COLORS.accent,
+  },
+  radioButtonInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: COLORS.accent,
+  },
+  radioLabel: {
+    fontSize: 16,
+    color: COLORS.black,
+    flex: 1,
   },
 });
 

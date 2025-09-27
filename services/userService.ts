@@ -2,6 +2,7 @@ import getCurrentUid from "@/helper/getCurrentUid";
 import imageToBase64 from "@/helper/imageToBase64";
 import auth, { FirebaseAuthTypes } from "@react-native-firebase/auth";
 import firestore, {
+  arrayRemove,
   arrayUnion,
   FirebaseFirestoreTypes,
 } from "@react-native-firebase/firestore";
@@ -18,7 +19,7 @@ export const getChild = async () => {
     // Map through docs and return array of children
     const children = snapshot.docs.map((doc) => ({
       id: doc.id,
-      ...doc.data(),
+      ...(doc.data() as Omit<Student, "id">),
     }));
 
     return children; // returns array of child objects
@@ -56,7 +57,14 @@ export const listenToChildren = (callback: (children: any[]) => void) => {
   }
 };
 
-//get students of the logged in teacher
+type Student = {
+  id: string;
+  first_name: string;
+  last_name: string;
+  profile_pic?: string;
+};
+
+// get students of the logged-in teacher
 export const getStudents = async () => {
   try {
     const uid = getCurrentUid();
@@ -69,25 +77,24 @@ export const getStudents = async () => {
       return [];
     }
 
-    // Firestore `in` queries accept up to 10 values, so batch if necessary
-    const batches = [];
-    while (studentIds.length) {
-      const chunk = studentIds.splice(0, 10); // take up to 10 IDs
-      batches.push(
-        userCollection
-          .where(firestore.FieldPath.documentId(), "in", chunk)
-          .get()
-      );
+    // split IDs into chunks of 10
+    const chunks: string[][] = [];
+    for (let i = 0; i < studentIds.length; i += 10) {
+      chunks.push(studentIds.slice(i, i + 10));
     }
 
-    // Run all batches in parallel
-    const snapshots = await Promise.all(batches);
+    // query Firestore for each chunk
+    const queries = chunks.map((chunk) =>
+      userCollection.where(firestore.FieldPath.documentId(), "in", chunk).get()
+    );
 
-    // Merge results
+    const snapshots = await Promise.all(queries);
+
+    // flatten results
     const students = snapshots.flatMap((snap) =>
       snap.docs.map((doc) => ({
         id: doc.id,
-        ...doc.data(),
+        ...(doc.data() as Omit<Student, "id">),
       }))
     );
 
@@ -281,6 +288,7 @@ export const updateUserPassword = async (
 };
 
 import { useAuthStore } from "@/stores/userAuthStore";
+import { getUserInfo } from "./userApi/Authentication";
 
 export const setLoginState = (
   firebaseUser:
@@ -304,6 +312,13 @@ export const setLoginState = (
 
 export const checkVerification = async () => {
   const user = auth().currentUser;
+
+  const userDoc = await getUserInfo(user?.uid as string);
+
+  if (userDoc?.role.toLowerCase() !== "learner") {
+    return true;
+  }
+
   if (user) {
     await user.reload();
     if (user.emailVerified) {
@@ -314,4 +329,18 @@ export const checkVerification = async () => {
     }
   }
   return false;
+};
+
+export const removeAsStudent = async (learnerId: string) => {
+  try {
+    const uid = getCurrentUid();
+    if (!uid) throw new Error("No authenticated user");
+
+    userCollection.doc(uid).update({ students: arrayRemove(learnerId) });
+
+    return { success: true };
+  } catch (err) {
+    console.error("Error adding student:", err);
+    return { success: false };
+  }
 };

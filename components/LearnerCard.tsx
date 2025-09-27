@@ -14,6 +14,7 @@ type profile = {
   gender: string;
   learnerId: string;
   image: string | null;
+  onSection?: string;
 };
 
 const LearnerCard = (props: profile) => {
@@ -104,9 +105,16 @@ const LearnerCard = (props: profile) => {
     <TouchableOpacity
       style={styles.cards}
       onPress={() => {
-        router.push(
-          `/screens/${user?.role.toLowerCase()}/user/${props.learnerId}` as any
-        );
+        router.push({
+          pathname:
+            user?.role.toLowerCase() === "guardian"
+              ? `/screens/guardian/user/[userId]`
+              : "/screens/teacher/user/[userId]",
+          params: {
+            userId: props.learnerId,
+            sectionId: props.onSection,
+          },
+        });
       }}
     >
       <View style={styles.cardImageContainer}>
@@ -130,16 +138,6 @@ const LearnerCard = (props: profile) => {
             {props.name}
           </Text>
         </View>
-        {/* <View style={styles.labelContainer}>
-          <Text style={styles.cardLabels}>Age</Text>
-          <Text
-            numberOfLines={1}
-            ellipsizeMode="tail"
-            style={styles.profileInfo}
-          >
-            {props.age.toString()}
-          </Text>
-        </View> */}
         <View style={styles.labelContainer}>
           <Text style={styles.cardLabels}>Gender</Text>
           <Text

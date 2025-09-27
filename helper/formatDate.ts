@@ -10,3 +10,24 @@ export const formatDate = (date: Date | string | null): string => {
 
   return `${month} ${day}, ${year}`;
 };
+
+export function toDate(obj: any): Date | null {
+  if (!obj) return null;
+
+  // If it's already a Firestore Timestamp
+  if (obj.toDate) {
+    return obj.toDate();
+  }
+
+  // If it's the raw { seconds, nanoseconds } object
+  if (typeof obj.seconds === "number" && typeof obj.nanoseconds === "number") {
+    return new Date(obj.seconds * 1000 + obj.nanoseconds / 1000000);
+  }
+
+  // If it's a string
+  if (typeof obj === "string") {
+    return new Date(obj);
+  }
+
+  return null;
+}

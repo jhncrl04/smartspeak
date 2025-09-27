@@ -4,9 +4,11 @@ import {
   Alert,
   Image,
   Modal,
+  ScrollView,
   StyleSheet,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from "react-native";
 import Icon from "react-native-vector-icons/Octicons";
@@ -98,8 +100,6 @@ const EditCategoryModal = ({ visible, onClose, categoryId }: modalProps) => {
       });
 
       Alert.alert("Success", "Category updated successfully!");
-      // router.reload();
-
       onClose();
     } catch (err) {
       console.error("Error updating category: ", err);
@@ -126,9 +126,10 @@ const EditCategoryModal = ({ visible, onClose, categoryId }: modalProps) => {
       Alert.alert("Error", "Failed to delete category.");
     }
   };
+
   return (
     <Modal
-      animationType="fade"
+      animationType="slide"
       transparent={true}
       visible={visible}
       onRequestClose={() => {
@@ -137,19 +138,30 @@ const EditCategoryModal = ({ visible, onClose, categoryId }: modalProps) => {
       }}
     >
       <LoadingScreen visible={isDeleting} />
+
       <View style={styles.overlay}>
+        <TouchableWithoutFeedback onPress={onClose}>
+          <View style={styles.backdrop} />
+        </TouchableWithoutFeedback>
         <View style={styles.modalContainer}>
+          {/* Close button */}
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <Icon name="x" size={20} color={COLORS.gray} />
+            <Icon name="x" size={22} color={COLORS.gray} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.imageContainer} onPress={pickImage}>
-            {image !== "" ? (
-              <Image source={{ uri: image }} style={styles.imagePreview} />
-            ) : (
-              <Icon name="image" size={40} color={COLORS.gray} />
-            )}
-          </TouchableOpacity>
-          <View style={styles.mainContainer}>
+
+          {/* Scrollable content */}
+          <ScrollView
+            style={styles.mainContainer}
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Image Upload */}
+            <TouchableOpacity style={styles.imageContainer} onPress={pickImage}>
+              {image !== "" ? (
+                <Image source={{ uri: image }} style={styles.imagePreview} />
+              ) : (
+                <Icon name="image" size={50} color={COLORS.gray} />
+              )}
+            </TouchableOpacity>
             <TextFieldWrapper label="Category Name">
               <TextInput
                 value={categoryName}
@@ -159,23 +171,22 @@ const EditCategoryModal = ({ visible, onClose, categoryId }: modalProps) => {
               />
             </TextFieldWrapper>
 
-            <View style={styles.colorPickerContainer}>
-              <TextFieldWrapper label="Background Color">
-                <ColorPicker
-                  style={styles.colorPicker}
-                  value={selectedColor}
-                  onComplete={onSelectColor}
-                >
-                  <Panel5 />
-                </ColorPicker>
-              </TextFieldWrapper>
-            </View>
-            <View style={{ flexDirection: "row", gap: 10 }}>
-              <PrimaryButton title="Save" clickHandler={handleSave} />
+            <TextFieldWrapper label="Background Color">
+              <ColorPicker
+                style={styles.colorPicker}
+                value={selectedColor}
+                onComplete={onSelectColor}
+              >
+                <Panel5 />
+              </ColorPicker>
+            </TextFieldWrapper>
 
+            {/* Buttons */}
+            <View style={{ flexDirection: "row", gap: 10, marginTop: 30 }}>
+              <PrimaryButton title="Save" clickHandler={handleSave} />
               <SecondaryButton title="Delete" clickHandler={handleDelete} />
             </View>
-          </View>
+          </ScrollView>
         </View>
       </View>
     </Modal>
@@ -186,58 +197,51 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: COLORS.shadow,
-    justifyContent: "center",
-    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "flex-end", // pushes modal to right side
+  },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  modalContainer: {
+    width: "50%", // side-sheet style
+    height: "100%",
+    backgroundColor: COLORS.white,
+    borderTopLeftRadius: 16,
+    borderBottomLeftRadius: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 25,
+    shadowColor: COLORS.black,
+    shadowOffset: { width: -2, height: 0 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 10,
+  },
+  closeButton: {
+    position: "absolute",
+    top: 12,
+    right: 16,
+    padding: 6,
+    zIndex: 10,
   },
   imageContainer: {
-    aspectRatio: 1,
-
+    width: 100,
+    height: 100,
+    borderRadius: 12,
+    overflow: "hidden",
     justifyContent: "center",
     alignItems: "center",
-
     backgroundColor: COLORS.cardBg,
+    alignSelf: "center",
+    marginBottom: 20,
   },
   imagePreview: {
     width: "100%",
     height: "100%",
-
     resizeMode: "cover",
   },
-  modalContainer: {
-    position: "relative",
-
-    width: "auto",
-    maxWidth: "80%",
-
-    backgroundColor: COLORS.white,
-    borderRadius: 5,
-    overflow: "hidden",
-
-    flexDirection: "row",
-
-    elevation: 5,
-    shadowColor: COLORS.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-  },
-  closeButton: {
-    position: "absolute",
-    top: 5,
-    right: 10,
-
-    zIndex: 1,
-
-    padding: 2,
-  },
   mainContainer: {
-    flexGrow: 1,
-    flexShrink: 1,
-    flexBasis: 0,
-    alignSelf: "flex-start",
-
-    paddingHorizontal: 30,
-    paddingVertical: 15,
+    flex: 1,
   },
   input: {
     width: "100%",
@@ -248,11 +252,9 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     fontSize: 16,
   },
-  colorPickerContainer: {
-    width: "100%",
-  },
   colorPicker: {
     width: 175,
+    marginTop: 8,
   },
 });
 

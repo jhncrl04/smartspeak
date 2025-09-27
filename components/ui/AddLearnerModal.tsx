@@ -2,18 +2,18 @@ import COLORS from "@/constants/Colors";
 import { getSectionList } from "@/services/sectionService";
 import React, { useEffect, useState } from "react";
 import {
+  Alert,
   Modal,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from "react-native";
 import Icon from "react-native-vector-icons/Octicons";
-import ActionLink from "../ActionLink";
 import MySearchBar from "../mySearchBar";
 import AddChildPreview from "./AddChildPreview";
-import HorizontalLine from "./HorizontalLine";
 
 type Section = { label: string | null; value: string | null };
 
@@ -21,13 +21,6 @@ type Props = {
   visible: boolean;
   onClose: () => void;
 };
-
-const sections = [
-  { label: "Section 1", value: "section-1" },
-  { label: "Section 2", value: "section-2" },
-  { label: "Section 3", value: "section-3" },
-  { label: "Section 4", value: "section-4" },
-];
 
 const AddLearnerModal = ({ visible, onClose }: Props) => {
   const [step, setStep] = useState<"select-section" | "add-learners">(
@@ -71,137 +64,207 @@ const AddLearnerModal = ({ visible, onClose }: Props) => {
 
   return (
     <Modal
+      animationType="slide"
+      transparent={true}
       visible={visible}
-      animationType="fade"
-      transparent
-      onRequestClose={handleClose}
+      onRequestClose={() => {
+        Alert.alert("Modal has been closed.");
+        handleClose();
+      }}
     >
-      <View style={styles.modalContainer}>
-        <View style={styles.modalContent}>
-          {step === "select-section" && (
-            <View>
-              <Text style={styles.header}>Select Section</Text>
-              {sections.map((s) => (
-                <TouchableOpacity
-                  key={s.value}
-                  style={styles.sectionCard}
-                  onPress={() => {
-                    setSelectedSection({ label: s.label, value: s.value });
-                    setStep("add-learners");
-                  }}
-                >
-                  <Text style={styles.sectionLabel}>{s.label}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
+      <View style={styles.overlay}>
+        <TouchableWithoutFeedback onPress={handleClose}>
+          <View style={styles.backdrop} />
+        </TouchableWithoutFeedback>
+        <View style={styles.modalContainer}>
+          {/* Close button */}
+          <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
+            <Icon name="x" size={22} color={COLORS.gray} />
+          </TouchableOpacity>
 
-          {step === "add-learners" && (
-            <View style={{ flex: 1 }}>
-              <View
-                style={{
-                  justifyContent: "space-between",
-                  flexDirection: "row",
-                }}
-              >
-                <View>
-                  <ActionLink
-                    text="Back"
-                    clickHandler={() => setStep("select-section")}
-                    icon={
-                      <Icon name="arrow-left" color={COLORS.accent} size={20} />
-                    }
-                  />
-                </View>
-
-                <Text style={styles.header}>
-                  Add Learners to {selectedSection.label}
-                </Text>
-
-                <View>
-                  <ActionLink text="Close" clickHandler={handleClose} />
-                </View>
-              </View>
-
-              <View style={{ marginVertical: 5 }}>
-                <HorizontalLine />
-              </View>
-
+          {/* Scrollable content */}
+          <ScrollView
+            style={styles.mainContainer}
+            showsVerticalScrollIndicator={false}
+          >
+            {step === "select-section" && (
               <View>
-                <MySearchBar
-                  collectionToSearch="users"
-                  onSearch={(results) => {
-                    setResults(results);
-                  }}
-                  placeholder="Search Learner ID or Email"
-                  query="newLearner"
-                />
-              </View>
+                {/* Header */}
+                <View style={styles.headerContainer}>
+                  <Text style={styles.title}>Add Learners</Text>
+                  <Text style={styles.subtitle}>
+                    Select a section to add learners to
+                  </Text>
+                </View>
 
-              <ScrollView style={styles.scroll}>
-                {results.map((result, i) => (
-                  <AddChildPreview
-                    key={i}
-                    learnerName={`${result.first_name} ${result.last_name}`}
-                    learnerProfile={result?.profile_pic}
-                    learnerId={result.id}
-                    sectionId={selectedSection.value as string}
+                {/* Sections List */}
+                <View style={styles.sectionsContainer}>
+                  {sections.map((s) => (
+                    <TouchableOpacity
+                      key={s.value}
+                      style={styles.sectionCard}
+                      onPress={() => {
+                        setSelectedSection({ label: s.label, value: s.value });
+                        setStep("add-learners");
+                      }}
+                    >
+                      <Text style={styles.sectionLabel}>{s.label}</Text>
+                      <Icon
+                        name="chevron-right"
+                        size={20}
+                        color={COLORS.gray}
+                      />
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {step === "add-learners" && (
+              <View style={styles.addLearnersContainer}>
+                {/* Header with back button */}
+                <View style={styles.headerContainer}>
+                  <View style={styles.headerWithBack}>
+                    <TouchableOpacity
+                      style={styles.backButton}
+                      onPress={() => setStep("select-section")}
+                    >
+                      <Icon name="arrow-left" color={COLORS.accent} size={20} />
+                      <Text style={styles.backText}>Back</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "baseline",
+                      gap: 10,
+                    }}
+                  >
+                    <Text style={styles.title}>Add Learners</Text>
+                    <Text style={styles.subtitle}>
+                      to {selectedSection.label}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Search Bar */}
+                <View style={styles.searchContainer}>
+                  <MySearchBar
+                    collectionToSearch="users"
+                    onSearch={(results) => {
+                      setResults(results);
+                    }}
+                    placeholder="Search Learner ID or Email"
+                    query="newLearner"
                   />
-                ))}
-              </ScrollView>
-            </View>
-          )}
+                </View>
+
+                {/* Results */}
+                <View style={styles.resultsContainer}>
+                  {results.map((result, i) => (
+                    <AddChildPreview
+                      key={i}
+                      learnerName={`${result.first_name} ${result.last_name}`}
+                      learnerProfile={result?.profile_pic}
+                      learnerId={result.id}
+                      sectionId={selectedSection.value as string}
+                    />
+                  ))}
+                </View>
+              </View>
+            )}
+          </ScrollView>
         </View>
       </View>
     </Modal>
   );
 };
 
-export default AddLearnerModal;
-
 const styles = StyleSheet.create({
-  modalContainer: {
+  overlay: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
     backgroundColor: COLORS.shadow,
+    flexDirection: "row",
+    justifyContent: "flex-end", // pushes modal to right side
   },
-  modalContent: {
-    flex: 1,
-    backgroundColor: "white",
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  modalContainer: {
+    width: "50%", // side sheet style
+    height: "100%",
+    backgroundColor: COLORS.white,
+    borderTopLeftRadius: 16,
+    borderBottomLeftRadius: 16,
     paddingHorizontal: 20,
-    paddingVertical: 30,
-    borderRadius: 16,
-    maxHeight: "90%",
-    width: "85%",
-
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
+    paddingVertical: 5,
+    shadowColor: COLORS.black,
+    shadowOffset: { width: -2, height: 0 },
     shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 5,
+    shadowRadius: 6,
+    elevation: 10,
   },
-  header: {
-    fontSize: 18,
+  closeButton: {
+    position: "absolute",
+    top: 12,
+    right: 16,
+    padding: 6,
+    zIndex: 10,
+  },
+  mainContainer: {
+    flex: 1,
+  },
+  headerContainer: {
+    paddingTop: 10,
+  },
+  title: {
+    fontSize: 24,
     fontWeight: "600",
-    marginBottom: 0,
+    color: COLORS.black,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: COLORS.gray,
+  },
+  sectionsContainer: {
+    gap: 12,
   },
   sectionCard: {
     backgroundColor: COLORS.lightGray,
     padding: 16,
     borderRadius: 12,
-    marginBottom: 10,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   sectionLabel: {
     fontSize: 16,
     fontWeight: "500",
+    color: COLORS.black,
+    flex: 1,
   },
-  back: {
+  addLearnersContainer: {
+    flex: 1,
+  },
+  headerWithBack: {},
+  backButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 4,
+  },
+  backText: {
     color: COLORS.accent,
     fontSize: 16,
-    marginBottom: 10,
+    fontWeight: "500",
   },
-  scroll: {
-    marginTop: 10,
+  searchContainer: {
+    marginBottom: 20,
+  },
+  resultsContainer: {
+    gap: 10,
+    paddingBottom: 20,
   },
 });
+
+export default AddLearnerModal;

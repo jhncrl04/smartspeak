@@ -40,7 +40,11 @@ export const createLog = async (
       user_type: user?.role,
     };
 
-    await logCollection.add(removeEmpty(finalLog));
+    try {
+      logCollection.add(removeEmpty(finalLog));
+    } catch (error) {
+      console.error("Error logging create log", error);
+    }
   }
 
   if (
@@ -58,9 +62,9 @@ export const createLog = async (
     const cleaned = removeEmpty(finalLog);
 
     try {
-      await logCollection.add(cleaned);
+      logCollection.add(cleaned);
     } catch (error) {
-      console.error(error);
+      console.error("Error logging delete log", error);
     }
   }
 
@@ -80,27 +84,27 @@ export const createLog = async (
     const cleaned = removeEmpty(finalLog);
 
     try {
-      await logCollection.add(cleaned);
+      logCollection.add(cleaned);
     } catch (error) {
-      console.error(error);
+      console.error("Error logging update log", error);
     }
 
     console.log("Log created");
   }
 
   if (logBody.action === "Assign Card") {
-    try {
-      const finalLog = {
-        ...logBody,
-        timestamp: firestore.Timestamp.fromDate(new Date()) as any,
-        assigned_by_user_id: uid as string,
-        assigned_by_user_name: `${user?.first_name} ${user?.last_name}`,
-        assigned_by_user_type: user?.role,
-      };
+    const finalLog = {
+      ...logBody,
+      timestamp: firestore.Timestamp.fromDate(new Date()) as any,
+      assigned_by_user_id: uid as string,
+      assigned_by_user_name: `${user?.first_name} ${user?.last_name}`,
+      assigned_by_user_type: user?.role,
+    };
 
-      await logCollection.add(finalLog);
+    try {
+      logCollection.add(finalLog);
     } catch (error) {
-      console.error(error);
+      console.error("Error logging assign card", error);
     }
   }
 };

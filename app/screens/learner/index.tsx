@@ -4,7 +4,6 @@ import auth from "@react-native-firebase/auth";
 import firestore from "@react-native-firebase/firestore";
 import { useFonts } from "expo-font";
 import { router } from "expo-router";
-import * as ScreenOrientation from "expo-screen-orientation";
 import * as Speech from "expo-speech";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect, useRef, useState } from "react";
@@ -181,14 +180,14 @@ export default function HomeScreen() {
     }
   };
 
-  useEffect(() => {
-    const lockOrientation = async () => {
-      await ScreenOrientation.lockAsync(
-        ScreenOrientation.OrientationLock.LANDSCAPE
-      );
-    };
-    lockOrientation();
-  }, []);
+  // useEffect(() => {
+  //   const lockOrientation = async () => {
+  //     await ScreenOrientation.lockAsync(
+  //       ScreenOrientation.OrientationLock.LANDSCAPE
+  //     );
+  //   };
+  //   lockOrientation();
+  // }, []);
 
   const { width, height } = Dimensions.get("window");
   const isTablet = width > 968;
@@ -412,9 +411,14 @@ export default function HomeScreen() {
     return currentCategory?.background_color || "#5FA056"; // Default fallback color
   };
 
-  // UPDATED: Fetch data from Firebase with user-based filtering using React Native Firebase SDK
+  // FIXED: Properly handle async operations in useEffect to prevent uncached promise warnings
   useEffect(() => {
-    const fetchData = async () => {
+    let isMounted = true;
+    let fetchPromise: Promise<void> | null = null;
+
+    const fetchData = async (): Promise<void> => {
+      if (!isMounted) return;
+
       try {
         setLoading(true);
 
@@ -423,7 +427,7 @@ export default function HomeScreen() {
 
         if (!currentUserId) {
           console.error("No current user ID found");
-          setLoading(false);
+          if (isMounted) setLoading(false);
           return;
         }
 
@@ -431,12 +435,18 @@ export default function HomeScreen() {
         console.log("Current user ID:", currentUserId);
 
         // Fetch user's full name first
-        await fetchUserFullName();
+        if (isMounted) {
+          await fetchUserFullName();
+        }
+
+        if (!isMounted) return;
 
         // UPDATED: Fetch categories with background_color field
         const categoriesSnapshot = await firestore()
           .collection("pecsCategories")
           .get();
+
+        if (!isMounted) return;
 
         const allCategoriesData: CategoryType[] = [];
 
@@ -473,6 +483,8 @@ export default function HomeScreen() {
           }
         });
 
+        if (!isMounted) return;
+
         console.log(
           "Filtered categories:",
           allCategoriesData.map(
@@ -482,6 +494,8 @@ export default function HomeScreen() {
 
         // Fetch cards with the same filtering pattern using React Native Firebase SDK
         const cardsSnapshot = await firestore().collection("cards").get();
+
+        if (!isMounted) return;
 
         const cardsData: CardType[] = [];
 
@@ -523,6 +537,8 @@ export default function HomeScreen() {
           }
         });
 
+        if (!isMounted) return;
+
         console.log("Filtered cards:", cardsData.length);
 
         // UPDATED: Filter categories to only show those that have cards
@@ -554,6 +570,8 @@ export default function HomeScreen() {
           return hasCards;
         });
 
+        if (!isMounted) return;
+
         console.log(
           "Categories with cards:",
           categoriesWithCards.map(
@@ -564,7 +582,10 @@ export default function HomeScreen() {
         // Set first category as active and load its cards
         if (categoriesWithCards.length > 0) {
           categoriesWithCards[0].active = true;
-          setSelectedCategory(categoriesWithCards[0].id);
+
+          if (isMounted) {
+            setSelectedCategory(categoriesWithCards[0].id);
+          }
 
           // Filter cards for the first category
           const firstCategoryName = categoriesWithCards[0].category_name;
@@ -586,35 +607,56 @@ export default function HomeScreen() {
             `First category "${firstCategoryName}" cards:`,
             firstCategoryCards.length
           );
-          setDisplayedCards(firstCategoryCards);
+
+          if (isMounted) {
+            setDisplayedCards(firstCategoryCards);
+          }
         } else {
           console.log("No categories with cards found");
-          setDisplayedCards([]);
+          if (isMounted) {
+            setDisplayedCards([]);
+          }
         }
 
-        setCategories(categoriesWithCards);
-        setAllCards(cardsData);
+        if (isMounted) {
+          setCategories(categoriesWithCards);
+          setAllCards(cardsData);
+        }
 
         console.log("=== DATA FETCH COMPLETE ===");
       } catch (error) {
         console.error("Error fetching data from Firebase:", error);
-        alert(
-          "Error loading data from Firebase: " +
-            (error instanceof Error ? error.message : "Unknown error")
-        );
+        if (isMounted) {
+          // Don't use alert in async functions - use a state-based error handler instead
+          console.error(
+            "Error loading data from Firebase:",
+            error instanceof Error ? error.message : "Unknown error"
+          );
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
-    // Only fetch data if user exists
-    if (user?.uid) {
-      fetchData();
+    // Only fetch data if user exists and component is mounted
+    if (user?.uid && isMounted) {
+      fetchPromise = fetchData();
     } else {
       console.log("No user found, not fetching data");
-      setLoading(false);
+      if (isMounted) {
+        setLoading(false);
+      }
     }
-  }, [user]);
+
+    // Cleanup function
+    return () => {
+      isMounted = false;
+      // If you need to cancel the Firebase requests, you can do it here
+      // Note: Firestore doesn't have built-in cancellation, but we use isMounted checks instead
+    };
+  }, [user?.uid]); // Only depend on user.uid to prevent unnecessary re-renders
 
   // Also update the handleCategoryPress function to use the same matching logic:
   const handleCategoryPress = (categoryId: string) => {
@@ -860,14 +902,18 @@ export default function HomeScreen() {
   }
 
   // Fixed getItemLayout function
-  const getItemLayout = (
-    data: CardType[] | null | undefined,
+  const getItemLayout: (
+    data: ArrayLike<CardType> | null | undefined,
     index: number
-  ) => ({
-    length: cardHeight + 10,
-    offset: Math.floor(index / cardsPerRow) * (cardHeight + 10),
-    index,
-  });
+  ) => { length: number; offset: number; index: number } = (_, index) => {
+    const row = Math.floor(index / cardsPerRow);
+
+    return {
+      length: cardHeight + 10, // item height + spacing
+      offset: row * (cardHeight + 10),
+      index,
+    };
+  };
 
   if (loading) {
     return (
@@ -1043,13 +1089,8 @@ export default function HomeScreen() {
             renderItem={renderCard}
             keyExtractor={(item) => item.id}
             numColumns={cardsPerRow}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={[styles.cardsContainer]}
-            // getItemLayout={getItemLayout}
-            removeClippedSubviews={false}
-            initialNumToRender={cardsPerRow * 3}
-            maxToRenderPerBatch={cardsPerRow * 2}
-            windowSize={5}
+            getItemLayout={getItemLayout}
+            contentContainerStyle={{ padding: 10 }}
           />
         </View>
       </View>

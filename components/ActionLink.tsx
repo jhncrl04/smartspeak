@@ -19,7 +19,7 @@ const ActionLink = ({
     <TouchableOpacity
       onPress={clickHandler}
       style={{
-        alignSelf: "flex-end",
+        alignSelf: "flex-start",
         flexDirection: "row",
         alignItems: "center",
         gap: 10,

@@ -14,6 +14,7 @@ type BaseLog = {
   item_id: string | null;
   item_name: string | null;
   item_type: string | null;
+  created_for?: string;
 };
 
 export type CreateLog = BaseLog & {
