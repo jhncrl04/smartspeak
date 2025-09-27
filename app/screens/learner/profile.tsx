@@ -11,7 +11,10 @@ import {
   Alert,
   Animated,
   Dimensions,
+  FlatList,
   Image,
+  Modal,
+  Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -21,10 +24,12 @@ import {
   GestureHandlerRootView,
   TextInput,
 } from "react-native-gesture-handler";
+import { RFValue } from "react-native-responsive-fontsize";
 import {
   heightPercentageToDP as hp,
   widthPercentageToDP as wp,
 } from "react-native-responsive-screen";
+// Removed DateTimePicker import - using alternative approach
 
 // React Native Firebase SDK imports
 import firestore from "@react-native-firebase/firestore";
@@ -40,6 +45,14 @@ interface ProfileFormData {
   studId: string;
   email: string;
 }
+
+// Gender options for dropdown
+const GENDER_OPTIONS = [
+  { id: 1, label: "Male", value: "Male" },
+  { id: 2, label: "Female", value: "Female" },
+  { id: 3, label: "Other", value: "Other" },
+  { id: 4, label: "Prefer not to say", value: "Prefer not to say" },
+];
 
 // Function to create a log entry in the database
 const createLog = async (
@@ -99,6 +112,14 @@ export default function ProfileScreen() {
   const [loading, setLoading] = useState<boolean>(true);
   const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
 
+  // Gender dropdown state
+  const [showGenderDropdown, setShowGenderDropdown] = useState<boolean>(false);
+  
+  // Date picker states
+  const [showDatePicker, setShowDatePicker] = useState<boolean>(false);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [dobTimestamp, setDobTimestamp] = useState<any>(null);
+
   // Initialize with proper typing
   const initialFormData: ProfileFormData = {
     fname: "",
@@ -153,6 +174,139 @@ export default function ProfileScreen() {
         setNotification({ visible: false, message: "", type: "error" });
       });
     }, 3000);
+  };
+
+  // Handle gender selection
+  const handleGenderSelect = (selectedGender: string) => {
+    updateFormData("gender", selectedGender);
+    setShowGenderDropdown(false);
+  };
+
+  // Handle date selection - UPDATED (without external date picker)
+  const handleDateChange = (dateString: string) => {
+    // Try to parse various date formats
+    let parsedDate: Date | null = null;
+    
+    // Try different date formats
+    const formats = [
+      /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/, // MM/DD/YYYY or M/D/YYYY
+      /^(\d{1,2})-(\d{1,2})-(\d{4})$/, // MM-DD-YYYY or M-D-YYYY
+      /^(\d{4})-(\d{1,2})-(\d{1,2})$/, // YYYY-MM-DD or YYYY-M-D
+      /^(\d{1,2})\.(\d{1,2})\.(\d{4})$/, // MM.DD.YYYY or M.D.YYYY
+    ];
+    
+    for (let i = 0; i < formats.length; i++) {
+      const match = dateString.match(formats[i]);
+      if (match) {
+        let day, month, year;
+        
+        if (i === 2) { // YYYY-MM-DD format
+          year = parseInt(match[1]);
+          month = parseInt(match[2]) - 1; // Month is 0-indexed
+          day = parseInt(match[3]);
+        } else { // MM/DD/YYYY, MM-DD-YYYY, MM.DD.YYYY formats
+          month = parseInt(match[1]) - 1; // Month is 0-indexed
+          day = parseInt(match[2]);
+          year = parseInt(match[3]);
+        }
+        
+        // Validate date ranges
+        if (year >= 1900 && year <= new Date().getFullYear() && 
+            month >= 0 && month <= 11 && 
+            day >= 1 && day <= 31) {
+          parsedDate = new Date(year, month, day);
+          break;
+        }
+      }
+    }
+    
+    if (parsedDate && !isNaN(parsedDate.getTime())) {
+      setSelectedDate(parsedDate);
+      
+      // Format date for display (MM/DD/YYYY)
+      const formattedDate = parsedDate.toLocaleDateString('en-US', {
+        month: '2-digit',
+        day: '2-digit',
+        year: 'numeric'
+      });
+      
+      // Update form data
+      updateFormData("dob", formattedDate);
+      
+      // Store the timestamp for Firebase - CRITICAL FIX
+      setDobTimestamp(firestore.Timestamp.fromDate(parsedDate));
+      
+      console.log("Date parsed successfully:", parsedDate);
+      console.log("Formatted date:", formattedDate);
+      console.log("Firebase timestamp:", firestore.Timestamp.fromDate(parsedDate));
+      
+      return true; // Success
+    } else {
+      console.log("Invalid date format entered:", dateString);
+      return false; // Failed to parse
+    }
+  };
+
+  // Handle manual date input with validation
+  const handleManualDateInput = (text: string) => {
+    updateFormData("dob", text);
+    
+    // Only try to parse if the user has entered a reasonable length string
+    if (text.length >= 8) { // Minimum for MM/DD/YY format
+      const success = handleDateChange(text);
+      if (!success && text.length >= 10) {
+        // Show validation message only for complete entries that failed to parse
+        console.log("Please enter a valid date format (MM/DD/YYYY, MM-DD-YYYY, or YYYY-MM-DD)");
+      }
+    }
+  };
+
+  // Format timestamp to readable date
+  const formatTimestampToDate = (timestamp: any): string => {
+    if (!timestamp) return "";
+    
+    try {
+      let date;
+      if (timestamp.toDate) {
+        // Firebase Timestamp
+        date = timestamp.toDate();
+      } else if (timestamp.seconds) {
+        // Firebase Timestamp object
+        date = new Date(timestamp.seconds * 1000);
+      } else if (timestamp instanceof Date) {
+        date = timestamp;
+      } else {
+        return "";
+      }
+      
+      return date.toLocaleDateString('en-US', {
+        month: '2-digit',
+        day: '2-digit',
+        year: 'numeric'
+      });
+    } catch (error) {
+      console.error("Error formatting timestamp:", error);
+      return "";
+    }
+  };
+
+  // Convert timestamp to Date object for picker
+  const timestampToDate = (timestamp: any): Date => {
+    if (!timestamp) return new Date();
+    
+    try {
+      if (timestamp.toDate) {
+        return timestamp.toDate();
+      } else if (timestamp.seconds) {
+        return new Date(timestamp.seconds * 1000);
+      } else if (timestamp instanceof Date) {
+        return timestamp;
+      }
+    } catch (error) {
+      console.error("Error converting timestamp to date:", error);
+    }
+    
+    return new Date();
   };
 
   // -----------------------------
@@ -286,13 +440,20 @@ export default function ProfileScreen() {
             fname: userData?.first_name || userData?.fname || "",
             mname: userData?.middle_name || userData?.mname || "",
             lname: userData?.last_name || userData?.lname || "",
-            dob: userData?.dateOfBirth || userData?.dob || "",
+            dob: formatTimestampToDate(userData?.date_of_birth),
             gender: userData?.gender || "",
             pname: guardianName, // Guardian name
             phoneNumber: guardianPhone, // Guardian phone
             studId: userData?.guardian_id || userData?.studId || "",
             email: userData?.email || "",
           };
+
+          // Set the DOB timestamp and selected date for picker
+          const dobTimestamp = userData?.date_of_birth;
+          if (dobTimestamp) {
+            setDobTimestamp(dobTimestamp); // Firestore timestamp directly
+            setSelectedDate(timestampToDate(dobTimestamp));
+          }
 
           // Set profile image URL from Firebase
           const profilePicUrl =
@@ -305,6 +466,7 @@ export default function ProfileScreen() {
           setOriginalData(profileData);
           console.log("Fetched user + guardian data:", profileData);
           console.log("Profile image URL:", profilePicUrl);
+          console.log("DOB timestamp:", dobTimestamp);
         } else {
           console.log("No user document found");
           showNotification("User profile not found", "error");
@@ -323,19 +485,41 @@ export default function ProfileScreen() {
     fetchUserData();
   }, [user]);
 
+  // Add debugging useEffect
+  useEffect(() => {
+    console.log("Current dobTimestamp:", dobTimestamp);
+    console.log("Current formData.dob:", formData.dob);
+  }, [dobTimestamp, formData.dob]);
+
   const handleEdit = () => {
     setIsEditing(true);
   };
 
   const handleCancel = () => {
     setIsEditing(false);
+    setShowGenderDropdown(false); // Close dropdown if open
     // Reset to original data
     setFormData(originalData);
+    // Reset DOB related states to original
+    if (originalData.dob) {
+      const originalDate = new Date(originalData.dob);
+      if (!isNaN(originalDate.getTime())) {
+        setSelectedDate(originalDate);
+        setDobTimestamp(firestore.Timestamp.fromDate(originalDate));
+      }
+    }
   };
 
+  // Update the handleSave function - CRITICAL FIX
   const handleSave = async () => {
     if (!user?.uid) {
       showNotification("User not found. Please try logging in again.", "error");
+      return;
+    }
+
+    // Validate that we have a proper timestamp for date of birth
+    if (!dobTimestamp) {
+      showNotification("Please select a valid date of birth.", "error");
       return;
     }
 
@@ -350,17 +534,20 @@ export default function ProfileScreen() {
         mname: formData.mname,
         last_name: formData.lname,
         lname: formData.lname,
-        dateOfBirth: formData.dob,
+        date_of_birth: dobTimestamp, // Make sure this is a Firestore timestamp
         gender: formData.gender,
         phoneNumber: formData.phoneNumber,
       };
+
+      console.log("Updating user with data:", updateData);
+      console.log("Date of birth timestamp:", dobTimestamp);
 
       // Create before and after objects for logging
       const beforeData = {
         first_name: originalData.fname,
         middle_name: originalData.mname,
         last_name: originalData.lname,
-        dateOfBirth: originalData.dob,
+        date_of_birth: originalData.dob, // Keep as formatted string for logging
         gender: originalData.gender,
       };
 
@@ -368,7 +555,7 @@ export default function ProfileScreen() {
         first_name: formData.fname,
         middle_name: formData.mname,
         last_name: formData.lname,
-        dateOfBirth: formData.dob,
+        date_of_birth: formData.dob, // Keep as formatted string for logging
         gender: formData.gender,
       };
 
@@ -376,25 +563,33 @@ export default function ProfileScreen() {
 
       // Update the user document in Firestore
       await firestore().collection("users").doc(user.uid).update(updateData);
+      console.log("Firebase update completed successfully");
 
       // Create log entry for profile information change
-      await createLog(
-        user.uid,
-        userName || "Unknown User",
-        "Update Profile Information",
-        beforeData,
-        afterData
-      );
+      try {
+        await createLog(
+          user.uid,
+          userName || "Unknown User",
+          "Update Profile Information",
+          beforeData,
+          afterData
+        );
+        console.log("Log entry created successfully");
+      } catch (logError) {
+        console.error("Failed to create log entry:", logError);
+        // Don't fail the whole operation if logging fails
+      }
 
       // Update original data to reflect the saved changes
       setOriginalData({ ...formData });
       setIsEditing(false);
+      setShowGenderDropdown(false);
+      setShowDatePicker(false);
 
-      console.log("User data updated successfully");
-      console.log("Log entry created for profile update");
       showNotification("Profile updated successfully!", "success");
     } catch (error: any) {
       console.error("Error updating user data:", error);
+      console.error("Error details:", error.message);
       showNotification(
         "Error updating profile: " + (error?.message || "Unknown error"),
         "error"
@@ -420,6 +615,16 @@ export default function ProfileScreen() {
     };
     lockOrientation();
   }, []);
+
+  // Render gender dropdown item
+  const renderGenderItem = ({ item }) => (
+    <TouchableOpacity
+      style={styles.dropdownItem}
+      onPress={() => handleGenderSelect(item.value)}
+    >
+      <Text style={styles.dropdownItemText}>{item.label}</Text>
+    </TouchableOpacity>
+  );
 
   if (!fontsLoaded) {
     return null;
@@ -456,6 +661,36 @@ export default function ProfileScreen() {
             </Animated.View>
           </View>
         )}
+
+        {/* Gender Dropdown Modal */}
+        <Modal
+          visible={showGenderDropdown}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowGenderDropdown(false)}
+        >
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => setShowGenderDropdown(false)}
+          >
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Select Gender</Text>
+              <FlatList
+                data={GENDER_OPTIONS}
+                keyExtractor={(item) => item.id.toString()}
+                renderItem={renderGenderItem}
+                showsVerticalScrollIndicator={false}
+              />
+              <TouchableOpacity
+                style={styles.modalCloseButton}
+                onPress={() => setShowGenderDropdown(false)}
+              >
+                <Text style={styles.modalCloseButtonText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </Modal>
 
         {/* HEADER */}
         <View style={styles.header}>
@@ -496,7 +731,8 @@ export default function ProfileScreen() {
 
                 {/* Student ID */}
                 <Text style={styles.ProfileSubText}>
-                  {formData?.studId || "No Student ID"}
+                  {/* {formData?.studId || "No Student ID"} */}
+                  Section:
                 </Text>
               </View>
             </View>
@@ -607,12 +843,37 @@ export default function ProfileScreen() {
                   Date of Birth
                 </Text>
                 {isEditing ? (
-                  <TextInput
-                    style={[styles.InputData, styles.InputDataEditing]}
-                    value={formData.dob}
-                    onChangeText={(text) => updateFormData("dob", text)}
-                    placeholder="MM - DD - YYYY"
-                  />
+                  <View>
+                    {/* <TouchableOpacity
+                      style={[styles.InputData, styles.InputDataEditing, styles.datePickerButton]}
+                      onPress={() => setShowDatePicker(true)}
+                    >
+                      <Text style={styles.datePickerText}>
+                        {formData.dob || "Select Date"}
+                      </Text>
+                      <Text style={styles.dropdownArrow}>📅</Text>
+                    </TouchableOpacity> */}
+                    
+                    {/* Alternative: Manual text input */}
+                    <TextInput
+                      style={[styles.InputData, styles.InputDataEditing]}
+                      value={formData.dob}
+                      onChangeText={handleManualDateInput}
+                      placeholder="MM/DD/YYYY or MM-DD-YYYY"
+                    />
+                    
+                    {/* Date Picker Modal */}
+                    {showDatePicker && (
+                      <DateTimePicker
+                        value={selectedDate}
+                        mode="date"
+                        display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                        onChange={handleDateChange}
+                        maximumDate={new Date()} // Prevent future dates
+                        minimumDate={new Date(1900, 0, 1)} // Reasonable minimum date
+                      />
+                    )}
+                  </View>
                 ) : (
                   <Text style={styles.InputData}>{formData.dob || "N/A"}</Text>
                 )}
@@ -628,11 +889,15 @@ export default function ProfileScreen() {
                   Gender
                 </Text>
                 {isEditing ? (
-                  <TextInput
-                    style={[styles.InputData, styles.InputDataEditing]}
-                    value={formData.gender}
-                    onChangeText={(text) => updateFormData("gender", text)}
-                  />
+                  <TouchableOpacity
+                    style={[styles.InputData, styles.InputDataEditing, styles.genderDropdownButton]}
+                    onPress={() => setShowGenderDropdown(true)}
+                  >
+                    <Text style={styles.genderDropdownText}>
+                      {formData.gender || "Select Gender"}
+                    </Text>
+                    <Text style={styles.dropdownArrow}>▼</Text>
+                  </TouchableOpacity>
                 ) : (
                   <Text style={styles.InputData}>
                     {formData.gender || "N/A"}
@@ -701,7 +966,9 @@ export default function ProfileScreen() {
   );
 }
 
-// Styles remain the same as your original code
+const { width, height } = Dimensions.get("window");
+
+// Styles with added date picker styles
 const styles = StyleSheet.create({
   image: {
     width: wp(3),
@@ -732,9 +999,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   notificationBox: {
-    paddingVertical: hp(1),
-    paddingHorizontal: wp(4),
-    borderRadius: wp(2),
+    paddingVertical: height * 0.02,
+    paddingHorizontal: width * 0.02,
+    borderRadius: width * 0.01,
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
@@ -746,19 +1013,102 @@ const styles = StyleSheet.create({
   },
   notificationText: {
     color: "#fafafa",
-    fontSize: wp(2.2),
+    fontSize: RFValue(8),
     fontFamily: "Poppins",
     textAlign: "center",
     fontWeight: "600",
   },
+  // Gender dropdown styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    backgroundColor: "#fafafa",
+    borderRadius: width * 0.02,
+    padding: width * 0.04,
+    width: width * 0.6,
+    maxHeight: height * 0.5,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 8,
+  },
+  modalTitle: {
+    fontSize: RFValue(10),
+    fontFamily: "Poppins",
+    fontWeight: "600",
+    color: "#434343",
+    textAlign: "center",
+    marginBottom: height * 0.02,
+  },
+  dropdownItem: {
+    paddingVertical: height * 0.015,
+    paddingHorizontal: width * 0.02,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(67, 67, 67, 0.1)",
+  },
+  dropdownItemText: {
+    fontSize: RFValue(8),
+    fontFamily: "Poppins",
+    color: "#434343",
+    textAlign: "center",
+  },
+  modalCloseButton: {
+    marginTop: height * 0.02,
+    backgroundColor: "#9B72CF",
+    paddingVertical: height * 0.015,
+    borderRadius: width * 0.01,
+  },
+  modalCloseButtonText: {
+    fontSize: RFValue(8),
+    fontFamily: "Poppins",
+    color: "#fafafa",
+    textAlign: "center",
+    fontWeight: "500",
+  },
+  genderDropdownButton: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  genderDropdownText: {
+    fontFamily: "Poppins",
+    fontSize: RFValue(8),
+    color: "#434343",
+    fontWeight: "500",
+    letterSpacing: 0.5,
+  },
+  dropdownArrow: {
+    fontSize: RFValue(6),
+    color: "#434343",
+  },
+  // Date picker styles
+  datePickerButton: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  datePickerText: {
+    fontFamily: "Poppins",
+    fontSize: RFValue(8),
+    color: "#434343",
+    fontWeight: "500",
+    letterSpacing: 0.5,
+  },
   header: {
-    paddingHorizontal: wp(8),
-    paddingVertical: hp(0.5),
+    paddingHorizontal: width * 0.04,
+    paddingVertical: height * 0.02,
     backgroundColor: "#E5E5E5",
-    height: hp(4),
-    display: "flex",
     justifyContent: "center",
     alignItems: "flex-start",
+    position: "relative",
   },
   body: {
     flex: 1,
@@ -766,11 +1116,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   layer1: {
-    width: wp(160),
+    width: width * 0.8,
     borderBottomWidth: 1,
     borderColor: "rgba(67, 67, 67, 0.5)",
-    paddingHorizontal: wp(1),
-    paddingVertical: wp(1),
+    paddingHorizontal: width * 0.01,
+    paddingVertical: height * 0.02,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
@@ -778,32 +1128,30 @@ const styles = StyleSheet.create({
   ProfileContainer: {
     display: "flex",
     flexDirection: "row",
-    marginTop: hp(1),
   },
   ProfileImageContainer: {
     position: "relative",
   },
   ProfileImage: {
-    width: wp(15),
-    height: wp(15),
-    borderRadius: wp(9),
+    width: width * 0.08,
+    height: height * 0.15,
+    borderRadius: width * 0.01,
     resizeMode: "cover",
-    marginRight: wp(2),
+    marginRight: width * 0.01,
   },
   ProfileTextContainer: {
-    marginTop: hp(0.5),
     justifyContent: "center",
   },
   ProfileText: {
     fontFamily: "Poppins",
-    fontSize: wp(2.2),
+    fontSize: RFValue(8),
     color: "#434343",
     fontWeight: "400",
     letterSpacing: 0.5,
   },
   ProfileSubText: {
     fontFamily: "Poppins",
-    fontSize: wp(2.0),
+    fontSize: RFValue(6),
     color: "#434343",
     opacity: 0.7,
     fontWeight: "300",
@@ -811,21 +1159,21 @@ const styles = StyleSheet.create({
   },
   BtnText: {
     fontFamily: "Poppins",
-    fontSize: wp(2.2),
+    fontSize: RFValue(6),
     color: "#fafafa",
     fontWeight: "500",
     letterSpacing: 0.5,
   },
   layer2: {
-    width: wp(160),
-    paddingHorizontal: wp(1),
-    paddingVertical: wp(2),
+    width: width * 0.8,
+    paddingHorizontal: width * 0.01,
+    paddingVertical: height * 0.02,
     borderBottomWidth: 1,
     borderColor: "rgba(67, 67, 67, 0.5)",
   },
   LayerTitle: {
     fontFamily: "Poppins",
-    fontSize: wp(2.4),
+    fontSize: RFValue(8),
     color: "#434343",
     fontWeight: "500",
     letterSpacing: 0.5,
@@ -845,17 +1193,16 @@ const styles = StyleSheet.create({
   StudentInformation: {
     flex: 1,
     marginHorizontal: wp(1),
-    minWidth: wp(25),
   },
   InputTitle: {
     fontFamily: "Poppins",
-    fontSize: wp(2.2),
+    fontSize: RFValue(8),
     color: "#434343",
     opacity: 0.7,
     fontWeight: "400",
     letterSpacing: 0.5,
     textAlign: "center",
-    marginVertical: hp(0.5),
+    marginVertical: height * 0.005,
   },
   InputTitleEditing: {
     color: "#434343",
@@ -863,17 +1210,17 @@ const styles = StyleSheet.create({
   },
   InputData: {
     fontFamily: "Poppins",
-    fontSize: wp(2.2),
+    fontSize: RFValue(8),
     color: "#434343",
     opacity: 0.7,
     fontWeight: "500",
     letterSpacing: 0.5,
-    borderRadius: wp(1),
+    borderRadius: width * 0.01,
     borderWidth: 1,
     borderColor: "rgba(67, 67, 67, 0.7)",
     textAlign: "center",
-    padding: wp(0.5),
-    marginBottom: hp(0.5),
+    padding: width * 0.002,
+    marginBottom: width * 0.005,
     backgroundColor: "#fafafa",
   },
   InputDataEditing: {
@@ -883,45 +1230,52 @@ const styles = StyleSheet.create({
     backgroundColor: "#fafafa",
   },
   layer3: {
-    width: wp(160),
-    paddingHorizontal: wp(1),
-    paddingVertical: wp(2),
+    width: width * 0.8,
+    paddingHorizontal: width * 0.01,
+    paddingVertical: height * 0.02,
   },
   EditBtn: {
     backgroundColor: "#9B72CF",
-    paddingVertical: hp(1),
-    paddingHorizontal: wp(8),
-    borderRadius: wp(2),
-    marginTop: hp(1),
+    paddingVertical: height * 0.02,
+    paddingHorizontal: width * 0.04,
+    borderRadius: width * 0.01,
+    marginTop: height * 0.01,
   },
   ButtonContainer: {
     flexDirection: "row",
-    gap: wp(2),
-    marginTop: hp(1),
+    gap: width * 0.02,
+    marginTop: height * 0.01,
   },
   CancelBtn: {
     borderColor: "#9B72CF",
     borderWidth: 1,
-    paddingVertical: hp(1),
-    paddingHorizontal: wp(8),
-    borderRadius: wp(2),
+    paddingVertical: height * 0.02,
+    paddingHorizontal: width * 0.04,
+    borderRadius: width * 0.01,
   },
   cancelBtnText: {
     fontFamily: "Poppins",
-    fontSize: wp(2.2),
+    fontSize: RFValue(6),
     color: "#9B72CF",
     fontWeight: "500",
     letterSpacing: 0.5,
   },
   SaveBtn: {
     backgroundColor: "#9B72CF",
-    paddingVertical: hp(1),
-    paddingHorizontal: wp(8),
-    borderRadius: wp(2),
+    paddingVertical: height * 0.02,
+    paddingHorizontal: width * 0.04,
+    borderRadius: width * 0.01,
   },
+  ChangeProfileBtn: {
+    backgroundColor: "#9B72CF",
+    paddingVertical: height * 0.02,
+    paddingHorizontal: width * 0.04,
+    borderRadius: width * 0.01,
+  },
+  // FOOTER
   footer: {
     backgroundColor: "#E5E5E5",
-    height: hp(4),
+    flex: 0,
     justifyContent: "center",
   },
   categoryContainer: {
@@ -931,29 +1285,21 @@ const styles = StyleSheet.create({
     minWidth: "100%",
   },
   CategoryImage: {
-    borderRadius: wp(0.5),
+    borderRadius: width * 0.005,
     resizeMode: "contain",
     aspectRatio: 1,
-    width: wp(4),
-    height: hp(4),
+    width: width * 0.02,
+    height: height * 0.02,
   },
   categoryInfos: {
     display: "flex",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: wp(1.5),
-    paddingHorizontal: wp(6),
+    gap: width * 0.01,
+    paddingHorizontal: width * 0.03,
     borderRightWidth: 1,
     borderColor: "#9B72CF",
-    minWidth: wp(18),
-    height: hp(3),
-  },
-  ChangeProfileBtn: {
-    backgroundColor: "#9B72CF",
-    paddingVertical: hp(1),
-    paddingHorizontal: wp(3),
-    borderRadius: wp(2),
   },
   categoryInfosActive: {
     backgroundColor: "#fafafa",
@@ -961,17 +1307,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    height: hp(4),
-    gap: wp(1.5),
-    borderBottomLeftRadius: wp(2),
-    borderBottomRightRadius: wp(2),
-    paddingHorizontal: wp(6),
-    paddingVertical: hp(1),
+    height: height * 0.10,
+    gap: width * 0.01,
+    borderBottomLeftRadius: width * 0.01,
+    borderBottomRightRadius: width * 0.01,
+    paddingHorizontal: width * 0.03,
     borderRightWidth: 1,
     borderColor: "#9B72CF",
   },
   categoryText: {
-    fontSize: wp(2.2),
+    fontSize: RFValue(8),
     fontWeight: "500",
     color: "#9B72CF",
     fontFamily: "Poppins",
