@@ -17,6 +17,14 @@ type adultUserProps = {
   password: string;
   creation_date: Date;
   acct_status?: string;
+  region: string;
+  region_name: string;
+  province: string;
+  province_name: string;
+  municipality: string;
+  municipality_name: string;
+  barangay: string;
+  barangay_name: string;
 };
 
 type adultRegistrationProps = {
@@ -68,6 +76,14 @@ type childUserProps = {
   guardian_id: string | undefined;
   creation_date: Date;
   acct_status?: string;
+  region: string;
+  region_name: string;
+  province: string;
+  province_name: string;
+  municipality: string;
+  municipality_name: string;
+  barangay: string;
+  barangay_name: string;
 };
 
 export const registerChild = async (userInfo: childUserProps) => {

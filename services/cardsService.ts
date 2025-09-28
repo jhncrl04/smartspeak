@@ -121,7 +121,6 @@ const confirmCardDeletion = async (
 
   // Delete first AFTER we save the info
   await cardRef.delete();
-  Alert.alert("Card deleted");
 
   createLog(logBody);
 };
@@ -472,7 +471,7 @@ export const getUnassignedCards = async (
 
         if (
           !card.assigned_to?.includes(learnerId) &&
-          (card.created_for ?? card.created_for === "all")
+          (!card.created_for || card.created_for === "all")
         ) {
           return {
             ...card,

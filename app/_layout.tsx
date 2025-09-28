@@ -9,6 +9,7 @@ import { View } from "moti";
 import { useEffect } from "react";
 import { StyleSheet, Text } from "react-native";
 import { setCustomText } from "react-native-global-props";
+import Toast, { BaseToast, ErrorToast } from "react-native-toast-message";
 
 // SplashScreen.preventAutoHideAsync();
 
@@ -138,9 +139,68 @@ const RootLayout = () => {
             headerShown: true,
           }}
         />
+
+        <Stack.Screen
+          name="forgotPassword"
+          options={{
+            headerTitleAlign: "center",
+            headerTitle: () => (
+              <View style={styles.headerContainer}>
+                <Text style={styles.title}>RECOVER MY ACCOUNT</Text>
+              </View>
+            ),
+            headerShown: true,
+          }}
+        />
       </Stack>
+      <Toast config={toastConfig} />
     </SignupFormProvider>
   );
+};
+
+const toastConfig = {
+  success: (props: any) => (
+    <BaseToast
+      {...props}
+      style={{
+        borderLeftColor: COLORS.successBg,
+        backgroundColor: COLORS.pureWhite,
+      }}
+      contentContainerStyle={{ paddingHorizontal: 15 }}
+      text1Style={{
+        fontSize: 16,
+        fontFamily: "Poppins",
+        fontWeight: "600",
+        color: COLORS.accent,
+      }}
+      text2Style={{
+        fontSize: 14,
+        fontFamily: "Poppins",
+        fontWeight: "500",
+      }}
+    />
+  ),
+
+  error: (props: any) => (
+    <ErrorToast
+      {...props}
+      style={{
+        borderLeftColor: COLORS.errorBg,
+        backgroundColor: COLORS.pureWhite,
+      }}
+      text1Style={{
+        fontSize: 16,
+        fontFamily: "Poppins",
+        fontWeight: "600",
+        color: COLORS.accent,
+      }}
+      text2Style={{
+        fontSize: 14,
+        fontFamily: "Poppins",
+        fontWeight: "500",
+      }}
+    />
+  ),
 };
 
 export default RootLayout;

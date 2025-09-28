@@ -8,6 +8,14 @@ interface AuthState {
     fname: string;
     lname: string;
     email: string;
+    region: string | null;
+    province: string | null;
+    municipality: string | null;
+    barangay: string | null;
+    region_name: string | null;
+    province_name: string | null;
+    municipality_name: string | null;
+    barangay_name: string | null;
     phoneNumber: string;
     profile: string;
     role: string;

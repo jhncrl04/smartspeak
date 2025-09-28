@@ -117,7 +117,8 @@
       "router": {},
       "eas": {
         "projectId": "cd7d0adc-eba7-4a98-a148-2c22d40a1b5d"
-      }
+      },
+      "PSGC_API": "https://psgc.cloud/api"
     }
   }
 }

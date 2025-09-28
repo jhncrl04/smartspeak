@@ -42,7 +42,7 @@ const AssignCardPreview = ({
         </View>
         <Text style={styles.categoryName}>{cardName}</Text>
       </View>
-      <View style={styles.buttonContainer}>
+      <View>
         <PrimaryButton
           title={isAssigned ? "Added" : "Assign"} // change label
           clickHandler={handleAssign}
@@ -72,9 +72,6 @@ const styles = StyleSheet.create({
   },
   categoryImage: { width: "100%", height: "100%" },
   categoryName: { fontSize: 16, fontFamily: "Poppins", color: COLORS.gray },
-  buttonContainer: {
-    width: 75,
-  },
 });
 
 export default AssignCardPreview;

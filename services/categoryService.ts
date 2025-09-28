@@ -152,11 +152,14 @@ export const getUnassignedCategories = async (learnerId: string) => {
     category.id = doc.id;
 
     // Filter out categories where learnerId is already in assigned_to
-    if (
-      !category.assigned_to?.includes(learnerId) &&
-      (category.created_for === learnerId || category.created_for === "all")
-    ) {
-      categories.push(category);
+    if (!category.assigned_to?.includes(learnerId)) {
+      if (
+        !category.created_for ||
+        category.created_for === learnerId ||
+        category.created_for === "all"
+      ) {
+        categories.push(category);
+      }
     }
   });
 

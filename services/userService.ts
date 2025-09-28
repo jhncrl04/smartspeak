@@ -245,7 +245,15 @@ export const uploadProfilePic = async (imageUri: string) => {
 export const updateCurrentUserInfo = async (
   fname: string,
   lname: string,
-  phoneNumber: string
+  phoneNumber: string,
+  region: string | null,
+  province: string | null,
+  municipality: string | null,
+  barangay: string | null,
+  region_name: string | null,
+  province_name: string | null,
+  municipality_name: string | null,
+  barangay_name: string | null
 ) => {
   try {
     const uid = getCurrentUid();
@@ -255,6 +263,14 @@ export const updateCurrentUserInfo = async (
       first_name: fname,
       last_name: lname,
       phone_number: phoneNumber,
+      region: region,
+      province: province,
+      municipality: municipality,
+      barangay: barangay,
+      region_name: region_name,
+      province_name: province_name,
+      municipality_name: municipality_name,
+      barangay_name: barangay_name,
     });
   } catch (err) {
     console.error("Error updating user info: ", err);
@@ -303,6 +319,14 @@ export const setLoginState = (
     fname: userDoc.first_name,
     lname: userDoc.last_name,
     email: userDoc.email,
+    region: userDoc.region,
+    province: userDoc.province,
+    municipality: userDoc.municipality,
+    barangay: userDoc.baranggay,
+    region_name: userDoc.region,
+    province_name: userDoc.province,
+    municipality_name: userDoc.municipality,
+    barangay_name: userDoc.baranggay,
     phoneNumber: userDoc.phone_number as string,
     profile: userDoc.profile_pic as string,
     role: userDoc.role,
