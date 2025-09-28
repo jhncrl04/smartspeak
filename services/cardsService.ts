@@ -470,7 +470,10 @@ export const getUnassignedCards = async (
           cardCategory = categorySnapshot.data();
         }
 
-        if (!card.assigned_to?.includes(learnerId)) {
+        if (
+          !card.assigned_to?.includes(learnerId) &&
+          (card.created_for ?? card.created_for === "all")
+        ) {
           return {
             ...card,
             background_color: cardCategory?.background_color || null,

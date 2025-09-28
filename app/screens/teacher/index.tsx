@@ -114,7 +114,7 @@ const ManageLearnersScreen = () => {
             </View>
 
             {/* Students */}
-            <View>
+            <View style={styles.cardContainer}>
               {filteredStudents.length > 0 ? (
                 filteredStudents.map((student) => (
                   <LearnerCard
@@ -186,6 +186,15 @@ const styles = StyleSheet.create({
   sidebar: {
     flex: 1,
     backgroundColor: "#eee",
+  },
+  cardContainer: {
+    flex: 1,
+    flexWrap: "wrap",
+    flexDirection: "row",
+
+    alignItems: "center",
+
+    gap: 15,
   },
 });
 

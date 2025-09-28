@@ -353,7 +353,6 @@ const styles = StyleSheet.create({
   container: { flex: 1, flexDirection: "row", gap: 10 },
   pageContainer: {
     flex: 1,
-    gap: 15,
     paddingVertical: 10,
     paddingHorizontal: 30,
   },
@@ -365,23 +364,20 @@ const styles = StyleSheet.create({
   },
   messageContainer: {
     flex: 1,
-    gap: 10,
   },
   profileCarousel: {
     gap: 10,
     flexDirection: "row",
     overflow: "hidden",
-    height: 120,
   },
   scrollContent: {
-    gap: 10,
+    gap: 5,
     paddingHorizontal: 5,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingVertical: 20,
   },
   loadingText: {
     marginTop: 10,

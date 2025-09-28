@@ -34,6 +34,7 @@ const SecondaryButton = (props: buttonDetail) => {
     <TouchableOpacity
       style={styles.buttonContainer}
       onPress={props.clickHandler}
+      disabled={props.disabled}
     >
       <Text style={styles.buttonText}>{props.title}</Text>
     </TouchableOpacity>

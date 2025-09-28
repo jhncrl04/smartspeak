@@ -107,7 +107,10 @@ const ViewCardModal = ({
   }, [cardId, visible]);
 
   const dropdownItems = categories.map((category) => ({
-    label: category.category_name,
+    label:
+      category.is_assignable === false
+        ? `${category.category_name} (${category.assigned_to_name} use only)`
+        : category.category_name,
     value: category.id,
   }));
 

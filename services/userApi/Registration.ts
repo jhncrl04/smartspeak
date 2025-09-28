@@ -16,6 +16,7 @@ type adultUserProps = {
   email: string;
   password: string;
   creation_date: Date;
+  acct_status?: string;
 };
 
 type adultRegistrationProps = {
@@ -66,6 +67,7 @@ type childUserProps = {
   gender: string;
   guardian_id: string | undefined;
   creation_date: Date;
+  acct_status?: string;
 };
 
 export const registerChild = async (userInfo: childUserProps) => {
@@ -105,6 +107,7 @@ const saveUserInfo = async (
 
   const { password, ...userWithoutPassword } = userInfo;
   userWithoutPassword.email = userWithoutPassword.email.toLowerCase();
+  userWithoutPassword.acct_status = "ACTIVE";
 
   await userCollection.doc(uid).set(userWithoutPassword);
 
