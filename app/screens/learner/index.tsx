@@ -415,7 +415,6 @@ export default function HomeScreen() {
   // FIXED: Properly handle async operations in useEffect to prevent uncached promise warnings
   useEffect(() => {
     let isMounted = true;
-    let fetchPromise: Promise<void> | null = null;
 
     const fetchData = async (): Promise<void> => {
       if (!isMounted) return;
@@ -423,172 +422,88 @@ export default function HomeScreen() {
       try {
         setLoading(true);
 
-      console.log("=== FETCHING DATA FOR USER ===");
-      console.log("Current user ID:", currentUserId);
+        console.log("=== FETCHING DATA FOR USER ===");
+        console.log("Current user ID:", currentUserId);
 
-      // Fetch user's full name first
-      await fetchUserFullName();
+        // Fetch user's full name firsta
+        await fetchUserFullName();
 
-      // UPDATED: Fetch categories with background_color field
- // UPDATED: Fetch categories with proper user-based filtering
-const categoriesSnapshot = await firestore()
-  .collection("pecsCategories")
-  .get();
-
-const allCategoriesData: CategoryType[] = [];
-
-// FIXED: Same logic for categories
-// FIXED: Categories filtering with same logic
-// FIXED: Categories should be more permissive - admin categories are public
-categoriesSnapshot.docs.forEach((categoryDoc) => {
-  const categoryData = categoryDoc.data();
-  const currentUserId = user?.uid;
-
-  console.log(`\n--- Category ${categoryDoc.id} ---`);
-  console.log("Category name:", categoryData.category_name);
-  console.log("Created by:", categoryData.created_by);
-  console.log("Assigned to:", categoryData.assigned_to);
-
-  const isAdminCreated = 
-    categoryData.created_by === "ADMIN" ||
-    categoryData.created_by === "admin" ||
-    (typeof categoryData.created_by === 'string' && categoryData.created_by.toUpperCase() === "ADMIN");
-
-  // FIXED: Categories should be more permissive - admin categories are always public
-  let shouldShowCategory = false;
-
-  // Case 1: Created by current user
-  if (categoryData.created_by === currentUserId) {
-    shouldShowCategory = true;
-    console.log("Showing category: Created by current user");
-  }
-  // Case 2: Created by ADMIN (ALWAYS PUBLIC - show to everyone)
-  else if (isAdminCreated) {
-    shouldShowCategory = true;
-    console.log("Showing category: Created by admin (PUBLIC CATEGORY)");
-  }
-  // Case 3: Assigned to current user
-  else if (categoryData.assigned_to && Array.isArray(categoryData.assigned_to) && categoryData.assigned_to.includes(currentUserId)) {
-    shouldShowCategory = true;
-    console.log("Showing category: Assigned to current user");
-  }
-  // Case 4: No assignment field (treat as public category)
-  else if (!categoryData.assigned_to) {
-    shouldShowCategory = true;
-    console.log("Showing category: Public category (no assignment)");
-  }
-  // Case 5: All other cases - HIDE
-  else {
-    console.log("Hiding category: Not accessible to current user");
-  }
-
-  if (shouldShowCategory) {
-    allCategoriesData.push({
-      id: categoryDoc.id,
-      category_name: categoryData.category_name || "Unknown Category",
-      image: categoryData.image || "",
-      active: false,
-      background_color: categoryData.background_color || "#5FA056",
-    });
-    console.log("✓ Category added to display");
-  } else {
-    console.log("✗ Category filtered out");
-  }
-});
-
-console.log("Filtered categories:", allCategoriesData.map(c => c.category_name));
-
-      // Fetch cards with the same filtering pattern using React Native Firebase SDK
-// FIXED: Fetch cards with the same proper filtering
-// FIXED: Fetch cards with proper filtering - cards with no assignment from regular users should NOT show
-const cardsSnapshot = await firestore()
-  .collection("cards")
-  .get();
-
-const cardsData: CardType[] = [];
-
-console.log("\n=== FETCHING CARDS ===");
-console.log("Total cards in database:", cardsSnapshot.docs.length);
-
-// FIXED: Proper filtering logic - ADMIN cards with no assignment should be PUBLIC
-cardsSnapshot.docs.forEach((cardDoc) => {
-  const cardData = cardDoc.data();
-  const currentUserId = user?.uid;
-
-  console.log(`\n--- Card ${cardDoc.id} ---`);
-  console.log("Card name:", cardData.card_name);
-  console.log("Created by:", cardData.created_by);
-  console.log("Assigned to:", cardData.assigned_to);
-  console.log("Current user ID:", currentUserId);
-
-  // FIXED: Consistent admin detection
-  const isAdminCreated = 
-    cardData.created_by === "ADMIN" ||
-    cardData.created_by === "admin" ||
-    (typeof cardData.created_by === 'string' && cardData.created_by.toUpperCase() === "ADMIN");
-
-  // FIXED: Simplified and correct logic
-  let shouldShowCard = false;
-
-  // Case 1: Created by current user (always show user's own cards)
-  if (cardData.created_by === currentUserId) {
-    shouldShowCard = true;
-    console.log("Showing card: Created by current user");
-  }
-  // Case 2: Created by ADMIN (public cards - show to everyone)
-  else if (isAdminCreated) {
-    shouldShowCard = true;
-    console.log("Showing card: Created by admin (public card)");
-  }
-  // Case 3: Assigned to current user (regardless of who created it)
-  else if (cardData.assigned_to && Array.isArray(cardData.assigned_to) && cardData.assigned_to.includes(currentUserId)) {
-    shouldShowCard = true;
-    console.log("Showing card: Assigned to current user");
-  }
-  // Case 4: All other cases - HIDE the card
-  else {
-    console.log("Hiding card: Not created by user/admin and not assigned to user");
-  }
-
-  if (shouldShowCard) {
-    cardsData.push({
-      id: cardDoc.id,
-      image: cardData.image || "",
-      text: cardData.card_name || cardData.text || "No text",
-      categoryId: cardData.category_name || cardData.category_id || "",
-    });
-    console.log("✓ Card added to display");
-  } else {
-    console.log("✗ Card filtered out");
-  }
-});
-
-console.log("Filtered cards count:", cardsData.length);
-
-      // UPDATED: Filter categories to only show those that have cards
-      const categoriesWithCards = allCategoriesData.filter((category) => {
-        // Check if this category has any cards
-        const categoryCards = cardsData.filter((card) => {
-          const categoryName = category.category_name;
-          const cardCategoryId = card.categoryId;
-          
-          const exactMatch = cardCategoryId === categoryName;
-          const caseInsensitiveMatch = cardCategoryId.toLowerCase() === categoryName.toLowerCase();
-          const trimmedMatch = cardCategoryId.trim().toLowerCase() === categoryName.trim().toLowerCase();
-          
-          return exactMatch || caseInsensitiveMatch || trimmedMatch;
-        });
+        // UPDATED: Fetch categories with background_color field
+        const categoriesSnapshot = await firestore()
+          .collection("pecsCategories")
+          .get();
 
         if (!isMounted) return;
 
+        const allCategoriesData: CategoryType[] = [];
+
+        // FIXED: Categories filtering with same logic
+        categoriesSnapshot.docs.forEach((categoryDoc) => {
+          const categoryData = categoryDoc.data();
+          const currentUserId = user?.uid;
+
+          console.log(`\n--- Category ${categoryDoc.id} ---`);
+          console.log("Category name:", categoryData.category_name);
+          console.log("Created by:", categoryData.created_by);
+          console.log("Assigned to:", categoryData.assigned_to);
+
+          const isAdminCreated =
+            categoryData.created_by === "ADMIN" ||
+            categoryData.created_by === "admin" ||
+            (typeof categoryData.created_by === "string" &&
+              categoryData.created_by.toUpperCase() === "ADMIN");
+
+          let shouldShowCategory = false;
+
+          // Case 1: Created by current user
+          if (categoryData.created_by === currentUserId) {
+            shouldShowCategory = true;
+            console.log("Showing category: Created by current user");
+          }
+          // Case 2: Created by ADMIN (ALWAYS PUBLIC - show to everyone)
+          else if (isAdminCreated) {
+            shouldShowCategory = true;
+            console.log("Showing category: Created by admin (PUBLIC CATEGORY)");
+          }
+          // Case 3: Assigned to current user
+          else if (
+            categoryData.assigned_to &&
+            Array.isArray(categoryData.assigned_to) &&
+            categoryData.assigned_to.includes(currentUserId)
+          ) {
+            shouldShowCategory = true;
+            console.log("Showing category: Assigned to current user");
+          }
+          // Case 4: No assignment field (treat as public category)
+          else if (!categoryData.assigned_to) {
+            shouldShowCategory = true;
+            console.log("Showing category: Public category (no assignment)");
+          }
+          // Case 5: All other cases - HIDE
+          else {
+            console.log("Hiding category: Not accessible to current user");
+          }
+
+          if (shouldShowCategory) {
+            allCategoriesData.push({
+              id: categoryDoc.id,
+              category_name: categoryData.category_name || "Unknown Category",
+              image: categoryData.image || "",
+              active: false,
+              background_color: categoryData.background_color || "#5FA056",
+            });
+            console.log("✓ Category added to display");
+          } else {
+            console.log("✗ Category filtered out");
+          }
+        });
+
         console.log(
           "Filtered categories:",
-          allCategoriesData.map(
-            (c) => `${c.category_name} (${c.background_color})`
-          )
+          allCategoriesData.map((c) => c.category_name)
         );
 
-        // Fetch cards with the same filtering pattern using React Native Firebase SDK
+        // Fetch cards with the same filtering pattern
         const cardsSnapshot = await firestore().collection("cards").get();
 
         if (!isMounted) return;
@@ -600,28 +515,47 @@ console.log("Filtered cards count:", cardsData.length);
 
         cardsSnapshot.docs.forEach((cardDoc) => {
           const cardData = cardDoc.data();
+          const currentUserId = user?.uid;
 
           console.log(`\n--- Card ${cardDoc.id} ---`);
           console.log("Card name:", cardData.card_name);
           console.log("Created by:", cardData.created_by);
           console.log("Assigned to:", cardData.assigned_to);
-          console.log(
-            "Category:",
-            cardData.category_name || cardData.category_id
-          );
+          console.log("Current user ID:", currentUserId);
 
-          // Fixed logic for array-based assigned_to field:
-          // 1. Show if created by current user
-          // 2. Show if assigned_to array contains current user ID
-          // 3. Show if no assigned_to field (public cards)
-          const shouldShowCard =
-            cardData.created_by === currentUserId || // created by user
-            (cardData.assigned_to &&
-              Array.isArray(cardData.assigned_to) &&
-              cardData.assigned_to.includes(currentUserId)) || // assigned to user (array contains)
-            !cardData.assigned_to; // no assignment (public)
+          const isAdminCreated =
+            cardData.created_by === "ADMIN" ||
+            cardData.created_by === "admin" ||
+            (typeof cardData.created_by === "string" &&
+              cardData.created_by.toUpperCase() === "ADMIN");
 
-          console.log("Should show card:", shouldShowCard);
+          let shouldShowCard = false;
+
+          // Case 1: Created by current user (always show user's own cards)
+          if (cardData.created_by === currentUserId) {
+            shouldShowCard = true;
+            console.log("Showing card: Created by current user");
+          }
+          // Case 2: Created by ADMIN (public cards - show to everyone)
+          else if (isAdminCreated) {
+            shouldShowCard = true;
+            console.log("Showing card: Created by admin (public card)");
+          }
+          // Case 3: Assigned to current user (regardless of who created it)
+          else if (
+            cardData.assigned_to &&
+            Array.isArray(cardData.assigned_to) &&
+            cardData.assigned_to.includes(currentUserId)
+          ) {
+            shouldShowCard = true;
+            console.log("Showing card: Assigned to current user");
+          }
+          // Case 4: All other cases - HIDE the card
+          else {
+            console.log(
+              "Hiding card: Not created by user/admin and not assigned to user"
+            );
+          }
 
           if (shouldShowCard) {
             cardsData.push({
@@ -630,12 +564,15 @@ console.log("Filtered cards count:", cardsData.length);
               text: cardData.card_name || cardData.text || "No text",
               categoryId: cardData.category_name || cardData.category_id || "",
             });
+            console.log("✓ Card added to display");
+          } else {
+            console.log("✗ Card filtered out");
           }
         });
 
         if (!isMounted) return;
 
-        console.log("Filtered cards:", cardsData.length);
+        console.log("Filtered cards count:", cardsData.length);
 
         // UPDATED: Filter categories to only show those that have cards
         const categoriesWithCards = allCategoriesData.filter((category) => {
@@ -678,10 +615,7 @@ console.log("Filtered cards count:", cardsData.length);
         // Set first category as active and load its cards
         if (categoriesWithCards.length > 0) {
           categoriesWithCards[0].active = true;
-
-          if (isMounted) {
-            setSelectedCategory(categoriesWithCards[0].id);
-          }
+          setSelectedCategory(categoriesWithCards[0].id);
 
           // Filter cards for the first category
           const firstCategoryName = categoriesWithCards[0].category_name;
@@ -703,32 +637,22 @@ console.log("Filtered cards count:", cardsData.length);
             `First category "${firstCategoryName}" cards:`,
             firstCategoryCards.length
           );
-
-          if (isMounted) {
-            setDisplayedCards(firstCategoryCards);
-          }
+          setDisplayedCards(firstCategoryCards);
         } else {
           console.log("No categories with cards found");
-          if (isMounted) {
-            setDisplayedCards([]);
-          }
+          setDisplayedCards([]);
         }
 
-        if (isMounted) {
-          setCategories(categoriesWithCards);
-          setAllCards(cardsData);
-        }
+        setCategories(categoriesWithCards);
+        setAllCards(cardsData);
 
         console.log("=== DATA FETCH COMPLETE ===");
       } catch (error) {
         console.error("Error fetching data from Firebase:", error);
-        if (isMounted) {
-          // Don't use alert in async functions - use a state-based error handler instead
-          console.error(
-            "Error loading data from Firebase:",
-            error instanceof Error ? error.message : "Unknown error"
-          );
-        }
+        console.error(
+          "Error loading data from Firebase:",
+          error instanceof Error ? error.message : "Unknown error"
+        );
       } finally {
         if (isMounted) {
           setLoading(false);
@@ -738,19 +662,15 @@ console.log("Filtered cards count:", cardsData.length);
 
     // Only fetch data if user exists and component is mounted
     if (user?.uid && isMounted) {
-      fetchPromise = fetchData();
+      fetchData();
     } else {
       console.log("No user found, not fetching data");
-      if (isMounted) {
-        setLoading(false);
-      }
+      setLoading(false);
     }
 
     // Cleanup function
     return () => {
       isMounted = false;
-      // If you need to cancel the Firebase requests, you can do it here
-      // Note: Firestore doesn't have built-in cancellation, but we use isMounted checks instead
     };
   }, [user?.uid]); // Only depend on user.uid to prevent unnecessary re-renders
 
