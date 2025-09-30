@@ -471,7 +471,9 @@ export const getUnassignedCards = async (
 
         if (
           !card.assigned_to?.includes(learnerId) &&
-          (!card.created_for || card.created_for === "all")
+          (!card.created_for ||
+            card.created_for === "all" ||
+            card.created_for === learnerId)
         ) {
           return {
             ...card,

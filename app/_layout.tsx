@@ -1,6 +1,10 @@
 import COLORS from "@/constants/Colors";
 import { SignupFormProvider } from "@/context/signupContext";
 import { setAppToFullscreen } from "@/helper/setAppToFullscreen";
+import { useCardsStore } from "@/stores/cardsStore";
+import { useCategoriesStore } from "@/stores/categoriesStores";
+import { useAuthStore } from "@/stores/userAuthStore";
+import { useUsersStore } from "@/stores/userStore";
 import { useFonts } from "expo-font";
 import { Stack, usePathname } from "expo-router";
 import * as ScreenOrientation from "expo-screen-orientation";
@@ -14,6 +18,34 @@ import Toast, { BaseToast, ErrorToast } from "react-native-toast-message";
 // SplashScreen.preventAutoHideAsync();
 
 const RootLayout = () => {
+  const user = useAuthStore((state) => state.user);
+  const startCardsListener = useCardsStore((state) => state.startListener);
+  const stopCardsListener = useCardsStore((state) => state.stopListener);
+  const startCategoriesListener = useCategoriesStore(
+    (state) => state.startListener
+  );
+  const stopCategoriesListener = useCategoriesStore(
+    (state) => state.stopListener
+  );
+  const startUsersListener = useUsersStore((state) => state.startListener);
+  const stopUsersListener = useUsersStore((state) => state.stopListener);
+
+  useEffect(() => {
+    if (user?.uid && user?.role) {
+      // Start all listeners when user logs in
+      startCardsListener(user.uid);
+      startCategoriesListener(user.uid);
+      startUsersListener(user.uid, user.role.toLowerCase());
+    }
+
+    // Cleanup: stop all listeners when component unmounts or user logs out
+    return () => {
+      stopCardsListener();
+      stopCategoriesListener();
+      stopUsersListener();
+    };
+  }, [user?.uid]);
+
   const pathname = usePathname();
 
   useEffect(() => {
