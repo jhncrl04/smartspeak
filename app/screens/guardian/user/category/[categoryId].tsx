@@ -11,6 +11,7 @@ import {
   getAssignedCards,
   listenAssignedCardWithCategory,
 } from "@/services/cardsService";
+import { unassignCategory } from "@/services/categoryService";
 import { getStudentInfo } from "@/services/userService";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
@@ -76,6 +77,15 @@ const LearnerProfileCategory = () => {
 
   const [activeModal, setActiveModal] = useState<"assign-card" | null>(null);
 
+  const handleUnassignCategory = async (
+    categoryId: string,
+    learnerId: string
+  ) => {
+    const success = await unassignCategory(categoryId, learnerId);
+
+    if (success) router.back;
+  };
+
   return (
     <>
       <SafeAreaView style={styles.container}>
@@ -124,9 +134,6 @@ const LearnerProfileCategory = () => {
                 <Text style={styles.emptyStateTitle}>
                   No Categories Assigned
                 </Text>
-                {/* <Text style={styles.emptyStateSubtitle}>
-                    Tap the + button above to assign categories to this student
-                  </Text> */}
               </View>
             ) : (
               cards?.map((card, index) => (
@@ -149,7 +156,12 @@ const LearnerProfileCategory = () => {
         {uid === (creatorId as string) && (
           <FabMenu
             page="learnerAssignedCategory"
-            actions={{ assign_card: () => setActiveModal("assign-card") }}
+            actions={{
+              assign_card: () => setActiveModal("assign-card"),
+              unassign_category: () => {
+                handleUnassignCategory(categoryId as string, userId as string);
+              },
+            }}
           />
         )}
       </SafeAreaView>
