@@ -3,6 +3,10 @@ import { SignupFormProvider } from "@/context/signupContext";
 import { setAppToFullscreen } from "@/helper/setAppToFullscreen";
 import { useCardsStore } from "@/stores/cardsStore";
 import { useCategoriesStore } from "@/stores/categoriesStores";
+import {
+  useGradeLevelsStore,
+  useSectionsStore,
+} from "@/stores/gradeSectionsStore";
 import { useAuthStore } from "@/stores/userAuthStore";
 import { useUsersStore } from "@/stores/userStore";
 import { useFonts } from "expo-font";
@@ -29,6 +33,14 @@ const RootLayout = () => {
   );
   const startUsersListener = useUsersStore((state) => state.startListener);
   const stopUsersListener = useUsersStore((state) => state.stopListener);
+  const startSectionsListner = useSectionsStore((state) => state.startListener);
+  const stopSectionsListener = useSectionsStore((state) => state.stopListener);
+  const startGradeLevelsListener = useGradeLevelsStore(
+    (state) => state.startListener
+  );
+  const stopGradeLevelsListener = useGradeLevelsStore(
+    (state) => state.stopListener
+  );
 
   useEffect(() => {
     if (user?.uid && user?.role) {
@@ -36,6 +48,8 @@ const RootLayout = () => {
       startCardsListener(user.uid);
       startCategoriesListener(user.uid);
       startUsersListener(user.uid, user.role.toLowerCase());
+      startSectionsListner(user.uid);
+      startGradeLevelsListener();
     }
 
     // Cleanup: stop all listeners when component unmounts or user logs out
@@ -43,6 +57,8 @@ const RootLayout = () => {
       stopCardsListener();
       stopCategoriesListener();
       stopUsersListener();
+      stopSectionsListener();
+      stopGradeLevelsListener();
     };
   }, [user?.uid]);
 

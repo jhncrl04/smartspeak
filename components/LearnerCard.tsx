@@ -11,7 +11,7 @@ type profile = {
   cardType: cardType;
   name: string;
   age: number | null;
-  gender: string;
+  gender: string | undefined;
   learnerId: string;
   image: string | null;
   onSection?: string;

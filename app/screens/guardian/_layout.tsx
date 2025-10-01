@@ -26,9 +26,10 @@ const GuardianLayout = () => {
           }}
         />
         <Stack.Screen
-          name="childProfile"
-          options={{ title: "Child Profile" }}
+          name="manageBoards"
+          options={{ title: "Manage Categories" }}
         />
+        <Stack.Screen name="manageCards" options={{ title: "Manage Cards" }} />
       </Stack>
     </SidebarProvider>
   );

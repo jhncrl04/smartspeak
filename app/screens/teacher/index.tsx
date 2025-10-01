@@ -2,11 +2,13 @@ import LearnerCard from "@/components/LearnerCard";
 import PageHeader from "@/components/PageHeader";
 import SectionTabs from "@/components/SectionTabs";
 import Sidebar from "@/components/Sidebar";
-import AddLearnerModal from "@/components/ui/AddLearnerModal";
 import COLORS from "@/constants/Colors";
 import { calculateAge } from "@/helper/calculateAge";
-import { getSectionsWithStudents } from "@/services/sectionService";
-import { GradeAndSection } from "@/types/gradeSection";
+import {
+  useGradeLevelsStore,
+  useSectionsStore,
+} from "@/stores/gradeSectionsStore";
+import { useUsersStore } from "@/stores/userStore";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -23,7 +25,7 @@ const ManageLearnersScreen = () => {
   };
 
   const [loading, setLoading] = useState(true);
-  const [sections, setSections] = useState<GradeAndSection[]>([]);
+  // const [sections, setSections] = useState<GradeAndSection[]>([]);
   const [activeSection, setActiveSection] = useState<string | undefined>(
     undefined
   );
@@ -31,23 +33,35 @@ const ManageLearnersScreen = () => {
     "add" | "edit" | "move" | null
   >(null);
 
-  useEffect(() => {
-    const fetch = async () => {
-      try {
-        const data = await getSectionsWithStudents();
-        setSections(data);
+  const {
+    sections,
+    isLoading: sectionLoading,
+    error: sectionError,
+  } = useSectionsStore();
 
-        if (data.length > 0) setActiveSection(data[0].sectionId);
-      } catch (err) {
-        console.error("Error fetching sections:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetch();
-  }, []);
+  const {
+    gradeLevels,
+    isLoading: gradeLevelLoading,
+    error: gradeLevelError,
+  } = useGradeLevelsStore();
 
-  if (loading) {
+  // useEffect(() => {
+  //   const fetch = async () => {
+  //     try {
+  //       const data = await getSectionsWithStudents();
+  //       setSections(data);
+
+  //       if (data.length > 0) setActiveSection(data[0].sectionId);
+  //     } catch (err) {
+  //       console.error("Error fetching sections:", err);
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
+  //   fetch();
+  // }, []);
+
+  if (sectionLoading || gradeLevelLoading) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <ActivityIndicator size="large" />
@@ -55,15 +69,52 @@ const ManageLearnersScreen = () => {
     );
   }
 
-  const filteredStudents =
-    sections.find((s) => s.sectionId === activeSection)?.learners || [];
+  const mappedSection = sections
+    .map((section) => {
+      const gradeLevel = gradeLevels.find((gl) => gl.id === section.grade_id);
+
+      return {
+        gradeLevelInfo: gradeLevel,
+        sectionInfo: section,
+      };
+    })
+    .filter((item) => item.gradeLevelInfo);
+
+  useEffect(() => {
+    if (mappedSection.length > 0 && !activeSection) {
+      setActiveSection(mappedSection[0].sectionInfo.id);
+    }
+  }, [mappedSection, activeSection]);
+
+  if (sectionError || gradeLevelError) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <Text style={{ color: "red" }}>
+          Error loading data: {sectionError || gradeLevelError}
+        </Text>
+      </View>
+    );
+  }
+
+  const filteredStudents: string[] =
+    sections.find((s) => s.id === activeSection)?.students || [];
+
+  const {
+    users: learners,
+    isLoading: learnersLoading,
+    error: learnersError,
+  } = useUsersStore();
+
+  const mappedStudents = learners.filter((learner) => {
+    if (filteredStudents.includes(learner.id)) return learner;
+  });
 
   return (
     <>
-      <AddLearnerModal
+      {/* <AddLearnerModal
         onClose={() => setActiveModal(null)}
         visible={activeModal === "add"}
-      />
+      /> */}
       <View style={styles.container}>
         <Sidebar userRole="teacher" onNavigate={handleNavigation} />
         <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
@@ -92,12 +143,12 @@ const ManageLearnersScreen = () => {
                 showsHorizontalScrollIndicator={false}
               >
                 <View style={styles.tabsContainer}>
-                  {sections.map((s) => (
+                  {mappedSection.map((s) => (
                     <SectionTabs
-                      key={s.sectionId}
-                      active={s.sectionId === activeSection}
-                      label={`${s.gradeName} - ${s.sectionName}`}
-                      onPress={() => setActiveSection(s.sectionId)}
+                      key={s.sectionInfo.id}
+                      active={s.sectionInfo.id === activeSection}
+                      label={`${s.gradeLevelInfo?.name} - ${s.sectionInfo.name}`}
+                      onPress={() => setActiveSection(s.sectionInfo.id)}
                     />
                   ))}
 
@@ -114,8 +165,8 @@ const ManageLearnersScreen = () => {
 
             {/* Students */}
             <View style={styles.cardContainer}>
-              {filteredStudents.length > 0 ? (
-                filteredStudents.map((student) => (
+              {mappedStudents.length > 0 ? (
+                mappedStudents.map((student) => (
                   <LearnerCard
                     key={student.id}
                     cardType="profile"

@@ -46,14 +46,13 @@ const AddLearnerModal = ({ visible, onClose }: Props) => {
         value: result.sectionId,
       }));
 
-      console.log("Mapped:", mappedSections);
       setSections(mappedSections);
     };
 
     fetchSection();
   }, []);
 
-  console.log(sections);
+  // console.log(sections);
 
   const handleClose = () => {
     setResults([]);
