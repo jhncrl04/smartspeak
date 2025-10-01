@@ -108,7 +108,14 @@ const LearnerProfileCategory = () => {
               profile={userInfo?.profile_pic}
               name={`${userInfo?.first_name} ${userInfo?.last_name}`}
               age={calculateAge(userInfo?.date_of_birth)}
-              buttonHandler={() => console.log("test")}
+              buttonHandler={() => {
+                router.push({
+                  pathname: "/screens/guardian/user/settings/[userId]",
+                  params: {
+                    userId: userId as string,
+                  },
+                });
+              }}
               screen="guardian"
             />
           </View>

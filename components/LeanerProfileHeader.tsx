@@ -54,9 +54,7 @@ const LearnerProfileHeader = (props: profileProps) => {
           <>
             <PrimaryButton
               title="Edit Profile"
-              clickHandler={() => {
-                console.log("edit profile");
-              }}
+              clickHandler={props.buttonHandler}
             />
             <SecondaryButton
               title="View Previous Reports"
