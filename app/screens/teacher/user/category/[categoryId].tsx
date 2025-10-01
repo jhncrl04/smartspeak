@@ -135,9 +135,7 @@ const LearnerProfileCategory = () => {
             {cards && cards.length <= 0 ? (
               <View style={styles.emptyState}>
                 <Icon name="inbox" size={48} color={COLORS.gray} />
-                <Text style={styles.emptyStateTitle}>
-                  No Categories Assigned
-                </Text>
+                <Text style={styles.emptyStateTitle}>No Cards Assigned</Text>
                 {/* <Text style={styles.emptyStateSubtitle}>
                     Tap the + button above to assign categories to this student
                   </Text> */}

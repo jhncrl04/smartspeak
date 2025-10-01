@@ -118,7 +118,7 @@ const LoginScreen = () => {
           <ActionLink
             text="Forgot Password?"
             clickHandler={() => {
-              router.push("/registration");
+              router.push("/forgotPassword");
             }}
           />
           <View>

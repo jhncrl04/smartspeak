@@ -1,3 +1,4 @@
+import ActionLink from "@/components/ActionLink";
 import Board from "@/components/Board";
 import FabMenu from "@/components/FabMenu";
 import LearnerProfileHeader from "@/components/LeanerProfileHeader";
@@ -81,6 +82,15 @@ const LearnerProfile = () => {
         >
           {/* Profile Section */}
           <View style={styles.profileSection}>
+            <View style={{ paddingTop: 10 }}>
+              <ActionLink
+                text="Back"
+                icon={
+                  <Icon name="arrow-left" size={22} color={COLORS.accent} />
+                }
+                clickHandler={router.back}
+              />
+            </View>
             <LearnerProfileHeader
               profile={userInfo?.profile_pic}
               name={`${userInfo?.first_name} ${userInfo?.last_name}`}

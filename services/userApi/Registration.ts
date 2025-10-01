@@ -16,6 +16,15 @@ type adultUserProps = {
   email: string;
   password: string;
   creation_date: Date;
+  acct_status?: string;
+  region: string;
+  region_name: string;
+  province: string;
+  province_name: string;
+  municipality: string;
+  municipality_name: string;
+  barangay: string;
+  barangay_name: string;
 };
 
 type adultRegistrationProps = {
@@ -66,6 +75,15 @@ type childUserProps = {
   gender: string;
   guardian_id: string | undefined;
   creation_date: Date;
+  acct_status?: string;
+  region: string;
+  region_name: string;
+  province: string;
+  province_name: string;
+  municipality: string;
+  municipality_name: string;
+  barangay: string;
+  barangay_name: string;
 };
 
 export const registerChild = async (userInfo: childUserProps) => {
@@ -105,6 +123,7 @@ const saveUserInfo = async (
 
   const { password, ...userWithoutPassword } = userInfo;
   userWithoutPassword.email = userWithoutPassword.email.toLowerCase();
+  userWithoutPassword.acct_status = "ACTIVE";
 
   await userCollection.doc(uid).set(userWithoutPassword);
 

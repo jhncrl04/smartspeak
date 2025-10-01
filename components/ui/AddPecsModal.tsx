@@ -17,12 +17,20 @@ import MyDropdown from "./MyDropdown";
 
 import * as ImagePicker from "expo-image-picker";
 
+import {
+  cleanupCompressedImage,
+  compressImageToSize,
+  validateImage,
+} from "@/helper/imageCompressor";
+import imageToBase64 from "@/helper/imageToBase64";
 import { addCard } from "@/services/cardsService";
 import { getCategories } from "@/services/categoryService";
 import { getChild, getStudents } from "@/services/userService";
 import { useAuthStore } from "@/stores/userAuthStore";
 import { useEffect, useState } from "react";
 import TextFieldWrapper from "../TextfieldWrapper";
+import LoadingScreen from "./LoadingScreen";
+import { showToast } from "./MyToast";
 
 type AddPecsModalProps = {
   visible: boolean;
@@ -37,21 +45,100 @@ const AddPecsModal = ({ visible, onClose, categoryId }: AddPecsModalProps) => {
   const [image, setImage] = useState("");
   const [error, setError] = useState("");
 
-  const pickImage = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  const showImagePickerOptions = () => {
+    Alert.alert("Select Photo", "Choose how you want to add a photo", [
+      { text: "Camera", onPress: () => pickImage(true) },
+      { text: "Gallery", onPress: () => pickImage(false) },
+      { text: "Cancel", style: "cancel" },
+    ]);
+  };
 
-    if (status !== "granted") {
+  const pickImage = async (useCamera: boolean = false) => {
+    let permissionResult;
+
+    if (useCamera) {
+      // Camera permission
+      permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+    } else {
+      // Gallery permission
+      permissionResult =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+    }
+
+    if (permissionResult.status !== "granted") {
       Alert.alert(
         "Permission Denied",
-        "Sorry, camera roll permission is needed to upload."
+        `Sorry, ${
+          useCamera ? "camera" : "media library"
+        } permission is needed to upload.`
       );
-    } else {
-      const result = await ImagePicker.launchImageLibraryAsync();
+      return;
+    }
 
-      if (!result.canceled) {
-        const uri = result.assets[0].uri;
-        setImage(uri);
-        setError("");
+    // Open camera or gallery
+    const result = useCamera
+      ? await ImagePicker.launchCameraAsync({
+          allowsEditing: true,
+          quality: 0.9, // Slightly reduce initial quality
+        })
+      : await ImagePicker.launchImageLibraryAsync({
+          allowsEditing: true,
+          quality: 0.9, // Slightly reduce initial quality
+          mediaTypes: ImagePicker.MediaTypeOptions.Images, // Only images
+        });
+
+    if (!result.canceled) {
+      const uri = result.assets[0].uri;
+      setError("");
+
+      // 1. Only validate file type (not size - we'll compress it)
+      const validate = await validateImage(uri);
+      if (!validate.isValid && validate.error?.includes("Invalid image type")) {
+        Alert.alert("Invalid Image", validate.error);
+        return;
+      }
+
+      // 2. Always compress the image (handles oversized images automatically)
+      const compression = await compressImageToSize(uri);
+      if (!compression.success) {
+        Alert.alert(
+          "Compression Failed",
+          compression.error || "Failed to process image"
+        );
+        return;
+      }
+
+      // Skip base64 size validation - compressImageToSize already handles this
+
+      // 3. Log compression stats (optional)
+      if (compression.originalSize && compression.compressedSize) {
+        const savings = (
+          ((compression.originalSize - compression.compressedSize) /
+            compression.originalSize) *
+          100
+        ).toFixed(1);
+        console.log(
+          `Image compressed: ${Math.round(
+            compression.originalSize / 1024
+          )}KB → ${Math.round(
+            compression.compressedSize / 1024
+          )}KB (${savings}% reduction)`
+        );
+      }
+
+      // 4. Upload the compressed base64 image
+      const uploadedBase64 = await imageToBase64(compression.base64!);
+
+      if (uploadedBase64) {
+        setImage(uploadedBase64);
+        // Alert.alert("Success", "Profile picture updated!");
+      } else {
+        Alert.alert("Upload Failed", "Please try again.");
+      }
+
+      // 5. Cleanup temporary file
+      if (compression.compressedUri) {
+        await cleanupCompressedImage(compression.compressedUri);
       }
     }
   };
@@ -163,161 +250,187 @@ const AddPecsModal = ({ visible, onClose, categoryId }: AddPecsModalProps) => {
 
   const canSubmit = image !== "" && cardName !== "" && selectedCategory !== "";
 
-  return (
-    <Modal
-      animationType="slide"
-      transparent={true}
-      visible={visible}
-      onRequestClose={() => {
-        Alert.alert("Modal has been closed.");
-        onClose();
-      }}
-    >
-      <View style={styles.overlay}>
-        <TouchableWithoutFeedback onPress={onClose}>
-          <View style={styles.backdrop} />
-        </TouchableWithoutFeedback>
-        <View style={styles.modalContainer}>
-          {/* Close button */}
-          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <Icon name="x" size={22} color={COLORS.gray} />
-          </TouchableOpacity>
+  const [isLoading, setIsLoading] = useState(false);
 
-          {/* Scrollable content */}
-          <ScrollView
-            style={styles.mainContainer}
-            showsVerticalScrollIndicator={false}
-          >
-            {/* Image Upload */}
-            <TouchableOpacity style={styles.imageContainer} onPress={pickImage}>
-              {image !== "" ? (
-                <Image source={{ uri: image }} style={styles.imagePreview} />
-              ) : (
-                <Icon name="image" size={50} color={COLORS.gray} />
-              )}
+  return (
+    <>
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={visible}
+        onRequestClose={() => {
+          Alert.alert("Modal has been closed.");
+          onClose();
+        }}
+      >
+        <View style={styles.overlay}>
+          <TouchableWithoutFeedback onPress={onClose}>
+            <View style={styles.backdrop} />
+          </TouchableWithoutFeedback>
+          <View style={styles.modalContainer}>
+            {/* Close button */}
+            <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+              <Icon name="x" size={22} color={COLORS.gray} />
             </TouchableOpacity>
 
-            {/* Card Name */}
-            <TextFieldWrapper label="Card Name">
-              <TextInput
-                value={cardName}
-                onChangeText={setCardName}
-                placeholder="Card Name"
-                style={styles.input}
-              />
-            </TextFieldWrapper>
+            {/* Scrollable content */}
+            <ScrollView
+              style={styles.mainContainer}
+              showsVerticalScrollIndicator={false}
+            >
+              {/* Image Upload */}
+              <TouchableOpacity
+                style={styles.imageContainer}
+                onPress={showImagePickerOptions}
+              >
+                {image !== "" ? (
+                  <Image source={{ uri: image }} style={styles.imagePreview} />
+                ) : (
+                  <Icon name="image" size={50} color={COLORS.gray} />
+                )}
+              </TouchableOpacity>
 
-            {/* Category Selection */}
-            <TextFieldWrapper label="Category Name">
-              <MyDropdown
-                isDisabled={isDropdownDisabled}
-                dropdownItems={dropdownItems}
-                placeholder="Select Category"
-                value={selectedCategory}
-                onChange={(val) => setSelectedCategory(val)}
-              />
-            </TextFieldWrapper>
-
-            {/* Card Type Selection - Only show when category is assignable (gives user choice) */}
-            {showCardTypeSelection && (
-              <TextFieldWrapper label="Card Type">
-                <View style={styles.radioContainer}>
-                  {/* Assignable Option */}
-                  <TouchableOpacity
-                    style={styles.radioOption}
-                    onPress={() => setIsSpecificLearnerCard(false)}
-                  >
-                    <View
-                      style={[
-                        styles.radioButton,
-                        !isSpecificLearnerCard && styles.radioButtonSelected,
-                      ]}
-                    >
-                      {!isSpecificLearnerCard && (
-                        <View style={styles.radioButtonInner} />
-                      )}
-                    </View>
-                    <Text style={styles.radioLabel}>
-                      Assignable (Available to everyone)
-                    </Text>
-                  </TouchableOpacity>
-
-                  {/* Specific Learner Option */}
-                  <TouchableOpacity
-                    style={styles.radioOption}
-                    onPress={() => setIsSpecificLearnerCard(true)}
-                  >
-                    <View
-                      style={[
-                        styles.radioButton,
-                        isSpecificLearnerCard && styles.radioButtonSelected,
-                      ]}
-                    >
-                      {isSpecificLearnerCard && (
-                        <View style={styles.radioButtonInner} />
-                      )}
-                    </View>
-                    <Text style={styles.radioLabel}>Specific Learner Only</Text>
-                  </TouchableOpacity>
-                </View>
+              {/* Card Name */}
+              <TextFieldWrapper label="Card Name">
+                <TextInput
+                  value={cardName}
+                  onChangeText={setCardName}
+                  placeholder="Card Name"
+                  style={styles.input}
+                />
               </TextFieldWrapper>
-            )}
 
-            {isSpecificLearnerCard &&
-              selectedCategoryData?.is_assignable !== false && (
-                <TextFieldWrapper label="Select Learner">
-                  <MyDropdown
-                    dropdownItems={students}
-                    onChange={(value) => {
-                      setSelectedLearner(value as string);
-                    }}
-                    placeholder="Select a learner"
-                    value={selectedLearner}
-                  />
+              {/* Category Selection */}
+              <TextFieldWrapper label="Category Name">
+                <MyDropdown
+                  isDisabled={isDropdownDisabled}
+                  dropdownItems={dropdownItems}
+                  placeholder="Select Category"
+                  value={selectedCategory}
+                  onChange={(val) => setSelectedCategory(val)}
+                />
+              </TextFieldWrapper>
+
+              {/* Card Type Selection - Only show when category is assignable (gives user choice) */}
+              {showCardTypeSelection && (
+                <TextFieldWrapper label="Card Type">
+                  <View style={styles.radioContainer}>
+                    {/* Assignable Option */}
+                    <TouchableOpacity
+                      style={styles.radioOption}
+                      onPress={() => setIsSpecificLearnerCard(false)}
+                    >
+                      <View
+                        style={[
+                          styles.radioButton,
+                          !isSpecificLearnerCard && styles.radioButtonSelected,
+                        ]}
+                      >
+                        {!isSpecificLearnerCard && (
+                          <View style={styles.radioButtonInner} />
+                        )}
+                      </View>
+                      <Text style={styles.radioLabel}>
+                        Assignable (Available to everyone)
+                      </Text>
+                    </TouchableOpacity>
+
+                    {/* Specific Learner Option */}
+                    <TouchableOpacity
+                      style={styles.radioOption}
+                      onPress={() => setIsSpecificLearnerCard(true)}
+                    >
+                      <View
+                        style={[
+                          styles.radioButton,
+                          isSpecificLearnerCard && styles.radioButtonSelected,
+                        ]}
+                      >
+                        {isSpecificLearnerCard && (
+                          <View style={styles.radioButtonInner} />
+                        )}
+                      </View>
+                      <Text style={styles.radioLabel}>
+                        Specific Learner Only
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 </TextFieldWrapper>
               )}
 
-            {/* Submit Button */}
-            <View style={styles.buttonContainer}>
-              <PrimaryButton
-                title="Add Card"
-                clickHandler={() => {
-                  if (!canSubmit) {
-                    if (image === "") {
-                      Alert.alert("Error", "Please select an image.");
-                    } else if (cardName === "") {
-                      Alert.alert("Error", "Please enter a card name.");
-                    } else if (selectedCategory === "") {
-                      Alert.alert("Error", "Please select a category.");
+              {isSpecificLearnerCard &&
+                selectedCategoryData?.is_assignable !== false && (
+                  <TextFieldWrapper label="Select Learner">
+                    <MyDropdown
+                      dropdownItems={students}
+                      onChange={(value) => {
+                        setSelectedLearner(value as string);
+                      }}
+                      placeholder="Select a learner"
+                      value={selectedLearner}
+                    />
+                  </TextFieldWrapper>
+                )}
+
+              {/* Submit Button */}
+              <View style={styles.buttonContainer}>
+                <PrimaryButton
+                  title="Add Card"
+                  clickHandler={() => {
+                    if (!canSubmit) {
+                      if (image === "") {
+                        Alert.alert("Error", "Please select an image.");
+                      } else if (cardName === "") {
+                        Alert.alert("Error", "Please enter a card name.");
+                      } else if (selectedCategory === "") {
+                        Alert.alert("Error", "Please select a category.");
+                      }
+                      return;
                     }
-                    return;
-                  }
 
-                  const card = {
-                    name: cardName,
-                    category_id: selectedCategory,
-                    image: image,
-                    is_assignable: !isSpecificLearnerCard,
-                    created_for: isSpecificLearnerCard ? selectedLearner : null,
-                  };
+                    const card = {
+                      name: cardName,
+                      category_id: selectedCategory,
+                      image: image,
+                      is_assignable: !isSpecificLearnerCard,
+                      created_for: isSpecificLearnerCard
+                        ? selectedLearner
+                        : null,
+                    };
 
-                  addCard(card)
-                    .then(() => {
-                      Alert.alert("Success", "Card added successfully");
-                      onClose();
-                    })
-                    .catch((err) => {
-                      console.error("Error uploading card:", err);
-                      Alert.alert("Error", "Failed to upload card.");
-                    });
-                }}
-                disabled={!canSubmit}
-              />
-            </View>
-          </ScrollView>
+                    setIsLoading(true);
+
+                    addCard(card)
+                      .then(() => {
+                        setIsLoading(false);
+
+                        showToast(
+                          "success",
+                          "Card Created",
+                          `${cardName} card created successfully`
+                        );
+
+                        onClose();
+                      })
+                      .catch((err) => {
+                        console.error("Error uploading card:", err);
+
+                        showToast(
+                          "error",
+                          "Card Creation Failed",
+                          `Failed to upload ${cardName} card.`
+                        );
+                      });
+                  }}
+                  disabled={!canSubmit}
+                />
+              </View>
+            </ScrollView>
+          </View>
         </View>
-      </View>
-    </Modal>
+      </Modal>
+      <LoadingScreen visible={isLoading} />
+    </>
   );
 };
 

@@ -199,10 +199,10 @@ const PersonalDetailsScreen = () => {
             }}
           />
           {/* <ButtonSeparator />
-          <SecondaryButton
-            title={"Continue with Google"}
-            clickHandler={() => {}}
-          /> */}
+            <SecondaryButton
+              title={"Continue with Google"}
+              clickHandler={() => {}}
+            /> */}
         </View>
       </ScrollView>
     </View>

@@ -7,6 +7,8 @@ type actionDetail = {
   clickHandler: () => void;
   icon?: ReactElement;
   iconPosition?: "start" | "end";
+  fontSize?: number;
+  isBold?: boolean;
 };
 
 const ActionLink = ({
@@ -14,6 +16,8 @@ const ActionLink = ({
   clickHandler,
   icon,
   iconPosition = "start",
+  fontSize,
+  isBold,
 }: actionDetail) => {
   return (
     <TouchableOpacity
@@ -31,9 +35,9 @@ const ActionLink = ({
       <Text
         style={{
           fontFamily: "Poppins",
-          fontWeight: 500,
+          fontWeight: isBold ? 600 : 500,
           color: COLORS.accent,
-          fontSize: 14,
+          fontSize: fontSize || 14,
           lineHeight: 16,
         }}
       >
