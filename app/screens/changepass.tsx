@@ -188,7 +188,7 @@ export default function HomeScreen() {
         <View style={styles.categoryContainer}>
           <TouchableOpacity
             style={styles.categoryInfos}
-            onPress={() => router.push("../screens/learner/profile")}
+            onPress={() => router.push("/screens/learner/profile")}
           >
             <Image
               source={require("@/assets/images/user2.png")}

@@ -24,10 +24,10 @@ const RootLayout = () => {
 
   // setting default font, working on web but not on android
   const [fontsLoaded] = useFonts({
-    "Poppins-Light": require("../assets/fonts/Poppins-Light.ttf"),
-    "Poppins-Regular": require("../assets/fonts/Poppins-Regular.ttf"),
-    "Poppins-SemiBold": require("../assets/fonts/Poppins-SemiBold.ttf"),
-    "Poppins-Bold": require("../assets/fonts/Poppins-Bold.ttf"),
+    "Poppins-Light": require("@/assets/fonts/Poppins-Light.ttf"),
+    "Poppins-Regular": require("@/assets/fonts/Poppins-Regular.ttf"),
+    "Poppins-SemiBold": require("@/assets/fonts/Poppins-SemiBold.ttf"),
+    "Poppins-Bold": require("@/assets/fonts/Poppins-Bold.ttf"),
   });
 
   if (!fontsLoaded) {
