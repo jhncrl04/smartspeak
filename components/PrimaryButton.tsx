@@ -14,6 +14,7 @@ const PrimaryButton = (props: buttonDetail) => {
       flexGrow: 1,
       height: "auto",
       maxHeight: 35,
+      paddingHorizontal: 15,
       padding: 5,
       alignItems: "center",
       justifyContent: "center",

@@ -153,7 +153,13 @@ export const getUnassignedCategories = async (learnerId: string) => {
 
     // Filter out categories where learnerId is already in assigned_to
     if (!category.assigned_to?.includes(learnerId)) {
-      categories.push(category);
+      if (
+        !category.created_for ||
+        category.created_for === learnerId ||
+        category.created_for === "all"
+      ) {
+        categories.push(category);
+      }
     }
   });
 
@@ -199,15 +205,72 @@ export const assignCategory = async (
 export const unassignCategory = async (
   categoryId: string,
   learnerId: string
-) => {
+): Promise<boolean> => {
   try {
+    const cardCollection = firestore().collection("cards");
+
+    // First, check if there are cards assigned to this learner in this category
+    const cardsQuery = await cardCollection
+      .where("category_id", "==", categoryId)
+      .where("assigned_to", "array-contains", learnerId)
+      .get();
+
+    // If there are cards assigned, show confirmation alert
+    if (!cardsQuery.empty) {
+      const cardCount = cardsQuery.size;
+
+      return new Promise((resolve) => {
+        Alert.alert(
+          "Unassign Category",
+          `This category contains ${cardCount} card(s) assigned to this learner. Unassigning the category will also unassign all these cards. Do you want to continue?`,
+          [
+            {
+              text: "Cancel",
+              style: "cancel",
+              onPress: () => resolve(false),
+            },
+            {
+              text: "Continue",
+              style: "destructive",
+              onPress: async () => {
+                try {
+                  // Unassign the category
+                  await categoryCollection
+                    .doc(categoryId)
+                    .update({ assigned_to: arrayRemove(learnerId) });
+
+                  // Batch update all cards to remove the learner
+                  const batch = firestore().batch();
+
+                  cardsQuery.forEach((cardDoc) => {
+                    batch.update(cardDoc.ref, {
+                      assigned_to: arrayRemove(learnerId),
+                    });
+                  });
+
+                  // Commit all card updates
+                  await batch.commit();
+                  resolve(true);
+                } catch (err) {
+                  console.error("Error unassigning category and cards: ", err);
+                  resolve(false);
+                }
+              },
+            },
+          ]
+        );
+      });
+    }
+
+    // If no cards, just unassign the category directly
     await categoryCollection
       .doc(categoryId)
       .update({ assigned_to: arrayRemove(learnerId) });
 
     return true;
   } catch (err) {
-    console.error("Error assigning category: ", err);
+    console.error("Error unassigning category: ", err);
+    return false;
   }
 };
 

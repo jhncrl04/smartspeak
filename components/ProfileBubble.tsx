@@ -25,15 +25,15 @@ const ProfileBubble = ({ user, onPress }: any) => {
 
 const styles = StyleSheet.create({
   bubble: {
-    gap: 10,
+    gap: 5,
     alignItems: "center",
-    width: 100,
+    width: 75,
     padding: 10,
   },
   profile: {
-    width: 75,
-    height: 75,
-    borderRadius: 75,
+    width: 40,
+    height: 40,
+    borderRadius: 100,
     backgroundColor: "#e0e0e0",
   },
   name: {

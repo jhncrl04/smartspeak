@@ -17,6 +17,12 @@ import MyDropdown from "./MyDropdown";
 import * as ImagePicker from "expo-image-picker";
 
 import {
+  cleanupCompressedImage,
+  compressImageToSize,
+  validateImage,
+} from "@/helper/imageCompressor";
+import imageToBase64 from "@/helper/imageToBase64";
+import {
   deleteCard,
   getCardInfoWithId,
   unassignCard,
@@ -26,6 +32,8 @@ import { getCategories } from "@/services/categoryService";
 import { useEffect, useState } from "react";
 import SecondaryButton from "../SecondaryButton";
 import TextFieldWrapper from "../TextfieldWrapper";
+import LoadingScreen from "./LoadingScreen";
+import { showToast } from "./MyToast";
 
 type Props = {
   visible: boolean;
@@ -48,23 +56,100 @@ const ViewCardModal = ({
   const [image, setImage] = useState("");
   const [error, setError] = useState("");
 
-  const pickImage = async () => {
-    if (isDisabled) return;
+  const showImagePickerOptions = () => {
+    Alert.alert("Select Photo", "Choose how you want to add a photo", [
+      { text: "Camera", onPress: () => pickImage(true) },
+      { text: "Gallery", onPress: () => pickImage(false) },
+      { text: "Cancel", style: "cancel" },
+    ]);
+  };
 
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  const pickImage = async (useCamera: boolean = false) => {
+    let permissionResult;
 
-    if (status !== "granted") {
+    if (useCamera) {
+      // Camera permission
+      permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+    } else {
+      // Gallery permission
+      permissionResult =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+    }
+
+    if (permissionResult.status !== "granted") {
       Alert.alert(
         "Permission Denied",
-        "Sorry, camera roll permission is needed to upload."
+        `Sorry, ${
+          useCamera ? "camera" : "media library"
+        } permission is needed to upload.`
       );
-    } else {
-      const result = await ImagePicker.launchImageLibraryAsync();
+      return;
+    }
 
-      if (!result.canceled) {
-        const uri = result.assets[0].uri;
-        setImage(uri);
-        setError("");
+    // Open camera or gallery
+    const result = useCamera
+      ? await ImagePicker.launchCameraAsync({
+          allowsEditing: true,
+          quality: 0.9, // Slightly reduce initial quality
+        })
+      : await ImagePicker.launchImageLibraryAsync({
+          allowsEditing: true,
+          quality: 0.9, // Slightly reduce initial quality
+          mediaTypes: ImagePicker.MediaTypeOptions.Images, // Only images
+        });
+
+    if (!result.canceled) {
+      const uri = result.assets[0].uri;
+      setError("");
+
+      // 1. Only validate file type (not size - we'll compress it)
+      const validate = await validateImage(uri);
+      if (!validate.isValid && validate.error?.includes("Invalid image type")) {
+        Alert.alert("Invalid Image", validate.error);
+        return;
+      }
+
+      // 2. Always compress the image (handles oversized images automatically)
+      const compression = await compressImageToSize(uri);
+      if (!compression.success) {
+        Alert.alert(
+          "Compression Failed",
+          compression.error || "Failed to process image"
+        );
+        return;
+      }
+
+      // Skip base64 size validation - compressImageToSize already handles this
+
+      // 3. Log compression stats (optional)
+      if (compression.originalSize && compression.compressedSize) {
+        const savings = (
+          ((compression.originalSize - compression.compressedSize) /
+            compression.originalSize) *
+          100
+        ).toFixed(1);
+        console.log(
+          `Image compressed: ${Math.round(
+            compression.originalSize / 1024
+          )}KB → ${Math.round(
+            compression.compressedSize / 1024
+          )}KB (${savings}% reduction)`
+        );
+      }
+
+      // 4. Upload the compressed base64 image
+      const uploadedBase64 = await imageToBase64(compression.base64!);
+
+      if (uploadedBase64) {
+        setImage(uploadedBase64);
+        // Alert.alert("Success", "Profile picture updated!");
+      } else {
+        Alert.alert("Upload Failed", "Please try again.");
+      }
+
+      // 5. Cleanup temporary file
+      if (compression.compressedUri) {
+        await cleanupCompressedImage(compression.compressedUri);
       }
     }
   };
@@ -107,21 +192,63 @@ const ViewCardModal = ({
   }, [cardId, visible]);
 
   const dropdownItems = categories.map((category) => ({
-    label: category.category_name,
+    label:
+      category.is_assignable === false
+        ? `${category.category_name} (${category.assigned_to_name} use only)`
+        : category.category_name,
     value: category.id,
   }));
 
   const handleAction = (cardId: string, action: string) => {
+    setIsLoading(true);
+
     if (action === "Unassign") {
-      unassignCard(learnerId, cardId);
+      unassignCard(learnerId, cardId)
+        .then(() => {
+          setIsLoading(false);
+
+          showToast(
+            "success",
+            "Card Unassigned",
+            `${cardName} Card has been unassigned.`
+          );
+        })
+        .catch((err) => {
+          showToast("error", "Card unassign failed", `${err}`);
+        });
     } else if (action === "Delete") {
-      deleteCard(cardId);
+      deleteCard(cardId)
+        .then(() => {
+          setIsLoading(false);
+
+          showToast(
+            "success",
+            "Card Deleted",
+            `${cardName} Card has been deleted.`
+          );
+        })
+        .catch((err) => {
+          showToast("error", "Card deletion failed", `${err}`);
+        });
     } else if (action === "Update") {
       if (cardName.trim() === "") {
-        Alert.alert("Error", "Please enter a card name.");
+        showToast("success", "Error", `Please enter a card name.`);
+
         return;
       }
-      updateCard(cardId, cardName, image);
+      updateCard(cardId, cardName, image)
+        .then(() => {
+          setIsLoading(false);
+
+          showToast(
+            "success",
+            "Card Updated",
+            `${cardName} Card has been updated.`
+          );
+        })
+        .catch((err) => {
+          showToast("error", "Updating card failed", `${err}`);
+        });
     }
 
     onClose();
@@ -129,88 +256,93 @@ const ViewCardModal = ({
 
   const canUpdate = cardName.trim() !== "";
 
-  return (
-    <Modal
-      animationType="slide"
-      transparent={true}
-      visible={visible}
-      onRequestClose={() => {
-        Alert.alert("Modal has been closed.");
-        onClose();
-      }}
-    >
-      <View style={styles.overlay}>
-        <TouchableWithoutFeedback onPress={onClose}>
-          <View style={styles.backdrop} />
-        </TouchableWithoutFeedback>
-        <View style={styles.modalContainer}>
-          {/* Close button */}
-          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <Icon name="x" size={22} color={COLORS.gray} />
-          </TouchableOpacity>
+  const [isLoading, setIsLoading] = useState(false);
 
-          {/* Scrollable content */}
-          <ScrollView
-            style={styles.mainContainer}
-            showsVerticalScrollIndicator={false}
-          >
-            {/* Image Upload */}
-            <TouchableOpacity
-              style={styles.imageContainer}
-              onPress={pickImage}
-              disabled={isDisabled}
-            >
-              {image !== "" ? (
-                <Image source={{ uri: image }} style={styles.imagePreview} />
-              ) : (
-                <Icon name="image" size={50} color={COLORS.gray} />
-              )}
-              {!isDisabled && image !== "" && (
-                <View style={styles.imageOverlay}>
-                  <Icon name="pencil" size={16} color={COLORS.white} />
-                </View>
-              )}
+  return (
+    <>
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={visible}
+        onRequestClose={() => {
+          Alert.alert("Modal has been closed.");
+          onClose();
+        }}
+      >
+        <View style={styles.overlay}>
+          <TouchableWithoutFeedback onPress={onClose}>
+            <View style={styles.backdrop} />
+          </TouchableWithoutFeedback>
+          <View style={styles.modalContainer}>
+            {/* Close button */}
+            <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+              <Icon name="x" size={22} color={COLORS.gray} />
             </TouchableOpacity>
 
-            {/* Card Name */}
-            <TextFieldWrapper label="Card Name">
-              <TextInput
-                value={cardName}
-                onChangeText={setCardName}
-                placeholder="Card Name"
-                style={[styles.input, isDisabled && styles.inputDisabled]}
-                editable={!isDisabled}
-              />
-            </TextFieldWrapper>
-
-            {/* Category Selection */}
-            <TextFieldWrapper label="Category Name">
-              <MyDropdown
-                isDisabled={true}
-                dropdownItems={dropdownItems}
-                placeholder="Select Category"
-                value={selectedCategory}
-                onChange={(val) => setSelectedCategory(val)}
-              />
-            </TextFieldWrapper>
-
-            {/* Action Buttons */}
-            <View style={styles.buttonContainer}>
-              <PrimaryButton
-                title="Update"
-                clickHandler={() => handleAction(cardId, "Update")}
-                disabled={isDisabled || !canUpdate}
-              />
-              <SecondaryButton
-                title={action}
-                clickHandler={() => handleAction(cardId, action)}
+            {/* Scrollable content */}
+            <ScrollView
+              style={styles.mainContainer}
+              showsVerticalScrollIndicator={false}
+            >
+              {/* Image Upload */}
+              <TouchableOpacity
+                style={styles.imageContainer}
+                onPress={showImagePickerOptions}
                 disabled={isDisabled}
-              />
-            </View>
-          </ScrollView>
+              >
+                {image !== "" ? (
+                  <Image source={{ uri: image }} style={styles.imagePreview} />
+                ) : (
+                  <Icon name="image" size={50} color={COLORS.gray} />
+                )}
+                {!isDisabled && image !== "" && (
+                  <View style={styles.imageOverlay}>
+                    <Icon name="pencil" size={16} color={COLORS.white} />
+                  </View>
+                )}
+              </TouchableOpacity>
+
+              {/* Card Name */}
+              <TextFieldWrapper label="Card Name">
+                <TextInput
+                  value={cardName}
+                  onChangeText={setCardName}
+                  placeholder="Card Name"
+                  style={[styles.input, isDisabled && styles.inputDisabled]}
+                  editable={!isDisabled}
+                />
+              </TextFieldWrapper>
+
+              {/* Category Selection */}
+              <TextFieldWrapper label="Category Name">
+                <MyDropdown
+                  isDisabled={true}
+                  dropdownItems={dropdownItems}
+                  placeholder="Select Category"
+                  value={selectedCategory}
+                  onChange={(val) => setSelectedCategory(val)}
+                />
+              </TextFieldWrapper>
+
+              {/* Action Buttons */}
+              <View style={styles.buttonContainer}>
+                <PrimaryButton
+                  title="Update"
+                  clickHandler={() => handleAction(cardId, "Update")}
+                  disabled={isDisabled || !canUpdate}
+                />
+                <SecondaryButton
+                  title={action}
+                  clickHandler={() => handleAction(cardId, action)}
+                  disabled={isDisabled}
+                />
+              </View>
+            </ScrollView>
+          </View>
         </View>
-      </View>
-    </Modal>
+      </Modal>
+      <LoadingScreen visible={isLoading} />
+    </>
   );
 };
 

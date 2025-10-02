@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Smartspeak",
-    "slug": "Smartspeak",
+    "slug": "smartspeak",
     "version": "1.0.0",
     "icon": "./assets/images/icon.png",
     "scheme": "smartspeak",
@@ -95,6 +95,19 @@
           "microphonePermission": "Smartspeak would like to access your microphone."
         }
       ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 34,
+            "buildToolsVersion": "35.0.0",
+            "minSdkVersion": 24,
+            "gradleVersion": "8.4",
+            "androidGradlePluginVersion": "8.1.4"
+          }
+        }
+      ],
       "expo-web-browser"
     ],
     "experiments": {
@@ -103,9 +116,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "515171c6-8257-41eb-8907-786edcb9a83e"
-      }
-    },
-    "owner": "keurt2004"
+        "projectId": "cd7d0adc-eba7-4a98-a148-2c22d40a1b5d"
+      },
+      "PSGC_API": "https://psgc.cloud/api"
+    }
   }
 }

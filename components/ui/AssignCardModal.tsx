@@ -82,7 +82,7 @@ const AssignCardModal = ({
               <MySearchBar
                 collectionToSearch="cards"
                 onSearch={(results) => {
-                  setResults(results);
+                  //setResults(results);
                 }}
                 placeholder="Search Cards"
                 query="card"

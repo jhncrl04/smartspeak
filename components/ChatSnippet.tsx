@@ -1,12 +1,12 @@
 import COLORS from "@/constants/Colors";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-type messageProps = { 
-  chatName: string; 
-  message: string; 
-  time: string; 
-  profilePic?: string; 
-  onPress?: () => void; 
+type messageProps = {
+  chatName: string;
+  message: string;
+  time: string;
+  profilePic?: string;
+  onPress?: () => void;
 };
 
 const ChatSnippet = (props: messageProps) => {
@@ -40,21 +40,21 @@ const ChatSnippet = (props: messageProps) => {
 
 const styles = StyleSheet.create({
   container: {
-    height: 100,
+    height: 75,
     flexGrow: 0,
     flexDirection: "row",
     alignItems: "center",
   },
   profile: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
+    width: 50,
+    height: 50,
+    borderRadius: 100,
     backgroundColor: "#eee", // placeholder while loading
   },
   chatInfoContainer: {
     flexDirection: "column",
+    justifyContent: "flex-start",
     paddingHorizontal: 15,
-    paddingVertical: 5,
     flex: 1,
   },
   chatSnippet: {
@@ -64,13 +64,19 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   chatName: {
-    fontSize: 18,
+    fontSize: 16,
     color: COLORS.black,
     fontFamily: "Poppins",
     fontWeight: "500",
+    lineHeight: 20,
   },
-  message: { fontSize: 14, maxWidth: "70%", color: COLORS.gray },
-  time: { fontSize: 14, color: COLORS.gray  },
+  message: {
+    fontSize: 14,
+    lineHeight: 16,
+    maxWidth: "70%",
+    color: COLORS.gray,
+  },
+  time: { fontSize: 14, color: COLORS.gray },
 });
 
 export default ChatSnippet;

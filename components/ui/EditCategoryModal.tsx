@@ -15,6 +15,11 @@ import Icon from "react-native-vector-icons/Octicons";
 import ColorPicker, { Panel5 } from "reanimated-color-picker";
 import PrimaryButton from "../PrimaryButton";
 
+import {
+  cleanupCompressedImage,
+  compressImageToSize,
+  validateImage,
+} from "@/helper/imageCompressor";
 import imageToBase64 from "@/helper/imageToBase64";
 import {
   deleteCategoryWithLoading,
@@ -27,6 +32,7 @@ import { runOnJS } from "react-native-reanimated";
 import SecondaryButton from "../SecondaryButton";
 import TextFieldWrapper from "../TextfieldWrapper";
 import LoadingScreen from "./LoadingScreen";
+import { showToast } from "./MyToast";
 
 type modalProps = {
   visible: boolean;
@@ -70,19 +76,101 @@ const EditCategoryModal = ({ visible, onClose, categoryId }: modalProps) => {
     runOnJS(setSelectedColor)(hex);
   };
 
-  const pickImage = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  const showImagePickerOptions = () => {
+    Alert.alert("Select Photo", "Choose how you want to add a photo", [
+      { text: "Camera", onPress: () => pickImage(true) },
+      { text: "Gallery", onPress: () => pickImage(false) },
+      { text: "Cancel", style: "cancel" },
+    ]);
+  };
 
-    if (status !== "granted") {
-      Alert.alert("Permission Denied", "Camera roll permission is needed.");
+  const pickImage = async (useCamera: boolean = false) => {
+    let permissionResult;
+
+    if (useCamera) {
+      // Camera permission
+      permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+    } else {
+      // Gallery permission
+      permissionResult =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+    }
+
+    if (permissionResult.status !== "granted") {
+      Alert.alert(
+        "Permission Denied",
+        `Sorry, ${
+          useCamera ? "camera" : "media library"
+        } permission is needed to upload.`
+      );
       return;
     }
 
-    const result = await ImagePicker.launchImageLibraryAsync();
+    // Open camera or gallery
+    const result = useCamera
+      ? await ImagePicker.launchCameraAsync({
+          allowsEditing: true,
+          quality: 0.9, // Slightly reduce initial quality
+        })
+      : await ImagePicker.launchImageLibraryAsync({
+          allowsEditing: true,
+          quality: 0.9, // Slightly reduce initial quality
+          mediaTypes: ImagePicker.MediaTypeOptions.Images, // Only images
+        });
 
     if (!result.canceled) {
-      setImage(result.assets[0].uri);
+      const uri = result.assets[0].uri;
       setError("");
+
+      // 1. Only validate file type (not size - we'll compress it)
+      const validate = await validateImage(uri);
+      if (!validate.isValid && validate.error?.includes("Invalid image type")) {
+        Alert.alert("Invalid Image", validate.error);
+        return;
+      }
+
+      // 2. Always compress the image (handles oversized images automatically)
+      const compression = await compressImageToSize(uri);
+      if (!compression.success) {
+        Alert.alert(
+          "Compression Failed",
+          compression.error || "Failed to process image"
+        );
+        return;
+      }
+
+      // Skip base64 size validation - compressImageToSize already handles this
+
+      // 3. Log compression stats (optional)
+      if (compression.originalSize && compression.compressedSize) {
+        const savings = (
+          ((compression.originalSize - compression.compressedSize) /
+            compression.originalSize) *
+          100
+        ).toFixed(1);
+        console.log(
+          `Image compressed: ${Math.round(
+            compression.originalSize / 1024
+          )}KB → ${Math.round(
+            compression.compressedSize / 1024
+          )}KB (${savings}% reduction)`
+        );
+      }
+
+      // 4. Upload the compressed base64 image
+      const uploadedBase64 = await imageToBase64(compression.base64!);
+
+      if (uploadedBase64) {
+        setImage(uploadedBase64);
+        // Alert.alert("Success", "Profile picture updated!");
+      } else {
+        Alert.alert("Upload Failed", "Please try again.");
+      }
+
+      // 5. Cleanup temporary file
+      if (compression.compressedUri) {
+        await cleanupCompressedImage(compression.compressedUri);
+      }
     }
   };
 
@@ -99,11 +187,20 @@ const EditCategoryModal = ({ visible, onClose, categoryId }: modalProps) => {
         image: await imageToBase64(image),
       });
 
-      Alert.alert("Success", "Category updated successfully!");
+      showToast(
+        "success",
+        "Category Updated",
+        `${categoryName} category has been updated`
+      );
       onClose();
     } catch (err) {
       console.error("Error updating category: ", err);
-      Alert.alert("Error", "Failed to update category.");
+
+      showToast(
+        "error",
+        "Category Update Failed",
+        `Failed to update ${categoryName} category`
+      );
     }
   };
 
@@ -117,6 +214,12 @@ const EditCategoryModal = ({ visible, onClose, categoryId }: modalProps) => {
       );
 
       if (success) {
+        showToast(
+          "success",
+          "Category Deletion Success",
+          `${categoryName} deleted successfully`
+        );
+
         router.back();
       }
 
@@ -155,7 +258,10 @@ const EditCategoryModal = ({ visible, onClose, categoryId }: modalProps) => {
             showsVerticalScrollIndicator={false}
           >
             {/* Image Upload */}
-            <TouchableOpacity style={styles.imageContainer} onPress={pickImage}>
+            <TouchableOpacity
+              style={styles.imageContainer}
+              onPress={showImagePickerOptions}
+            >
               {image !== "" ? (
                 <Image source={{ uri: image }} style={styles.imagePreview} />
               ) : (

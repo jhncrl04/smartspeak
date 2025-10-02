@@ -14,6 +14,8 @@ type FormDataType = {
   municipality_name: string;
   region: string;
   region_name: string;
+  barangay: string;
+  barangay_name: string;
 };
 
 type FormContextType = {
@@ -36,6 +38,8 @@ const defaultValue: FormContextType = {
     municipality_name: "",
     region: "",
     region_name: "",
+    barangay: "",
+    barangay_name: "",
   },
   setFormData: () => {},
 };

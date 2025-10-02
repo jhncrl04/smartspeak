@@ -48,19 +48,19 @@ type formDataType = {
 
 const AddChildModal = ({ visible, onClose }: Props) => {
   const [formData, setFormData] = useState<formDataType>({
-    first_name: "Morty",
-    last_name: "Smith",
+    first_name: "",
+    last_name: "",
     date_of_birth: null,
-    gender: "Male",
-    email: "info.coolbeanscoffee@gmail.com",
-    password: "Johncarlo1",
+    gender: "",
+    email: "",
+    password: "",
     role: "",
     profile_pic: "",
     guardian_id: "",
     creation_date: new Date(),
   });
 
-  const [confirmPass, setConfirmPass] = useState("Johncarlo1");
+  const [confirmPass, setConfirmPass] = useState("");
 
   const [step, setStep] = useState(1);
   const [date, setDate] = useState(new Date());

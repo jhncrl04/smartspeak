@@ -71,7 +71,7 @@ const AssignCategoryModal = ({ visible, onClose, learnerId }: Props) => {
               <MySearchBar
                 collectionToSearch="pecsCategories"
                 onSearch={(results) => {
-                  setResults(results);
+                  // setResults(results);
                 }}
                 placeholder="Search Category"
                 query="assignCategory"

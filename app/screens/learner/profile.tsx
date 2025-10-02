@@ -142,7 +142,7 @@ const createLog = async (
       userName,
       action,
       beforeData,
-      afterData
+      afterData,
     });
 
     const logData = {
@@ -159,13 +159,13 @@ const createLog = async (
       user_id: userId,
       user_name: userName,
       user_type: "Learner",
-    }; 
+    };
 
     console.log("Log data to be saved:", logData);
-    
+
     const docRef = await firestore().collection("learnerAcctLogs").add(logData);
     console.log("Log created successfully with ID:", docRef.id);
-    
+
     return docRef.id;
   } catch (error) {
     console.error("Error creating log:", error);
@@ -189,11 +189,12 @@ export default function ProfileScreen() {
 
   // Dropdown states
   const [showGenderDropdown, setShowGenderDropdown] = useState<boolean>(false);
+
   const [showRegionDropdown, setShowRegionDropdown] = useState<boolean>(false);
   const [showProvinceDropdown, setShowProvinceDropdown] = useState<boolean>(false);
   const [showMunicipalityDropdown, setShowMunicipalityDropdown] = useState<boolean>(false);
   const [showBarangayDropdown, setShowBarangayDropdown] = useState<boolean>(false);
-  
+
   // Date picker states
   const [showDatePicker, setShowDatePicker] = useState<boolean>(false);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -259,10 +260,10 @@ export default function ProfileScreen() {
       for (const doc of sectionsSnapshot.docs) {
         const sectionData = doc.data();
         const students = sectionData.students || [];
-        
+
         console.log(`Checking section ${doc.id}:`, {
           name: sectionData.name,
-          students: students
+          students: students,
         });
 
         if (students.includes(userId)) {
@@ -274,7 +275,6 @@ export default function ProfileScreen() {
 
       setSectionName(learnerSection);
       console.log("Final section name:", learnerSection);
-      
     } catch (error) {
       console.error("Error fetching learner section:", error);
       setSectionName("No Section");
@@ -444,24 +444,26 @@ export default function ProfileScreen() {
   // Handle date selection
   const handleDateChange = (dateString: string) => {
     let parsedDate: Date | null = null;
-    
+
     const formats = [
       /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/,
       /^(\d{1,2})-(\d{1,2})-(\d{4})$/,
       /^(\d{4})-(\d{1,2})-(\d{1,2})$/,
       /^(\d{1,2})\.(\d{1,2})\.(\d{4})$/,
     ];
-    
+
     for (let i = 0; i < formats.length; i++) {
       const match = dateString.match(formats[i]);
       if (match) {
         let day, month, year;
-        
+
         if (i === 2) {
+
           year = parseInt(match[1]);
           month = parseInt(match[2]) - 1;
           day = parseInt(match[3]);
         } else {
+
           month = parseInt(match[1]) - 1;
           day = parseInt(match[2]);
           year = parseInt(match[3]);
@@ -470,15 +472,16 @@ export default function ProfileScreen() {
         if (year >= 1900 && year <= new Date().getFullYear() && 
             month >= 0 && month <= 11 && 
             day >= 1 && day <= 31) {
+
           parsedDate = new Date(year, month, day);
           break;
         }
       }
     }
-    
+
     if (parsedDate && !isNaN(parsedDate.getTime())) {
       setSelectedDate(parsedDate);
-      
+
       const formattedDate = parsedDate.toLocaleDateString('en-US', {
         month: '2-digit',
         day: '2-digit',
@@ -486,13 +489,16 @@ export default function ProfileScreen() {
       });
       
       updateFormData("dob", formattedDate);
+
       setDobTimestamp(firestore.Timestamp.fromDate(parsedDate));
-      
+
       console.log("Date parsed successfully:", parsedDate);
       console.log("Formatted date:", formattedDate);
+
       console.log("Firebase timestamp:", firestore.Timestamp.fromDate(parsedDate));
       
       return true;
+
     } else {
       console.log("Invalid date format entered:", dateString);
       return false;
@@ -502,11 +508,13 @@ export default function ProfileScreen() {
   // Handle manual date input with validation
   const handleManualDateInput = (text: string) => {
     updateFormData("dob", text);
+
     
     if (text.length >= 8) {
       const success = handleDateChange(text);
       if (!success && text.length >= 10) {
         console.log("Please enter a valid date format (MM/DD/YYYY, MM-DD-YYYY, or YYYY-MM-DD)");
+
       }
     }
   };
@@ -514,7 +522,7 @@ export default function ProfileScreen() {
   // Format timestamp to readable date
   const formatTimestampToDate = (timestamp: any): string => {
     if (!timestamp) return "";
-    
+
     try {
       let date;
       if (timestamp.toDate) {
@@ -526,11 +534,11 @@ export default function ProfileScreen() {
       } else {
         return "";
       }
-      
-      return date.toLocaleDateString('en-US', {
-        month: '2-digit',
-        day: '2-digit',
-        year: 'numeric'
+
+      return date.toLocaleDateString("en-US", {
+        month: "2-digit",
+        day: "2-digit",
+        year: "numeric",
       });
     } catch (error) {
       console.error("Error formatting timestamp:", error);
@@ -541,7 +549,7 @@ export default function ProfileScreen() {
   // Convert timestamp to Date object for picker
   const timestampToDate = (timestamp: any): Date => {
     if (!timestamp) return new Date();
-    
+
     try {
       if (timestamp.toDate) {
         return timestamp.toDate();
@@ -553,7 +561,7 @@ export default function ProfileScreen() {
     } catch (error) {
       console.error("Error converting timestamp to date:", error);
     }
-    
+
     return new Date();
   };
 
@@ -706,9 +714,9 @@ export default function ProfileScreen() {
 
           setFormData(profileData);
           setOriginalData(profileData);
-          
+
           await fetchLearnerSection(user.uid);
-          
+
           console.log("Fetched user + guardian data:", profileData);
           console.log("Profile image URL:", profilePicUrl);
           console.log("DOB timestamp:", dobTimestamp);
@@ -1721,6 +1729,7 @@ const styles = StyleSheet.create({
     fontSize: RFValue(6),
     color: "#434343",
   },
+
   header: {
     paddingHorizontal: width * 0.04,
     paddingVertical: height * 0.02,
@@ -1959,7 +1968,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    height: height * 0.10,
+    height: height * 0.1,
     gap: width * 0.01,
     borderBottomLeftRadius: width * 0.01,
     borderBottomRightRadius: width * 0.01,
