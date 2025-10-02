@@ -248,7 +248,7 @@ const MessageScreen = ({ userRole = "teacher" }: MessageScreenProps) => {
           <MySearchBar
             placeholder={getSearchPlaceholder()}
             query="local"
-            onSearch={handleSearch}
+            onSearch={handleSearch as () => void}
           />
         </View>
 

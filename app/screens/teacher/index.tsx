@@ -1,4 +1,3 @@
-import FabMenu from "@/components/FabMenu";
 import LearnerCard from "@/components/LearnerCard";
 import PageHeader from "@/components/PageHeader";
 import SectionTabs from "@/components/SectionTabs";
@@ -152,13 +151,14 @@ const ManageLearnersScreen = () => {
             </View>
           </View>
         </ScrollView>
-        <FabMenu
+        {/* hide adding of learner on teacher side for now */}
+        {/* <FabMenu
           page="learners"
           actions={{
             add: () => setActiveModal("add"),
             edit: () => setActiveModal("edit"),
           }}
-        />
+        /> */}
       </View>
     </>
   );

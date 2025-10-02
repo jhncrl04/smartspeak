@@ -29,8 +29,6 @@ export const getChild = async () => {
   }
 };
 
-
-
 export const listenToChildren = (callback: (children: any[]) => void) => {
   try {
     const uid = getCurrentUid();
@@ -324,11 +322,11 @@ export const setLoginState = (
     region: userDoc.region,
     province: userDoc.province,
     municipality: userDoc.municipality,
-    barangay: userDoc.baranggay,
-    region_name: userDoc.region,
-    province_name: userDoc.province,
-    municipality_name: userDoc.municipality,
-    barangay_name: userDoc.baranggay,
+    barangay: userDoc.barangay,
+    region_name: userDoc.region_name,
+    province_name: userDoc.province_name,
+    municipality_name: userDoc.municipality_name,
+    barangay_name: userDoc.baranggay_name,
     phoneNumber: userDoc.phone_number as string,
     profile: userDoc.profile_pic as string,
     role: userDoc.role,
@@ -368,5 +366,29 @@ export const removeAsStudent = async (learnerId: string) => {
   } catch (err) {
     console.error("Error adding student:", err);
     return { success: false };
+  }
+};
+
+export const updateUserInfo = async (user: {
+  user_id: string;
+  first_name: string;
+  last_name: string;
+  region: string | null;
+  region_name: string | null;
+  province: string | null;
+  province_name: string | null;
+  municipality: string | null;
+  municipality_name: string | null;
+  barangay: string | null;
+  barangay_name: string | null;
+}) => {
+  try {
+    await userCollection.doc(user.user_id).update(user);
+
+    return { success: true };
+  } catch (err) {
+    console.error("Error updating user info: ", err);
+
+    return { success: false, error: err as string };
   }
 };

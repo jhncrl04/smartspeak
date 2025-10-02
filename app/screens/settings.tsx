@@ -349,6 +349,10 @@ const SettingScreen = () => {
       .catch((err) => console.error("Error fetching cities:", err));
   }, [selectedProvince]);
 
+  console.log(
+    `${pscgApi}/provinces/${selectedProvinceLabel}/cities-municipalities/${selectedCityLabel}/barangays/`
+  );
+
   // Barangays
   useEffect(() => {
     if (!selectedCity || !selectedProvinceLabel || !selectedCityLabel) return;

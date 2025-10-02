@@ -105,119 +105,128 @@ const Sidebar = ({ onNavigate, userRole }: SidebarProps) => {
 
   const currentWidth = expanded ? "25%" : 60;
 
+  const [disableSidebar, setDisableSidebar] = useState(false);
+
   const pathname = usePathname();
 
   return (
-    <View
-      style={[
-        styles.sidebar,
-        { width: currentWidth }, // dynamic width here
-      ]}
-    >
-      <ScrollView showsVerticalScrollIndicator={false}>
-        <View style={{ paddingVertical: 16 }}>
-          <View style={{ gap: 0 }}>
-            {/* Expand/Collapse Button */}
-            <View style={styles.toggleButton}>
-              {expanded && (
-                <TouchableOpacity
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: 10,
-                  }}
-                  onPress={() => {
-                    router.push("/screens/settings");
-                  }}
-                >
-                  <Image
-                    source={
-                      user?.profile
-                        ? { uri: user.profile }
-                        : require("../assets/images/creeper.png")
-                    }
-                    style={styles.profile}
-                  />
-                  <Text
+    <>
+      <View
+        style={[
+          styles.sidebar,
+          { width: currentWidth }, // dynamic width here
+        ]}
+      >
+        <ScrollView showsVerticalScrollIndicator={false}>
+          <View style={{ paddingVertical: 16 }}>
+            <View style={{ gap: 0 }}>
+              {/* Expand/Collapse Button */}
+              <View style={styles.toggleButton}>
+                {expanded && (
+                  <TouchableOpacity
                     style={{
-                      fontFamily: "Poppins",
-                      fontWeight: "500",
-                      fontSize: 16,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 10,
                     }}
-                  >{`${user?.fname}`}</Text>
-                </TouchableOpacity>
-              )}
-              <Icon
-                name={expanded ? "chevron-left" : "chevron-right"}
-                size={24}
-                color={COLORS.gray}
-                onPress={toggleSidebar}
-                style={{ paddingHorizontal: 10 }}
-              />
-            </View>
-
-            <View style={styles.sidebarInnerContainer}>
-              {/* Menu Items */}
-              {menuItems.map((item) => (
-                <TouchableOpacity
-                  key={item.label}
-                  style={[
-                    styles.menuItem,
-                    pathname === item.screen && {
-                      backgroundColor: COLORS.lightGray,
-                    },
-                  ]}
-                  onPress={() => {
-                    router.push(item.screen as any);
-                    onNavigate(item.screen);
-                  }}
-                >
-                  <View
-                    style={[
-                      styles.iconContainer,
-                      pathname === item.screen && styles.activeIcon,
-                    ]}
+                    onPress={() => {
+                      router.push("/screens/settings");
+                    }}
                   >
-                    <Icon
-                      name={item.icon}
-                      size={24}
-                      color={
-                        pathname === item.screen ? COLORS.white : COLORS.gray
+                    <Image
+                      source={
+                        user?.profile
+                          ? { uri: user.profile }
+                          : require("../assets/images/creeper.png")
                       }
+                      style={styles.profile}
                     />
-                  </View>
-
-                  {expanded && (
                     <Text
+                      style={{
+                        fontFamily: "Poppins",
+                        fontWeight: "500",
+                        fontSize: 16,
+                      }}
+                    >{`${user?.fname}`}</Text>
+                  </TouchableOpacity>
+                )}
+                <Icon
+                  name={expanded ? "chevron-left" : "chevron-right"}
+                  size={24}
+                  color={COLORS.gray}
+                  onPress={toggleSidebar}
+                  style={{ paddingHorizontal: 10 }}
+                />
+              </View>
+
+              <View style={styles.sidebarInnerContainer}>
+                {/* Menu Items */}
+                {menuItems.map((item) => (
+                  <TouchableOpacity
+                    disabled={disableSidebar || pathname === item.screen}
+                    key={item.label}
+                    style={[
+                      styles.menuItem,
+                      pathname === item.screen && {
+                        backgroundColor: COLORS.lightGray,
+                      },
+                    ]}
+                    onPress={() => {
+                      if (pathname === item.screen) return;
+
+                      setDisableSidebar(true);
+
+                      router.push(item.screen as any);
+                      onNavigate(item.screen);
+                    }}
+                  >
+                    <View
                       style={[
-                        styles.menuText,
-                        pathname === item.screen && styles.activeText,
+                        styles.iconContainer,
+                        pathname === item.screen && styles.activeIcon,
                       ]}
                     >
-                      {item.label}
-                    </Text>
-                  )}
-                </TouchableOpacity>
-              ))}
+                      <Icon
+                        name={item.icon}
+                        size={24}
+                        color={
+                          pathname === item.screen ? COLORS.white : COLORS.gray
+                        }
+                      />
+                    </View>
+
+                    {expanded && (
+                      <Text
+                        style={[
+                          styles.menuText,
+                          pathname === item.screen && styles.activeText,
+                        ]}
+                      >
+                        {item.label}
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
+
+            <TouchableOpacity style={styles.menuItem} onPress={logoutHandler}>
+              <View style={styles.iconContainer}>
+                <MDIcon
+                  name={"logout"}
+                  size={24}
+                  color={COLORS.gray}
+                  style={{ transform: [{ scaleX: -1 }] }}
+                />
+              </View>
+
+              {expanded && <Text style={styles.menuText}>Log Out</Text>}
+            </TouchableOpacity>
           </View>
-
-          <TouchableOpacity style={styles.menuItem} onPress={logoutHandler}>
-            <View style={styles.iconContainer}>
-              <MDIcon
-                name={"logout"}
-                size={24}
-                color={COLORS.gray}
-                style={{ transform: [{ scaleX: -1 }] }}
-              />
-            </View>
-
-            {expanded && <Text style={styles.menuText}>Log Out</Text>}
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </View>
+        </ScrollView>
+      </View>
+    </>
   );
 };
 

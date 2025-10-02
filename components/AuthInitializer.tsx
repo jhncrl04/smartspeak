@@ -22,6 +22,14 @@ const AuthInitializer = ({ children }: { children: React.ReactNode }) => {
               phoneNumber: userDoc.phone_number,
               role: userDoc.role,
               uid: firebaseUser.uid,
+              region: userDoc.region,
+              province: userDoc.province,
+              municipality: userDoc.municipality,
+              barangay: userDoc.barangay,
+              region_name: userDoc.region_name,
+              province_name: userDoc.province_name,
+              municipality_name: userDoc.municipality_name,
+              barangay_name: userDoc.barangay_name,
             });
           }
         } else {
