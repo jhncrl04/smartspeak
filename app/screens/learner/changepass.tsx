@@ -1,5 +1,5 @@
 import { ThemedView } from "@/components/ThemedView";
-import { useAuthStore } from "@/stores/userAuthStore"; // Import your auth store
+import { useAuthStore } from "@/stores/userAuthStore";
 import { useFonts } from "expo-font";
 import { router } from "expo-router";
 import * as ScreenOrientation from "expo-screen-orientation";
@@ -43,24 +43,57 @@ export default function HomeScreen() {
     confirmPassword: "",
   });
 
-  // Profile image state
+  // Profile data state
   const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
   const [loadingImage, setLoadingImage] = useState(true);
+  const [sectionName, setSectionName] = useState<string>("No Section");
+  const [studentName, setStudentName] = useState<string>("Student Name"); // ADDED: Student name state
 
   // Notification state
-  const [notification, setNotification] = useState({
+  const [notification, setNotification] = useState<{
+    visible: boolean;
+    message: string;
+    type: "error" | "success";
+  }>({
+    visible: false,
     message: "",
-    type: "error", // "success" | "error"
+    type: "error",
   });
-  const [showNotification, setShowNotification] = useState(false);
-  const fadeAnim = useState(new Animated.Value(0))[0];
+
+  const [slideAnim] = useState(new Animated.Value(-100));
 
   const { width } = Dimensions.get("window");
   const isTablet = width > 968;
 
-  // Fetch profile image from Firebase
+  // Function to fetch learner's section
+  const fetchLearnerSection = async (userId: string) => {
+    try {
+      const sectionsSnapshot = await firestore()
+        .collection("sections")
+        .get();
+
+      let learnerSection = "No Section";
+
+      for (const doc of sectionsSnapshot.docs) {
+        const sectionData = doc.data();
+        const students = sectionData.students || [];
+
+        if (students.includes(userId)) {
+          learnerSection = sectionData.name || "Unnamed Section";
+          break;
+        }
+      }
+
+      setSectionName(learnerSection);
+    } catch (error) {
+      console.error("Error fetching learner section:", error);
+      setSectionName("No Section");
+    }
+  };
+
+  // UPDATED: Fetch profile image, student name, and section from Firebase
   useEffect(() => {
-    const fetchProfileImage = async () => {
+    const fetchUserData = async () => {
       if (!user?.uid) {
         setLoadingImage(false);
         return;
@@ -75,20 +108,34 @@ export default function HomeScreen() {
 
         if (userDoc.exists()) {
           const userData = userDoc.data();
+          
+          // Fetch profile image
           const profilePicUrl =
             userData?.profile_pic ||
             userData?.profilePic ||
             userData?.profile_picture;
           setProfileImageUrl(profilePicUrl || null);
+          
+          // Fetch student name - ADDED: Get name from Firestore
+          const firstName = userData?.first_name || userData?.fname || "";
+          const middleName = userData?.middle_name || userData?.mname || "";
+          const lastName = userData?.last_name || userData?.lname || "";
+          
+          // Construct full name
+          const fullName = `${firstName} ${middleName} ${lastName}`.trim();
+          setStudentName(fullName || "Student Name");
+          
+          // Fetch learner's section
+          await fetchLearnerSection(user.uid);
         }
       } catch (error) {
-        console.error("Error fetching profile image:", error);
+        console.error("Error fetching user data:", error);
       } finally {
         setLoadingImage(false);
       }
     };
 
-    fetchProfileImage();
+    fetchUserData();
   }, [user]);
 
   useEffect(() => {
@@ -99,6 +146,30 @@ export default function HomeScreen() {
     };
     lockOrientation();
   }, []);
+
+  // Show notification function
+  const showNotification = (
+    message: string,
+    type: "error" | "success" = "error"
+  ) => {
+    setNotification({ visible: true, message, type });
+
+    Animated.timing(slideAnim, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+
+    setTimeout(() => {
+      Animated.timing(slideAnim, {
+        toValue: -100,
+        duration: 300,
+        useNativeDriver: true,
+      }).start(() => {
+        setNotification({ visible: false, message: "", type: "error" });
+      });
+    }, 3000);
+  };
 
   const handleEdit = () => {
     setIsEditing(true);
@@ -113,47 +184,26 @@ export default function HomeScreen() {
     });
   };
 
-  const showPopup = (message: string, type: "success" | "error") => {
-    setNotification({ message, type });
-    setShowNotification(true);
-
-    // Fade in
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 300,
-      useNativeDriver: true,
-    }).start();
-
-    // Auto hide after 3s
-    setTimeout(() => {
-      Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: 300,
-        useNativeDriver: true,
-      }).start(() => setShowNotification(false));
-    }, 3000);
-  };
-
   const handleSave = async () => {
     const { oldPassword, newPassword, confirmPassword } = passwords;
 
     if (!oldPassword || !newPassword || !confirmPassword) {
-      showPopup("Please fill in all fields", "error");
+      showNotification("Please fill in all fields", "error");
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      showPopup("New passwords do not match", "error");
+      showNotification("New passwords do not match", "error");
       return;
     }
 
     if (newPassword === oldPassword) {
-      showPopup("New password cannot be the same as old password", "error");
+      showNotification("New password cannot be the same as old password", "error");
       return;
     }
 
     if (newPassword.length < 6) {
-      showPopup("Password must be at least 6 characters long", "error");
+      showNotification("Password must be at least 6 characters long", "error");
       return;
     }
 
@@ -162,7 +212,7 @@ export default function HomeScreen() {
       const currentUser = auth().currentUser;
 
       if (!currentUser || !currentUser.email) {
-        showPopup("No user is logged in", "error");
+        showNotification("No user is logged in", "error");
         return;
       }
 
@@ -181,7 +231,7 @@ export default function HomeScreen() {
       // ✅ Update in Zustand store (optional)
       updatePassword(newPassword);
 
-      showPopup("Password changed successfully!", "success");
+      showNotification("Password changed successfully!", "success");
       setIsEditing(false);
       setPasswords({ oldPassword: "", newPassword: "", confirmPassword: "" });
     } catch (error: any) {
@@ -190,13 +240,13 @@ export default function HomeScreen() {
         error.code === "auth/wrong-password" ||
         error.code === "auth/invalid-credential"
       ) {
-        showPopup("Incorrect old password", "error");
+        showNotification("Incorrect old password", "error");
       } else if (error.code === "auth/weak-password") {
-        showPopup("Password is too weak", "error");
+        showNotification("Password is too weak", "error");
       } else if (error.code === "auth/requires-recent-login") {
-        showPopup("Please log out and log back in, then try again", "error");
+        showNotification("Please log out and log back in, then try again", "error");
       } else {
-        showPopup(error.message || "Failed to update password", "error");
+        showNotification(error.message || "Failed to update password", "error");
       }
     }
   };
@@ -206,27 +256,26 @@ export default function HomeScreen() {
   }
 
   return (
-    <GestureHandlerRootView>
+    <GestureHandlerRootView style={styles.container}>
       <ThemedView style={styles.container}>
-        {/* 🔔 Notification Popup */}
-        {showNotification && (
-          <Animated.View
-            style={[styles.notificationContainer, { opacity: fadeAnim }]}
-          >
-            <View
+        {/* Custom Notification */}
+        {notification.visible && (
+          <View style={styles.notificationContainer}>
+            <Animated.View
               style={[
                 styles.notificationBox,
                 {
                   backgroundColor:
                     notification.type === "success" ? "#4CAF50" : "#FF6B6B",
+                  transform: [{ translateY: slideAnim }],
                 },
               ]}
             >
               <Text style={styles.notificationText}>
                 {notification.message}
               </Text>
-            </View>
-          </Animated.View>
+            </Animated.View>
+          </View>
         )}
 
         {/* HEADER */}
@@ -239,10 +288,10 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* MAIN BODY */}
-        <View style={[styles.body, isTablet ? styles.body : styles.bodyMobile]}>
-          <View style={styles.layer1}>
-            <View style={styles.ProfileContainer}>
+        {/* UPDATED: PROFILE HEADER - Same design as Profile Screen */}
+        <View style={styles.layer1}>
+          <View style={styles.ProfileContainer}>
+            <View style={styles.ProfileImageContainer}>
               {loadingImage ? (
                 <View style={styles.ProfileImageLoading}>
                   <ActivityIndicator size="small" color="#9B72CF" />
@@ -262,65 +311,18 @@ export default function HomeScreen() {
                 />
               )}
             </View>
-          </View>
 
-          <View style={styles.layer2}>
-            <Text style={styles.LayerTitle}>Change Password</Text>
-
-            <View style={styles.ParentInformationContainer}>
-              <View style={styles.ParentInformation}>
-                <Text style={styles.InputTitle}>Old Password</Text>
-                <TextInput
-                  style={[
-                    styles.InputData,
-                    isEditing && styles.InputDataEditing,
-                  ]}
-                  secureTextEntry={true}
-                  editable={isEditing}
-                  value={passwords.oldPassword}
-                  onChangeText={(text) =>
-                    setPasswords((prev) => ({ ...prev, oldPassword: text }))
-                  }
-                  placeholder="Enter old password"
-                  placeholderTextColor="rgba(67, 67, 67, 0.7)"
-                />
-              </View>
-
-              <View style={styles.ParentInformation}>
-                <Text style={styles.InputTitle}>New Password</Text>
-                <TextInput
-                  style={[
-                    styles.InputData,
-                    isEditing && styles.InputDataEditing,
-                  ]}
-                  secureTextEntry={true}
-                  editable={isEditing}
-                  value={passwords.newPassword}
-                  onChangeText={(text) =>
-                    setPasswords((prev) => ({ ...prev, newPassword: text }))
-                  }
-                  placeholder="Enter new password"
-                  placeholderTextColor="rgba(67, 67, 67, 0.7)"
-                />
-              </View>
-
-              <View style={styles.ParentInformation}>
-                <Text style={styles.InputTitle}>Confirm New Password</Text>
-                <TextInput
-                  style={[
-                    styles.InputData,
-                    isEditing && styles.InputDataEditing,
-                  ]}
-                  secureTextEntry={true}
-                  editable={isEditing}
-                  value={passwords.confirmPassword}
-                  onChangeText={(text) =>
-                    setPasswords((prev) => ({ ...prev, confirmPassword: text }))
-                  }
-                  placeholder="Confirm new password"
-                  placeholderTextColor="rgba(67, 67, 67, 0.7)"
-                />
-              </View>
+            <View style={styles.ProfileTextContainer}>
+              {/* UPDATED: Use studentName from Firestore instead of displayName */}
+              <Text style={styles.LayerTitle}>
+                {studentName}
+              </Text>
+              <Text style={styles.ProfileText}>
+                {user?.email || "No email available"}
+              </Text>
+              <Text style={styles.ProfileSubText}>
+                Section: {sectionName}
+              </Text>
             </View>
           </View>
 
@@ -338,6 +340,84 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </View>
           )}
+        </View>
+
+        {/* UPDATED: CONTENT AREA - Same layout as Profile Screen */}
+        <View style={styles.contentArea}>
+          <View style={styles.pageContent}>
+            <Text style={styles.pageTitle}>Change Password</Text>
+
+            <View style={styles.ParentInformationContainer}>
+              <View style={styles.ParentInformation}>
+                <Text style={[
+                  styles.InputTitle,
+                  isEditing && styles.InputTitleEditing,
+                ]}>
+                  Old Password
+                </Text>
+                <TextInput
+                  style={[
+                    styles.InputData,
+                    isEditing && styles.InputDataEditing,
+                  ]}
+                  secureTextEntry={true}
+                  editable={isEditing}
+                  value={passwords.oldPassword}
+                  onChangeText={(text) =>
+                    setPasswords((prev) => ({ ...prev, oldPassword: text }))
+                  }
+                  placeholder="Enter old password"
+                  placeholderTextColor="rgba(67, 67, 67, 0.7)"
+                />
+              </View>
+
+              <View style={styles.ParentInformation}>
+                <Text style={[
+                  styles.InputTitle,
+                  isEditing && styles.InputTitleEditing,
+                ]}>
+                  New Password
+                </Text>
+                <TextInput
+                  style={[
+                    styles.InputData,
+                    isEditing && styles.InputDataEditing,
+                  ]}
+                  secureTextEntry={true}
+                  editable={isEditing}
+                  value={passwords.newPassword}
+                  onChangeText={(text) =>
+                    setPasswords((prev) => ({ ...prev, newPassword: text }))
+                  }
+                  placeholder="Enter new password"
+                  placeholderTextColor="rgba(67, 67, 67, 0.7)"
+                />
+              </View>
+
+              <View style={styles.ParentInformation}>
+                <Text style={[
+                  styles.InputTitle,
+                  isEditing && styles.InputTitleEditing,
+                ]}>
+                  Confirm New Password
+                </Text>
+                <TextInput
+                  style={[
+                    styles.InputData,
+                    isEditing && styles.InputDataEditing,
+                  ]}
+                  secureTextEntry={true}
+                  editable={isEditing}
+                  value={passwords.confirmPassword}
+                  onChangeText={(text) =>
+                    setPasswords((prev) => ({ ...prev, confirmPassword: text }))
+                  }
+                  placeholder="Confirm new password"
+                  placeholderTextColor="rgba(67, 67, 67, 0.7)"
+                />
+              </View>
+            </View>
+          </View>
         </View>
 
         {/* FOOTER */}
@@ -383,8 +463,28 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#fafafa",
   },
-
-  // 🔔 Notification styles
+  // UPDATED: Content area styles
+  contentArea: {
+    flex: 1,
+    paddingHorizontal: width * 0.04,
+    paddingVertical: height * 0.03,
+  },
+  pageContent: {
+    flex: 1,
+    width: width * 0.9,
+    alignSelf: 'center',
+    marginHorizontal: 'auto',
+  },
+  pageTitle: {
+    fontFamily: "Poppins",
+    fontSize: RFValue(12),
+    color: "#434343",
+    fontWeight: "600",
+    letterSpacing: 0.5,
+    textAlign: "center",
+    marginBottom: height * 0.03,
+  },
+  // Notification styles
   notificationContainer: {
     position: "absolute",
     top: hp(3),
@@ -393,7 +493,7 @@ const styles = StyleSheet.create({
     zIndex: 9999,
     alignItems: "center",
   },
- notificationBox: {
+  notificationBox: {
     paddingVertical: height * 0.02,
     paddingHorizontal: width * 0.02,
     borderRadius: width * 0.01,
@@ -413,7 +513,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontWeight: "600",
   },
-   header: {
+  header: {
     paddingHorizontal: width * 0.04,
     paddingVertical: height * 0.02,
     backgroundColor: "#E5E5E5",
@@ -421,66 +521,78 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     position: "relative",
   },
-
-
-  // BODY STYLES
-  body: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  bodyMobile: {
-    marginBottom: hp(2),
-  },
-
-  // LAYER 1
- layer1: {
-    width: width * 0.8,
+  // UPDATED: PROFILE HEADER - Same as Profile Screen
+  layer1: {
+    width: width * 0.9,
     borderBottomWidth: 1,
     borderColor: "rgba(67, 67, 67, 0.5)",
-    paddingHorizontal: width * 0.01,
-    paddingVertical: height * 0.02,
+    paddingHorizontal: width * 0.04,
+    paddingVertical: height * 0.03,
     flexDirection: "row",
-    justifyContent: "center",
+    justifyContent: "space-between",
     alignItems: "center",
+    backgroundColor: '#fafafa',
+    alignSelf: 'center',
+    marginHorizontal: 'auto',
   },
   ProfileContainer: {
     display: "flex",
     flexDirection: "row",
-  },
-  ProfileImage: {
-    width: width * 0.08,
-    height: height * 0.15,
-    borderRadius: width * 0.01,
-    resizeMode: "cover",
-    marginRight: width * 0.01,
-  },
-  ProfileImageLoading: {
-    width: width * 0.08,
-    height: height * 0.15,
-    borderRadius: width * 0.01,
-    backgroundColor: "#f0f0f0",
-    marginRight: wp(1),
-    justifyContent: "center",
     alignItems: "center",
   },
-  // LAYER 2
-  layer2: {
-    width: width * 0.8,
-    paddingHorizontal: width * 0.01,
-    paddingVertical: height * 0.02,
+  ProfileImageContainer: {
+    position: "relative",
   },
-  LayerTitle: {
+  ProfileImage: {
+    width: width * 0.10,
+    height: width * 0.10,
+    borderRadius: (width * 0.10) / 2,
+    resizeMode: "cover",
+    marginRight: width * 0.03,
+  },
+  ProfileImageLoading: {
+    width: width * 0.10,
+    height: width * 0.10,
+    borderRadius: (width * 0.10) / 2,
+    backgroundColor: "#f0f0f0",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: width * 0.03,
+  },
+  ProfileTextContainer: {
+    justifyContent: "center",
+  },
+  ProfileText: {
     fontFamily: "Poppins",
     fontSize: RFValue(8),
     color: "#434343",
+    fontWeight: "400",
+    letterSpacing: 0.5,
+  },
+  ProfileSubText: {
+    fontFamily: "Poppins",
+    fontSize: RFValue(6),
+    color: "#434343",
+    opacity: 0.7,
+    fontWeight: "300",
+    letterSpacing: 0.5,
+  },
+  LayerTitle: {
+    fontFamily: "Poppins",
+    fontSize: RFValue(10),
+    color: "#434343",
     fontWeight: "500",
     letterSpacing: 0.5,
-    textAlign: "center",
+    textAlign: "left",
+    marginBottom: height * 0.005,
   },
-  ParentInformationContainer: {},
+  // INFORMATION CONTAINERS
+  ParentInformationContainer: {
+    flexDirection: "row",
+    gap: width * 0.04,
+  },
   ParentInformation: {
-    marginHorizontal: wp(1),
+    flex: 1,
   },
   InputTitle: {
     fontFamily: "Poppins",
@@ -489,7 +601,7 @@ const styles = StyleSheet.create({
     opacity: 0.7,
     fontWeight: "400",
     letterSpacing: 0.5,
-    textAlign: "center",
+    textAlign: "left",
     marginVertical: height * 0.005,
   },
   InputTitleEditing: {
@@ -509,39 +621,34 @@ const styles = StyleSheet.create({
     textAlign: "center",
     padding: width * 0.002,
     marginBottom: width * 0.005,
-    justifyContent: "center",
-    alignSelf: "center",
-    width: wp(60),
     backgroundColor: "#fafafa",
   },
   InputDataEditing: {
     color: "#434343",
     opacity: 1,
     borderColor: "#434343",
-    backgroundColor: "#fafafa",
+    backgroundColor: "#ffffff",
   },
   EditBtn: {
     backgroundColor: "#9B72CF",
-    paddingVertical: height * 0.02,
+    paddingVertical: height * 0.015,
     paddingHorizontal: width * 0.04,
     borderRadius: width * 0.01,
-    marginTop: height * 0.01,
   },
   ButtonContainer: {
     flexDirection: "row",
     gap: width * 0.02,
-    marginTop: height * 0.01,
   },
   CancelBtn: {
     borderColor: "#9B72CF",
     borderWidth: 1,
-    paddingVertical: height * 0.02,
+    paddingVertical: height * 0.015,
     paddingHorizontal: width * 0.04,
     borderRadius: width * 0.01,
   },
   SaveBtn: {
     backgroundColor: "#9B72CF",
-    paddingVertical: height * 0.02,
+    paddingVertical: height * 0.015,
     paddingHorizontal: width * 0.04,
     borderRadius: width * 0.01,
   },
@@ -559,7 +666,6 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     letterSpacing: 0.5,
   },
-
   // FOOTER STYLES
   footer: {
     backgroundColor: "#E5E5E5",
@@ -612,4 +718,4 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginTop: 0,
   },
-});
+}); 
