@@ -4,6 +4,7 @@ import LearnerProfileHeader from "@/components/LeanerProfileHeader";
 import PecsCard from "@/components/PecsCard";
 import Sidebar from "@/components/Sidebar";
 import AssignCardModal from "@/components/ui/AssignCardModal";
+import { showToast } from "@/components/ui/MyToast";
 import ProgressReportModal from "@/components/ui/ProgressReportModal";
 import COLORS from "@/constants/Colors";
 import { calculateAge } from "@/helper/calculateAge";
@@ -85,9 +86,15 @@ const LearnerProfileCategory = () => {
     categoryId: string,
     learnerId: string
   ) => {
-    const success = await unassignCategory(categoryId, learnerId);
+    const result: any = await unassignCategory(categoryId, learnerId);
 
-    if (success) router.back;
+    showToast(
+      "success",
+      "Unassign Category",
+      `${categoryName} has been unassigned`
+    );
+
+    if (result.success) router.back();
   };
 
   return (

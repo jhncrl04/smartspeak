@@ -72,6 +72,9 @@ const styles = StyleSheet.create({
   },
   categoryImage: { width: "100%", height: "100%" },
   categoryName: { fontSize: 16, fontFamily: "Poppins", color: COLORS.gray },
+  buttonContainer: {
+    width: 75,
+  },
 });
 
 export default AssignCardPreview;

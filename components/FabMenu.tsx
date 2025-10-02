@@ -37,17 +37,18 @@ const FabMenu = ({
       },
     ],
     learnerProfile: [
-      user?.role.toLowerCase() === "teacher"
-        ? {
-            icon: "delete",
-            label: "Remove Learner",
-            onPress: actions?.["remove_learner"],
-          }
-        : {
-            icon: "delete",
-            label: "Remove Child",
-            onPress: actions?.["remove_child"],
-          },
+      // Removing this for now
+      // user?.role.toLowerCase() === "teacher"
+      //   ? {
+      //       icon: "delete",
+      //       label: "Remove Learner",
+      //       onPress: actions?.["remove_learner"],
+      //     }
+      //   : {
+      //       icon: "delete",
+      //       label: "Remove Child",
+      //       onPress: actions?.["remove_child"],
+      //     },
       {
         icon: "minus-box-multiple-outline",
         label: "Assign Category",

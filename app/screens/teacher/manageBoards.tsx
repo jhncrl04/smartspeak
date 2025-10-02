@@ -41,7 +41,9 @@ const ManageBoardsScreen = () => {
               hasFilter={true}
               searchPlaceholder="Search Category"
               collectionToSearch="pecsCategories"
-              onSearch={() => {}}
+              onSearch={(val) => {
+                console.log(val);
+              }}
               query="category"
             />
             <View style={styles.boardContainer}>

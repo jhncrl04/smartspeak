@@ -137,6 +137,45 @@ export const listenCategories = (callback: (categories: any[]) => void) => {
   });
 };
 
+export const listenToUnassignedCategories = (
+  learnerId: string,
+  callback: (categories: any[]) => void
+) => {
+  const uid = useAuthStore.getState().user?.uid;
+  if (!uid) return () => {};
+
+  return categoryCollection.onSnapshot(async (snapshot) => {
+    const categories: any[] = [];
+
+    // We’ll collect promises here for fetching creator names
+    const promises = snapshot.docs.map(async (doc) => {
+      const category = doc.data();
+      category.id = doc.id;
+
+      // console.log(
+      //   `${category.category_name}: {assignedTo: ${
+      //     category.assigned_to
+      //   }, createdBy: ${
+      //     category.created_by || category.created_by_role.toLowerCase()
+      //   }, createdFor: ${category.created_for}}`
+      // );
+
+      if (
+        !category.assigned_to?.includes(learnerId) &&
+        category.created_by === uid &&
+        category.created_by_role?.toString().toLowerCase() !== "admin"
+      ) {
+        if (!category.created_for || category.created_for === learnerId) {
+          categories.push(category);
+        }
+      }
+    });
+
+    await Promise.all(promises); // wait for all creator lookups
+    callback(categories); // push enriched categories to state
+  });
+};
+
 export const getUnassignedCategories = async (learnerId: string) => {
   const uid = useAuthStore.getState().user?.uid;
 
@@ -205,7 +244,7 @@ export const assignCategory = async (
 export const unassignCategory = async (
   categoryId: string,
   learnerId: string
-): Promise<boolean> => {
+) => {
   try {
     const cardCollection = firestore().collection("cards");
 
@@ -267,10 +306,10 @@ export const unassignCategory = async (
       .doc(categoryId)
       .update({ assigned_to: arrayRemove(learnerId) });
 
-    return true;
+    return { success: true };
   } catch (err) {
     console.error("Error unassigning category: ", err);
-    return false;
+    return { success: false, error: err };
   }
 };
 
@@ -327,11 +366,6 @@ export const updateCategory = async (
   }
 ) => {
   try {
-    await categoryCollection.doc(categoryId).update({
-      ...updates,
-      updated_at: firestore.FieldValue.serverTimestamp(), // for tracking
-    });
-
     const category = await getCategoryWithId(categoryId);
 
     const logBody: UpdateLog = {
@@ -351,6 +385,11 @@ export const updateCategory = async (
       user_name: "",
       user_type: "",
     };
+
+    await categoryCollection.doc(categoryId).update({
+      ...updates,
+      updated_at: firestore.FieldValue.serverTimestamp(), // for tracking
+    });
 
     createLog(logBody);
 

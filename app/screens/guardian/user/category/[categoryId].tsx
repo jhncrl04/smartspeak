@@ -11,6 +11,7 @@ import {
   getAssignedCards,
   listenAssignedCardWithCategory,
 } from "@/services/cardsService";
+import { unassignCategory } from "@/services/categoryService";
 import { getStudentInfo } from "@/services/userService";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
@@ -76,6 +77,17 @@ const LearnerProfileCategory = () => {
 
   const [activeModal, setActiveModal] = useState<"assign-card" | null>(null);
 
+  const handleUnassignCategory = async (
+    categoryId: string,
+    learnerId: string
+  ) => {
+    const result: any = await unassignCategory(categoryId, learnerId);
+
+    console.log(result);
+
+    if (result.success) router.back();
+  };
+
   return (
     <>
       <SafeAreaView style={styles.container}>
@@ -98,7 +110,14 @@ const LearnerProfileCategory = () => {
               profile={userInfo?.profile_pic}
               name={`${userInfo?.first_name} ${userInfo?.last_name}`}
               age={calculateAge(userInfo?.date_of_birth)}
-              buttonHandler={() => console.log("test")}
+              buttonHandler={() => {
+                router.push({
+                  pathname: "/screens/guardian/user/settings/[userId]",
+                  params: {
+                    userId: userId as string,
+                  },
+                });
+              }}
               screen="guardian"
             />
           </View>
@@ -124,9 +143,6 @@ const LearnerProfileCategory = () => {
                 <Text style={styles.emptyStateTitle}>
                   No Categories Assigned
                 </Text>
-                {/* <Text style={styles.emptyStateSubtitle}>
-                    Tap the + button above to assign categories to this student
-                  </Text> */}
               </View>
             ) : (
               cards?.map((card, index) => (
@@ -149,7 +165,12 @@ const LearnerProfileCategory = () => {
         {uid === (creatorId as string) && (
           <FabMenu
             page="learnerAssignedCategory"
-            actions={{ assign_card: () => setActiveModal("assign-card") }}
+            actions={{
+              assign_card: () => setActiveModal("assign-card"),
+              unassign_category: () => {
+                handleUnassignCategory(categoryId as string, userId as string);
+              },
+            }}
           />
         )}
       </SafeAreaView>

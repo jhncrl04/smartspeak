@@ -27,7 +27,7 @@ const index = () => {
       <View></View>
       <View style={styles.appInfoContainer}>
         <Image
-          source={require("../assets/images/logo.png")}
+          source={require("@/assets/images/logo.png")}
           style={styles.homepageImage}
         />
         {/* <Text style={styles.appName}>SmartSpeak</Text> */}

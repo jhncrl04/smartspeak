@@ -17,7 +17,7 @@ type searchbarProps = {
   placeholder: string;
   onSearch: (results: any[] | string) => void; // local → string, remote → array
   collectionToSearch?: collectionType; // optional if local
-  query: queryType;
+  query?: queryType;
 };
 
 const MySearchBar = (props: searchbarProps) => {
@@ -31,7 +31,7 @@ const MySearchBar = (props: searchbarProps) => {
       props.onSearch(text);
     } else {
       // ✅ For Firestore/DB search
-      handleSearch(props.query, text, props.collectionToSearch!);
+      handleSearch(props.query as queryType, text, props.collectionToSearch!);
     }
   };
 

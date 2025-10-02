@@ -3,9 +3,12 @@ export type LogAction =
   | "Update Card"
   | "Delete Card"
   | "Assign Card"
+  | "Unassign Category"
   | "Create Category"
   | "Update Category"
-  | "Delete Category";
+  | "Delete Category"
+  | "Assign Category"
+  | "Unassign Category";
 
 type BaseLog = {
   action: LogAction;
