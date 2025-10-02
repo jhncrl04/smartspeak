@@ -245,6 +245,31 @@ export default function HomeScreen() {
   // Refs to prevent infinite updates
   const categoriesRef = useRef<CategoryType[]>([]);
   const allCardsRef = useRef<CardType[]>([]);
+  const displayedCardsRef = useRef<CardType[]>([]);
+
+  // UPDATED: Enhanced function to check if arrays are equal (including content changes)
+  const areArraysEqual = (arr1: any[], arr2: any[]) => {
+    if (arr1.length !== arr2.length) return false;
+    
+    return arr1.every((item, index) => {
+      const item2 = arr2[index];
+      if (!item2) return false;
+      
+      // Compare all relevant properties
+      if (item.id !== item2.id) return false;
+      
+      // For categories
+      if (item.category_name !== item2.category_name) return false;
+      if (item.image !== item2.image) return false;
+      if (item.background_color !== item2.background_color) return false;
+      
+      // For cards - REMOVED text comparison to allow text updates
+      if (item.image !== item2.image) return false;
+      if (item.categoryId !== item2.categoryId) return false;
+      
+      return true;
+    });
+  };
 
   // Function to show notification
   const showNotificationMessage = () => {
@@ -416,13 +441,107 @@ export default function HomeScreen() {
     return currentCategory?.background_color || "#5FA056"; // Default fallback color
   };
 
-  // Helper function to check if arrays are equal
-  const areArraysEqual = (arr1: any[], arr2: any[]) => {
-    if (arr1.length !== arr2.length) return false;
-    return arr1.every((item, index) => item.id === arr2[index]?.id);
+  // UPDATED: Enhanced function to filter and update displayed cards with ID-based matching
+  const updateDisplayedCards = useCallback((allCards: CardType[], categories: CategoryType[], selectedCatId: string) => {
+    if (!selectedCatId || categories.length === 0 || allCards.length === 0) {
+      setDisplayedCards([]);
+      displayedCardsRef.current = [];
+      return;
+    }
+
+    const selectedCat = categories.find(cat => cat.id === selectedCatId);
+    if (!selectedCat) {
+      console.log("Selected category not found:", selectedCatId);
+      setDisplayedCards([]);
+      displayedCardsRef.current = [];
+      return;
+    }
+
+    console.log("Updating displayed cards for category:", selectedCat.category_name, "ID:", selectedCat.id);
+
+    // NEW: Get all cards that belong to this category by matching category ID
+    // First, try to find cards that have category_id field matching the category ID
+    const filteredCards = allCards.filter((card) => {
+      // Check if card has direct category ID reference
+      const hasDirectCategoryIdMatch = card.categoryId === selectedCat.id;
+      
+      // Also check if card has category_name that matches the category's name (backward compatibility)
+      const categoryName = selectedCat.category_name;
+      const cardCategoryId = card.categoryId;
+      
+      const exactMatch = cardCategoryId === categoryName;
+      const caseInsensitiveMatch = cardCategoryId.toLowerCase() === categoryName.toLowerCase();
+      const trimmedMatch = cardCategoryId.trim().toLowerCase() === categoryName.trim().toLowerCase();
+      
+      const matches = hasDirectCategoryIdMatch || exactMatch || caseInsensitiveMatch || trimmedMatch;
+      
+      if (matches) {
+        console.log(`Card "${card.text}" matches category "${selectedCat.category_name}"`);
+      }
+      
+      return matches;
+    });
+
+    console.log(`Found ${filteredCards.length} cards for category "${selectedCat.category_name}"`);
+
+    // Only update if cards actually changed
+    if (!areArraysEqual(displayedCardsRef.current, filteredCards)) {
+      displayedCardsRef.current = filteredCards;
+      setDisplayedCards(filteredCards);
+    }
+  }, []);
+
+  // NEW: Improved function to filter categories to only show those with cards
+  const filterCategoriesWithCards = useCallback((allCategories: CategoryType[], allCardsData: CardType[]): CategoryType[] => {
+    const categoriesWithCards = allCategories.filter((category) => {
+      const categoryCards = allCardsData.filter((card) => {
+        // Check multiple matching strategies
+        const hasDirectCategoryIdMatch = card.categoryId === category.id;
+        
+        const categoryName = category.category_name;
+        const cardCategoryId = card.categoryId;
+        
+        const exactMatch = cardCategoryId === categoryName;
+        const caseInsensitiveMatch = cardCategoryId.toLowerCase() === categoryName.toLowerCase();
+        const trimmedMatch = cardCategoryId.trim().toLowerCase() === categoryName.trim().toLowerCase();
+        
+        return hasDirectCategoryIdMatch || exactMatch || caseInsensitiveMatch || trimmedMatch;
+      });
+
+      const hasCards = categoryCards.length > 0;
+      console.log(`Category "${category.category_name}" (ID: ${category.id}) has ${categoryCards.length} cards - ${hasCards ? 'SHOWING' : 'HIDING'}`);
+      
+      return hasCards;
+    });
+
+    console.log("Categories with cards:", categoriesWithCards.map(c => `${c.category_name} (${c.id})`));
+    return categoriesWithCards;
+  }, []);
+
+  // NEW: Helper function to check if data actually changed (simplified)
+  const hasDataChanged = (oldData: any[], newData: any[]) => {
+    if (oldData.length !== newData.length) return true;
+    
+    // Check if any item has different data or if order changed
+    return newData.some((newItem, index) => {
+      const oldItem = oldData[index];
+      if (!oldItem) return true;
+      
+      // Compare only ID and structural properties, not content
+      if (newItem.id !== oldItem.id) return true;
+      if (newItem.category_name !== oldItem.category_name) return true;
+      if (newItem.image !== oldItem.image) return true;
+      if (newItem.background_color !== oldItem.background_color) return true;
+      if (newItem.categoryId !== oldItem.categoryId) return true;
+      
+      // DON'T compare text to allow text updates
+      // if (newItem.text !== oldItem.text) return true;
+      
+      return false;
+    });
   };
 
-  // UPDATED: Use real-time listeners with optimized updates
+  // UPDATED: Use real-time listeners with proper update handling
   useEffect(() => {
     if (!user?.uid) {
       console.log("No user found, not setting up listeners");
@@ -507,15 +626,36 @@ export default function HomeScreen() {
               }
             });
 
-            console.log(
-              "Filtered categories:",
-              allCategoriesData.map((c) => c.category_name)
-            );
+            console.log("All accessible categories:", allCategoriesData.map(c => c.category_name));
 
-            // Only update state if categories actually changed
-            if (!areArraysEqual(categoriesRef.current, allCategoriesData)) {
+
+            // Check if categories actually changed (including updates)
+            const categoriesChanged = hasDataChanged(categoriesRef.current, allCategoriesData);
+            
+            if (categoriesChanged) {
+              console.log("Categories changed - updating state");
               categoriesRef.current = allCategoriesData;
-              setCategories(allCategoriesData);
+              
+              // Filter categories to only show those with cards
+              const filteredCategories = filterCategoriesWithCards(allCategoriesData, allCardsRef.current);
+              console.log("Categories with cards:", filteredCategories.map(c => c.category_name));
+              
+              // Update categories state
+              setCategories(filteredCategories);
+
+              // Auto-select first category if none selected
+              if (filteredCategories.length > 0 && !selectedCategory) {
+                const firstCategoryId = filteredCategories[0].id;
+                setSelectedCategory(firstCategoryId);
+                console.log("Auto-selected first category:", firstCategoryId);
+              }
+
+              // Update displayed cards when categories change
+              if (selectedCategory) {
+                updateDisplayedCards(allCardsRef.current, filteredCategories, selectedCategory);
+              }
+            } else {
+              console.log("Categories unchanged - skipping state update");
             }
           } catch (error) {
             console.error("Error processing categories update:", error);
@@ -581,10 +721,12 @@ export default function HomeScreen() {
                   id: cardDoc.id,
                   image: cardData.image || "",
                   text: cardData.card_name || cardData.text || "No text",
-                  categoryId:
-                    cardData.category_name || cardData.category_id || "",
+
+                  // IMPORTANT: Store both category ID and name for better matching
+                  categoryId: cardData.category_id || cardData.category_name || "", // Prefer category_id if available
+
                 });
-                console.log("✓ Card added to display");
+                console.log("✓ Card added to display:", cardData.card_name, "Category ref:", cardData.category_id || cardData.category_name);
               } else {
                 console.log("✗ Card filtered out");
               }
@@ -592,10 +734,43 @@ export default function HomeScreen() {
 
             console.log("Filtered cards count:", cardsData.length);
 
-            // Only update state if cards actually changed
-            if (!areArraysEqual(allCardsRef.current, cardsData)) {
+            // Check if cards actually changed (including updates)
+            const cardsChanged = hasDataChanged(allCardsRef.current, cardsData);
+            
+            // NEW: Also check for individual card text changes
+            const hasIndividualCardChanges = allCardsRef.current.some((oldCard, index) => {
+              const newCard = cardsData[index];
+              if (!newCard) return true;
+              
+              return (
+                oldCard.text !== newCard.text ||
+                oldCard.image !== newCard.image ||
+                oldCard.categoryId !== newCard.categoryId
+              );
+            });
+
+            if (cardsChanged || hasIndividualCardChanges) {
+              console.log("Cards changed or individual card properties updated - updating state");
               allCardsRef.current = cardsData;
               setAllCards(cardsData);
+
+              // Filter categories to only show those with cards
+              const filteredCategories = filterCategoriesWithCards(categoriesRef.current, cardsData);
+              console.log("Categories with cards after cards update:", filteredCategories.map(c => c.category_name));
+              
+              setCategories(filteredCategories);
+
+              // Update displayed cards when all cards change
+              if (selectedCategory && filteredCategories.length > 0) {
+                updateDisplayedCards(cardsData, filteredCategories, selectedCategory);
+              } else if (filteredCategories.length > 0 && !selectedCategory) {
+                // Auto-select first category if none selected
+                const firstCategoryId = filteredCategories[0].id;
+                setSelectedCategory(firstCategoryId);
+                console.log("Auto-selected first category after cards update:", firstCategoryId);
+              }
+            } else {
+              console.log("Cards unchanged - skipping state update");
             }
           } catch (error) {
             console.error("Error processing cards update:", error);
@@ -608,6 +783,24 @@ export default function HomeScreen() {
 
     unsubscribeListeners.push(cardsUnsubscribe);
 
+    // NEW: Individual card update listener for real-time text changes
+    const cardUpdatesUnsubscribe = firestore()
+      .collection("cards")
+      .where("created_by", "in", [user.uid, "ADMIN", "admin"])
+      .onSnapshot((snapshot) => {
+        snapshot.docChanges().forEach((change) => {
+          if (change.type === 'modified') {
+            console.log("Card modified - forcing update:", change.doc.id, change.doc.data().card_name);
+            
+            // Force update the displayed cards to trigger re-render
+            setAllCards(prev => [...prev]);
+            setDisplayedCards(prev => [...prev]);
+          }
+        });
+      });
+
+    unsubscribeListeners.push(cardUpdatesUnsubscribe);
+
     // Set loading to false after initial setup
     setTimeout(() => setLoading(false), 1000);
 
@@ -616,88 +809,17 @@ export default function HomeScreen() {
       console.log("=== CLEANING UP REAL-TIME LISTENERS ===");
       unsubscribeListeners.forEach((unsubscribe) => unsubscribe());
     };
-  }, [user?.uid]); // Only re-run when user ID changes
+  }, [user?.uid, updateDisplayedCards, filterCategoriesWithCards]);
 
-  // FIXED: Effect to combine categories and cards - now properly manages active state
+  // NEW: Effect to handle category selection changes
   useEffect(() => {
-    if (categories.length === 0 || allCards.length === 0) {
-      console.log("Waiting for categories and cards data...");
-      return;
+
+    if (selectedCategory && categories.length > 0 && allCards.length > 0) {
+      console.log("Category selection changed, updating displayed cards");
+      updateDisplayedCards(allCards, categories, selectedCategory);
     }
+  }, [selectedCategory, categories, allCards, updateDisplayedCards]);
 
-    console.log("=== COMBINING CATEGORIES AND CARDS ===");
-
-    // Filter categories to only show those that have cards
-    const categoriesWithCards = categories.filter((category) => {
-      const categoryCards = allCards.filter((card) => {
-        const categoryName = category.category_name;
-        const cardCategoryId = card.categoryId;
-
-        const exactMatch = cardCategoryId === categoryName;
-        const caseInsensitiveMatch =
-          cardCategoryId.toLowerCase() === categoryName.toLowerCase();
-        const trimmedMatch =
-          cardCategoryId.trim().toLowerCase() ===
-          categoryName.trim().toLowerCase();
-
-        return exactMatch || caseInsensitiveMatch || trimmedMatch;
-      });
-
-      const hasCards = categoryCards.length > 0;
-      console.log(
-        `Category "${category.category_name}" has ${
-          categoryCards.length
-        } cards - ${hasCards ? "SHOWING" : "HIDING"}`
-      );
-
-      return hasCards;
-    });
-
-    console.log(
-      "Categories with cards:",
-      categoriesWithCards.map((c) => c.category_name)
-    );
-
-    // FIXED: Update categories with active state based on selectedCategory
-    const updatedCategories = categoriesWithCards.map((cat) => ({
-      ...cat,
-      active:
-        cat.id === selectedCategory ||
-        (selectedCategory === "" && cat === categoriesWithCards[0]),
-    }));
-
-    // Only update if categories actually changed
-    if (!areArraysEqual(categories, updatedCategories)) {
-      setCategories(updatedCategories);
-    }
-
-    // Set first category as active and load its cards if no category is selected
-    if (updatedCategories.length > 0 && !selectedCategory) {
-      const firstCategoryId = updatedCategories[0].id;
-      setSelectedCategory(firstCategoryId);
-
-      const firstCategoryName = updatedCategories[0].category_name;
-      const firstCategoryCards = allCards.filter((card) => {
-        const categoryName = firstCategoryName;
-        const cardCategoryId = card.categoryId;
-
-        const exactMatch = cardCategoryId === categoryName;
-        const caseInsensitiveMatch =
-          cardCategoryId.toLowerCase() === categoryName.toLowerCase();
-        const trimmedMatch =
-          cardCategoryId.trim().toLowerCase() ===
-          categoryName.trim().toLowerCase();
-
-        return exactMatch || caseInsensitiveMatch || trimmedMatch;
-      });
-
-      console.log(
-        `First category "${firstCategoryName}" cards:`,
-        firstCategoryCards.length
-      );
-      setDisplayedCards(firstCategoryCards);
-    }
-  }, [categories, allCards, selectedCategory]); // Run when categories, allCards, or selectedCategory change
 
   // FIXED: Handle category press - now only updates selectedCategory and filters cards
   const handleCategoryPress = useCallback(
@@ -716,34 +838,15 @@ export default function HomeScreen() {
 
       console.log("Selected category name:", selectedCat.category_name);
 
-      // Filter cards using consistent matching logic
-      const filteredCards = allCards.filter((card) => {
-        const categoryName = selectedCat.category_name;
-        const cardCategoryId = card.categoryId;
 
-        const exactMatch = cardCategoryId === categoryName;
-        const caseInsensitiveMatch =
-          cardCategoryId.toLowerCase() === categoryName.toLowerCase();
-        const trimmedMatch =
-          cardCategoryId.trim().toLowerCase() ===
-          categoryName.trim().toLowerCase();
+    // Update categories with active state
+    const updatedCategories = categories.map(cat => ({
+      ...cat,
+      active: cat.id === categoryId
+    }));
 
-        const matches = exactMatch || caseInsensitiveMatch || trimmedMatch;
-
-        console.log(
-          `Card "${card.text}": categoryId="${cardCategoryId}", categoryName="${categoryName}", matches=${matches}`
-        );
-
-        return matches;
-      });
-
-      console.log(
-        `Found ${filteredCards.length} cards for category "${selectedCat.category_name}"`
-      );
-      setDisplayedCards(filteredCards);
-    },
-    [categories, allCards]
-  );
+    setCategories(updatedCategories);
+  }, [categories]);
 
   const clearSentence = () => {
     setSentenceCards([]);
@@ -827,7 +930,18 @@ export default function HomeScreen() {
   }, []);
 
   // UPDATED: Simplified card render function - now uses dynamic background color
-  const renderCard = ({ item, index }: { item: CardType; index: number }) => {
+
+  const renderCard = ({
+    item,
+    index,
+  }: {
+    item: CardType;
+    index: number;
+  }): JSX.Element => {
+    // DEBUG: Log when card is rendered
+    console.log(`Rendering card: ${item.text} (ID: ${item.id})`);
+    
+
     // Get the background color from the current category
     const cardBackgroundColor = getCurrentCategoryBackgroundColor();
 
@@ -897,8 +1011,10 @@ export default function HomeScreen() {
           { backgroundColor: card.categoryColor }, // Use the stored category color for each card
         ]}
         onPress={async () => {
-          // // LOG: Card removed from sentence strip
-          // await logCardTap(card, 'remove', index + 1);
+
+          // LOG: Card removed from sentence strip
+          await logCardTap(card, 'remove', index + 1);
+          
 
           setSentenceCards((prev: SentenceCardType[]) =>
             prev.filter((_, i: number) => i !== index)

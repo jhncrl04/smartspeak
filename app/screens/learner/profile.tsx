@@ -15,7 +15,6 @@ import {
   FlatList,
   Image,
   Modal,
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -210,6 +209,9 @@ export default function ProfileScreen() {
   const [selectedProvinceCode, setSelectedProvinceCode] = useState<string>("");
   const [selectedMunicipalityCode, setSelectedMunicipalityCode] = useState<string>("");
   const [addressLoading, setAddressLoading] = useState<boolean>(false);
+
+  // Page state - REMOVED: scroll related states
+  const [currentPage, setCurrentPage] = useState<number>(0);
 
   // Initialize with proper typing
   const initialFormData: ProfileFormData = {
@@ -861,6 +863,11 @@ export default function ProfileScreen() {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+  // UPDATED: Simple page navigation function
+  const navigateToPage = (page: number) => {
+    setCurrentPage(page);
+  };
+
   useEffect(() => {
     const lockOrientation = async () => {
       try {
@@ -902,6 +909,305 @@ export default function ProfileScreen() {
       </ThemedView>
     );
   }
+
+  // UPDATED: Render current page content
+  const renderCurrentPage = () => {
+    switch (currentPage) {
+      case 0: // Parent Information
+        return (
+          <View style={styles.pageContent}>
+            <Text style={styles.pageTitle}>Parent Information</Text>
+            
+            <View style={styles.ParentInformationContainer}>
+              <View style={styles.ParentInformation}>
+                <Text style={styles.InputTitle}>Name</Text>
+                <Text style={styles.InputData}>{formData.pname || "N/A"}</Text>
+              </View>
+
+              <View style={styles.ParentInformation}>
+                <Text style={styles.InputTitle}>Contact Number</Text>
+                <Text style={styles.InputData}>
+                  {formData.phoneNumber || "N/A"}
+                </Text>
+              </View>
+            </View>
+          </View>
+        );
+
+      case 1: // Student Information
+        return (
+          <View style={styles.pageContent}>
+            <Text style={styles.pageTitle}>Student Information</Text>
+
+            <View style={styles.StudentInformationContainer}>
+              <View style={styles.StudentInformation}>
+                <Text
+                  style={[
+                    styles.InputTitle,
+                    isEditing && styles.InputTitleEditing,
+                  ]}
+                >
+                  First Name
+                </Text>
+                {isEditing ? (
+                  <TextInput
+                    style={[styles.InputData, styles.InputDataEditing]}
+                    value={formData.fname}
+                    onChangeText={(text) => updateFormData("fname", text)}
+                  />
+                ) : (
+                  <Text style={styles.InputData}>
+                    {formData.fname || "N/A"}
+                  </Text>
+                )}
+              </View>
+
+              <View style={styles.StudentInformation}>
+                <Text
+                  style={[
+                    styles.InputTitle,
+                    isEditing && styles.InputTitleEditing,
+                  ]}
+                >
+                  Middle Name
+                </Text>
+                {isEditing ? (
+                  <TextInput
+                    style={[styles.InputData, styles.InputDataEditing]}
+                    value={formData.mname}
+                    onChangeText={(text) => updateFormData("mname", text)}
+                  />
+                ) : (
+                  <Text style={styles.InputData}>
+                    {formData.mname || "N/A"}
+                  </Text>
+                )}
+              </View>
+
+              <View style={styles.StudentInformation}>
+                <Text
+                  style={[
+                    styles.InputTitle,
+                    isEditing && styles.InputTitleEditing,
+                  ]}
+                >
+                  Last Name
+                </Text>
+                {isEditing ? (
+                  <TextInput
+                    style={[styles.InputData, styles.InputDataEditing]}
+                    value={formData.lname}
+                    onChangeText={(text) => updateFormData("lname", text)}
+                  />
+                ) : (
+                  <Text style={styles.InputData}>
+                    {formData.lname || "N/A"}
+                  </Text>
+                )}
+              </View>
+
+              <View style={styles.StudentInformation}>
+                <Text
+                  style={[
+                    styles.InputTitle,
+                    isEditing && styles.InputTitleEditing,
+                  ]}
+                >
+                  Date of Birth
+                </Text>
+                {isEditing ? (
+                  <View>
+                    <TextInput
+                      style={[styles.InputData, styles.InputDataEditing]}
+                      value={formData.dob}
+                      onChangeText={handleManualDateInput}
+                      placeholder="MM/DD/YYYY or MM-DD-YYYY"
+                    />
+                  </View>
+                ) : (
+                  <Text style={styles.InputData}>{formData.dob || "N/A"}</Text>
+                )}
+              </View>
+
+              <View style={styles.StudentInformation}>
+                <Text
+                  style={[
+                    styles.InputTitle,
+                    isEditing && styles.InputTitleEditing,
+                  ]}
+                >
+                  Gender
+                </Text>
+                {isEditing ? (
+                  <TouchableOpacity
+                    style={[styles.InputData, styles.InputDataEditing, styles.dropdownButton]}
+                    onPress={() => setShowGenderDropdown(true)}
+                  >
+                    <Text style={styles.dropdownButtonText}>
+                      {formData.gender || "Select Gender"}
+                    </Text>
+                    <Text style={styles.dropdownArrow}>▼</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <Text style={styles.InputData}>
+                    {formData.gender || "N/A"}
+                  </Text>
+                )}
+              </View>
+            </View>
+          </View>
+        );
+
+      case 2: // Address Information
+        return (
+          <View style={styles.pageContent}>
+            <Text style={styles.pageTitle}>Address Information</Text>
+            <View style={styles.StudentInformationContainer}>
+              <View style={styles.StudentInformation}>
+                <Text
+                  style={[
+                    styles.InputTitle,
+                    isEditing && styles.InputTitleEditing,
+                  ]}
+                >
+                  Region
+                </Text>
+                {isEditing ? (
+                  <TouchableOpacity
+                    style={[styles.InputData, styles.InputDataEditing, styles.dropdownButton]}
+                    onPress={() => setShowRegionDropdown(true)}
+                  >
+                    <Text style={styles.dropdownButtonText}>
+                      {formData.region_name || "Select Region"}
+                    </Text>
+                    {addressLoading ? (
+                      <ActivityIndicator size="small" color="#9B72CF" />
+                    ) : (
+                      <Text style={styles.dropdownArrow}>▼</Text>
+                    )}
+                  </TouchableOpacity>
+                ) : (
+                  <Text style={styles.InputData}>
+                    {formData.region_name || "N/A"}
+                  </Text>
+                )}
+              </View>
+
+              <View style={styles.StudentInformation}>
+                <Text
+                  style={[
+                    styles.InputTitle,
+                    isEditing && styles.InputTitleEditing,
+                  ]}
+                >
+                  Province
+                </Text>
+                {isEditing ? (
+                  <TouchableOpacity
+                    style={[styles.InputData, styles.InputDataEditing, styles.dropdownButton]}
+                    onPress={() => setShowProvinceDropdown(true)}
+                    disabled={!formData.region_name}
+                  >
+                    <Text style={[
+                      styles.dropdownButtonText,
+                      !formData.region_name && styles.dropdownButtonTextDisabled
+                    ]}>
+                      {formData.province_name || (
+                        formData.region_name ? "Select Province" : "Select Region First"
+                      )}
+                    </Text>
+                    {addressLoading ? (
+                      <ActivityIndicator size="small" color="#9B72CF" />
+                    ) : (
+                      <Text style={styles.dropdownArrow}>▼</Text>
+                    )}
+                  </TouchableOpacity>
+                ) : (
+                  <Text style={styles.InputData}>
+                    {formData.province_name || "N/A"}
+                  </Text>
+                )}
+              </View>
+
+              <View style={styles.StudentInformation}>
+                <Text
+                  style={[
+                    styles.InputTitle,
+                    isEditing && styles.InputTitleEditing,
+                  ]}
+                >
+                  Municipality
+                </Text>
+                {isEditing ? (
+                  <TouchableOpacity
+                    style={[styles.InputData, styles.InputDataEditing, styles.dropdownButton]}
+                    onPress={() => setShowMunicipalityDropdown(true)}
+                    disabled={!formData.province_name}
+                  >
+                    <Text style={[
+                      styles.dropdownButtonText,
+                      !formData.province_name && styles.dropdownButtonTextDisabled
+                    ]}>
+                      {formData.municipality_name || (
+                        formData.province_name ? "Select Municipality" : "Select Province First"
+                      )}
+                    </Text>
+                    {addressLoading ? (
+                      <ActivityIndicator size="small" color="#9B72CF" />
+                    ) : (
+                      <Text style={styles.dropdownArrow}>▼</Text>
+                    )}
+                  </TouchableOpacity>
+                ) : (
+                  <Text style={styles.InputData}>
+                    {formData.municipality_name || "N/A"}
+                  </Text>
+                )}
+              </View>
+
+              <View style={styles.StudentInformation}>
+                <Text
+                  style={[
+                    styles.InputTitle,
+                    isEditing && styles.InputTitleEditing,
+                  ]}
+                >
+                  Barangay
+                </Text>
+                {isEditing ? (
+                  <TouchableOpacity
+                    style={[styles.InputData, styles.InputDataEditing, styles.dropdownButton]}
+                    onPress={() => setShowBarangayDropdown(true)}
+                    disabled={!formData.municipality_name}
+                  >
+                    <Text style={[
+                      styles.dropdownButtonText,
+                      !formData.municipality_name && styles.dropdownButtonTextDisabled
+                    ]}>
+                      {formData.barangay_name || (
+                        formData.municipality_name ? "Select Barangay" : "Select Municipality First"
+                      )}
+                    </Text>
+                    {addressLoading ? (
+                      <ActivityIndicator size="small" color="#9B72CF" />
+                    ) : (
+                      <Text style={styles.dropdownArrow}>▼</Text>
+                    )}
+                  </TouchableOpacity>
+                ) : (
+                  <Text style={styles.InputData}>
+                    {formData.barangay_name || "N/A"}
+                  </Text>
+                )}
+              </View>
+            </View>
+          </View>
+        );
+
+      default:
+        return null;
+    }
+  };
 
   return (
     <GestureHandlerRootView style={styles.container}>
@@ -1109,359 +1415,114 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* MAIN BODY - NOW SCROLLABLE */}
-        <ScrollView 
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollViewContent}
-          showsVerticalScrollIndicator={true}
-        >
-          <View style={styles.body}>
-
-            {/* LAYER 1 */}
-            <View style={styles.layer1}>
-              <View style={styles.ProfileContainer}>
-                <TouchableOpacity onPress={isEditing ? pickImage : undefined}>
-                  <View style={styles.ProfileImageContainer}>
-                    <Image
-                      source={
-                        profileImageUrl
-                          ? { uri: profileImageUrl }
-                          : require("@/assets/images/defaultimg.jpg")
-                      }
-                      style={styles.ProfileImage}
-                      onError={(error) => {
-                        console.log("Error loading profile image:", error);
-                        setProfileImageUrl(null);
-                      }}
-                    />
-                    {/* Edit overlay that shows only when editing */}
-                    {isEditing && (
-                      <View style={styles.imageEditOverlay}>
-                        <View style={styles.imageEditIcon}>
-                          <Image
-                            source={require("@/assets/images/defaultimg.jpg")}
-                            style={styles.cameraIcon}
-                          />
-                        </View>
-                      </View>
-                    )}
-                  </View>
-                </TouchableOpacity>
-
-                <View style={styles.ProfileTextContainer}>
-                  <Text style={styles.LayerTitle}>{formData.fname} {formData.mname} {formData.lname}</Text>
-
-                  <Text style={styles.ProfileText}>
-                    {formData?.email || "No email available"}
-                  </Text>
-
-                  <Text style={styles.ProfileSubText}>
-                    Section: {sectionName}
-                  </Text>
-                </View>
-              </View>
-
-              {!isEditing ? (
-                <TouchableOpacity style={styles.EditBtn} onPress={handleEdit}>
-                  <Text style={styles.BtnText}>Edit</Text>
-                </TouchableOpacity>
-              ) : (
-                <View style={styles.ButtonContainer}>
-                  <TouchableOpacity style={styles.CancelBtn} onPress={handleCancel}>
-                    <Text style={styles.cancelBtnText}>Cancel</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.SaveBtn} onPress={handleSave}>
-                    <Text style={styles.BtnText}>Save</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-            </View>
-
-            <View style={styles.layer2}>
-              <Text style={styles.LayerTitle}>Parent Information</Text>
-
-              <View style={styles.ParentInformationContainer}>
-                <View style={styles.ParentInformation}>
-                  <Text style={styles.InputTitle}>Name</Text>
-                  <Text style={styles.InputData}>{formData.pname || "N/A"}</Text>
-                </View>
-
-                <View style={styles.ParentInformation}>
-                  <Text style={styles.InputTitle}>Contact Number</Text>
-                  <Text style={styles.InputData}>
-                    {formData.phoneNumber || "N/A"}
-                  </Text>
-                </View>
-              </View>
-            </View>
-
-            <View style={styles.layer3}>
-              <Text style={styles.LayerTitle}>Student Information</Text>
-
-              <View style={styles.StudentInformationContainer}>
-                <View style={styles.StudentInformation}>
-                  <Text
-                    style={[
-                      styles.InputTitle,
-                      isEditing && styles.InputTitleEditing,
-                    ]}
-                  >
-                    First Name
-                  </Text>
-                  {isEditing ? (
-                    <TextInput
-                      style={[styles.InputData, styles.InputDataEditing]}
-                      value={formData.fname}
-                      onChangeText={(text) => updateFormData("fname", text)}
-                    />
-                  ) : (
-                    <Text style={styles.InputData}>
-                      {formData.fname || "N/A"}
-                    </Text>
-                  )}
-                </View>
-
-                <View style={styles.StudentInformation}>
-                  <Text
-                    style={[
-                      styles.InputTitle,
-                      isEditing && styles.InputTitleEditing,
-                    ]}
-                  >
-                    Middle Name
-                  </Text>
-                  {isEditing ? (
-                    <TextInput
-                      style={[styles.InputData, styles.InputDataEditing]}
-                      value={formData.mname}
-                      onChangeText={(text) => updateFormData("mname", text)}
-                    />
-                  ) : (
-                    <Text style={styles.InputData}>
-                      {formData.mname || "N/A"}
-                    </Text>
-                  )}
-                </View>
-
-                <View style={styles.StudentInformation}>
-                  <Text
-                    style={[
-                      styles.InputTitle,
-                      isEditing && styles.InputTitleEditing,
-                    ]}
-                  >
-                    Last Name
-                  </Text>
-                  {isEditing ? (
-                    <TextInput
-                      style={[styles.InputData, styles.InputDataEditing]}
-                      value={formData.lname}
-                      onChangeText={(text) => updateFormData("lname", text)}
-                    />
-                  ) : (
-                    <Text style={styles.InputData}>
-                      {formData.lname || "N/A"}
-                    </Text>
-                  )}
-                </View>
-
-                <View style={styles.StudentInformation}>
-                  <Text
-                    style={[
-                      styles.InputTitle,
-                      isEditing && styles.InputTitleEditing,
-                    ]}
-                  >
-                    Date of Birth
-                  </Text>
-                  {isEditing ? (
-                    <View>
-                      <TextInput
-                        style={[styles.InputData, styles.InputDataEditing]}
-                        value={formData.dob}
-                        onChangeText={handleManualDateInput}
-                        placeholder="MM/DD/YYYY or MM-DD-YYYY"
+        {/* FIXED PROFILE HEADER - LAYER 1 */}
+        <View style={styles.layer1}>
+          <View style={styles.ProfileContainer}>
+            <TouchableOpacity onPress={isEditing ? pickImage : undefined}>
+              <View style={styles.ProfileImageContainer}>
+                <Image
+                  source={
+                    profileImageUrl
+                      ? { uri: profileImageUrl }
+                      : require("@/assets/images/defaultimg.jpg")
+                  }
+                  style={styles.ProfileImage}
+                  onError={(error) => {
+                    console.log("Error loading profile image:", error);
+                    setProfileImageUrl(null);
+                  }}
+                />
+                {/* Edit overlay that shows only when editing */}
+                {isEditing && (
+                  <View style={styles.imageEditOverlay}>
+                    <View style={styles.imageEditIcon}>
+                      <Image
+                        source={require("@/assets/images/camera3.png")}
+                        style={styles.cameraIcon}
                       />
                     </View>
-                  ) : (
-                    <Text style={styles.InputData}>{formData.dob || "N/A"}</Text>
-                  )}
-                </View>
-
-                <View style={styles.StudentInformation}>
-                  <Text
-                    style={[
-                      styles.InputTitle,
-                      isEditing && styles.InputTitleEditing,
-                    ]}
-                  >
-                    Gender
-                  </Text>
-                  {isEditing ? (
-                    <TouchableOpacity
-                      style={[styles.InputData, styles.InputDataEditing, styles.dropdownButton]}
-                      onPress={() => setShowGenderDropdown(true)}
-                    >
-                      <Text style={styles.dropdownButtonText}>
-                        {formData.gender || "Select Gender"}
-                      </Text>
-                      <Text style={styles.dropdownArrow}>▼</Text>
-                    </TouchableOpacity>
-                  ) : (
-                    <Text style={styles.InputData}>
-                      {formData.gender || "N/A"}
-                    </Text>
-                  )}
-                </View>
+                  </View>
+                )}
               </View>
-            </View>
-            
-            <View style={styles.layer4}>
-              <Text style={styles.LayerTitle}>Address Information</Text>
-              <View style={styles.StudentInformationContainer}>
-                <View style={styles.StudentInformation}>
-                  <Text
-                    style={[
-                      styles.InputTitle,
-                      isEditing && styles.InputTitleEditing,
-                    ]}
-                  >
-                    Region
-                  </Text>
-                  {isEditing ? (
-                    <TouchableOpacity
-                      style={[styles.InputData, styles.InputDataEditing, styles.dropdownButton]}
-                      onPress={() => setShowRegionDropdown(true)}
-                    >
-                      <Text style={styles.dropdownButtonText}>
-                        {formData.region_name || "Select Region"}
-                      </Text>
-                      {addressLoading ? (
-                        <ActivityIndicator size="small" color="#9B72CF" />
-                      ) : (
-                        <Text style={styles.dropdownArrow}>▼</Text>
-                      )}
-                    </TouchableOpacity>
-                  ) : (
-                    <Text style={styles.InputData}>
-                      {formData.region_name || "N/A"}
-                    </Text>
-                  )}
-                </View>
+            </TouchableOpacity>
 
-
-                <View style={styles.StudentInformation}>
-                  <Text
-                    style={[
-                      styles.InputTitle,
-                      isEditing && styles.InputTitleEditing,
-                    ]}
-
-                  >
-                    Province
-                  </Text>
-                  {isEditing ? (
-                    <TouchableOpacity
-                      style={[styles.InputData, styles.InputDataEditing, styles.dropdownButton]}
-                      onPress={() => setShowProvinceDropdown(true)}
-                      disabled={!formData.region_name}
-                    >
-                      <Text style={[
-                        styles.dropdownButtonText,
-                        !formData.region_name && styles.dropdownButtonTextDisabled
-                      ]}>
-                        {formData.province_name || (
-                          formData.region_name ? "Select Province" : "Select Region First"
-                        )}
-                      </Text>
-                      {addressLoading ? (
-                        <ActivityIndicator size="small" color="#9B72CF" />
-                      ) : (
-                        <Text style={styles.dropdownArrow}>▼</Text>
-                      )}
-                    </TouchableOpacity>
-                  ) : (
-                    <Text style={styles.InputData}>
-                      {formData.province_name || "N/A"}
-                    </Text>
-                  )}
-                </View>
-
-                <View style={styles.StudentInformation}>
-                  <Text
-                    style={[
-                      styles.InputTitle,
-                      isEditing && styles.InputTitleEditing,
-                    ]}
-                  >
-                    Municipality
-                  </Text>
-                  {isEditing ? (
-                    <TouchableOpacity
-                      style={[styles.InputData, styles.InputDataEditing, styles.dropdownButton]}
-                      onPress={() => setShowMunicipalityDropdown(true)}
-                      disabled={!formData.province_name}
-                    >
-                      <Text style={[
-                        styles.dropdownButtonText,
-                        !formData.province_name && styles.dropdownButtonTextDisabled
-                      ]}>
-                        {formData.municipality_name || (
-                          formData.province_name ? "Select Municipality" : "Select Province First"
-                        )}
-                      </Text>
-                      {addressLoading ? (
-                        <ActivityIndicator size="small" color="#9B72CF" />
-                      ) : (
-                        <Text style={styles.dropdownArrow}>▼</Text>
-                      )}
-                    </TouchableOpacity>
-                  ) : (
-                    <Text style={styles.InputData}>
-                      {formData.municipality_name || "N/A"}
-                    </Text>
-                  )}
-                </View>
-
-                <View style={styles.StudentInformation}>
-                  <Text
-                    style={[
-                      styles.InputTitle,
-                      isEditing && styles.InputTitleEditing,
-                    ]}
-                  >
-                    Barangay
-                  </Text>
-                  {isEditing ? (
-                    <TouchableOpacity
-                      style={[styles.InputData, styles.InputDataEditing, styles.dropdownButton]}
-                      onPress={() => setShowBarangayDropdown(true)}
-                      disabled={!formData.municipality_name}
-                    >
-                      <Text style={[
-                        styles.dropdownButtonText,
-                        !formData.municipality_name && styles.dropdownButtonTextDisabled
-                      ]}>
-                        {formData.barangay_name || (
-                          formData.municipality_name ? "Select Barangay" : "Select Municipality First"
-                        )}
-                      </Text>
-                      {addressLoading ? (
-                        <ActivityIndicator size="small" color="#9B72CF" />
-                      ) : (
-                        <Text style={styles.dropdownArrow}>▼</Text>
-                      )}
-                    </TouchableOpacity>
-                  ) : (
-                    <Text style={styles.InputData}>
-                      {formData.barangay_name || "N/A"}
-                    </Text>
-                  )}
-                </View>
-              </View>
+            <View style={styles.ProfileTextContainer}>
+              <Text style={styles.LayerTitle}>{formData.fname} {formData.mname} {formData.lname}</Text>
+              <Text style={styles.ProfileText}>
+                {formData?.email || "No email available"}
+              </Text>
+              <Text style={styles.ProfileSubText}>
+                Section: {sectionName}
+              </Text>
             </View>
           </View>
-        </ScrollView>
+
+          {!isEditing ? (
+            <TouchableOpacity style={styles.EditBtn} onPress={handleEdit}>
+              <Text style={styles.BtnText}>Edit</Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.ButtonContainer}>
+              <TouchableOpacity style={styles.CancelBtn} onPress={handleCancel}>
+                <Text style={styles.cancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.SaveBtn} onPress={handleSave}>
+                <Text style={styles.BtnText}>Save</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+
+        {/* UPDATED: CONTENT AREA - No longer scrollable, shows current page */}
+        <View style={styles.contentArea}>
+          {renderCurrentPage()}
+        </View>
+
+        {/* PAGINATION INDICATOR */}
+        <View style={styles.paginationContainer}>
+          <TouchableOpacity 
+            style={[
+              styles.paginationDot, 
+              currentPage === 0 && styles.paginationDotActive
+            ]} 
+            onPress={() => navigateToPage(0)}
+          >
+            <Text style={[
+              styles.paginationText,
+              currentPage === 0 && styles.paginationTextActive
+            ]}>
+              Parent Info
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[
+              styles.paginationDot, 
+              currentPage === 1 && styles.paginationDotActive
+            ]} 
+            onPress={() => navigateToPage(1)}
+          >
+            <Text style={[
+              styles.paginationText,
+              currentPage === 1 && styles.paginationTextActive
+            ]}>
+              Student Info
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[
+              styles.paginationDot, 
+              currentPage === 2 && styles.paginationDotActive
+            ]} 
+            onPress={() => navigateToPage(2)}
+          >
+            <Text style={[
+              styles.paginationText,
+              currentPage === 2 && styles.paginationTextActive
+            ]}>
+              Address Info
+            </Text>
+          </TouchableOpacity>
+        </View>
 
         {/* FOOTER */}
         <View style={styles.footer}>
@@ -1518,13 +1579,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#fafafa",
   },
-  // ScrollView styles
-  scrollView: {
+  // UPDATED: Content area styles
+  contentArea: {
     flex: 1,
-  },
-  scrollViewContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
+    paddingHorizontal: width * 0.04,
+    paddingVertical: height * 0.03,
   },
   loadingContainer: {
     justifyContent: "center",
@@ -1572,25 +1631,22 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    
     backgroundColor: 'rgba(155, 114, 207, 0.8)',
-    width: width * 0.10,   // make width and height equal
-  borderRadius: (width * 0.10) / 2, // half of width/height
+    width: width * 0.10,
+    borderRadius: (width * 0.10) / 2,
     justifyContent: 'center',
     alignItems: 'center',
   },
   imageEditIcon: {
-    width: width * 0.03,
-    height: width * 0.03,
+    width: width * 0.08,
+    height: width * 0.08,
     borderRadius: width * 0.015,
-    backgroundColor: '#fafafa',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: height * 0.01,
   },
   cameraIcon: {
-    width: '60%',
-    height: '60%',
+    width: '80%',
+    height: '80%',
     resizeMode: 'contain',
   },
   imageEditText: {
@@ -1682,37 +1738,35 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     position: "relative",
   },
-  body: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingVertical: height * 0.02,
-  },
+  // FIXED LAYER 1 - PROFILE HEADER
   layer1: {
     width: width * 0.9,
     borderBottomWidth: 1,
     borderColor: "rgba(67, 67, 67, 0.5)",
-    paddingHorizontal: width * 0.01,
+    paddingHorizontal: width * 0.04,
     paddingVertical: height * 0.03,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    backgroundColor: '#fafafa',
+    alignSelf: 'center',
+    marginHorizontal: 'auto',
   },
   ProfileContainer: {
     display: "flex",
     flexDirection: "row",
+    alignItems: "center",
   },
   ProfileImageContainer: {
     position: "relative",
   },
   ProfileImage: {
-  width: width * 0.10,   // make width and height equal
-  height: width * 0.10,  // use width here instead of height
-  borderRadius: (width * 0.10) / 2, // half of width/height
-  resizeMode: "cover",
-  marginRight: width * 0.01,
-},
-
+    width: width * 0.10,
+    height: width * 0.10,
+    borderRadius: (width * 0.10) / 2,
+    resizeMode: "cover",
+    marginRight: width * 0.03,
+  },
   ProfileTextContainer: {
     justifyContent: "center",
   },
@@ -1733,17 +1787,10 @@ const styles = StyleSheet.create({
   },
   BtnText: {
     fontFamily: "Poppins",
-    fontSize: RFValue(6),
+    fontSize: RFValue(8),
     color: "#fafafa",
-    fontWeight: "500",
+    fontWeight: "600",
     letterSpacing: 0.5,
-  },
-  layer2: {
-    width: width * 0.9,
-    paddingHorizontal: width * 0.01,
-    paddingVertical: height * 0.03,
-    borderBottomWidth: 1,
-    borderColor: "rgba(67, 67, 67, 0.5)",
   },
   LayerTitle: {
     fontFamily: "Poppins",
@@ -1752,22 +1799,74 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     letterSpacing: 0.5,
     textAlign: "left",
+    marginBottom: height * 0.005,
   },
+  // PAGINATION STYLES
+  paginationContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingTop: height * 0.02,
+    paddingBottom: height * 0.04,
+    backgroundColor: '#f8f8f8',
+    borderTopWidth: 1,
+    borderColor: "rgba(67, 67, 67, 0.2)",
+    width: width * 0.9,
+    alignSelf: 'center',
+    marginHorizontal: 'auto',
+  },
+  paginationDot: {
+    paddingHorizontal: width * 0.03,
+    paddingVertical: height * 0.01,
+    marginHorizontal: width * 0.01,
+    borderRadius: width * 0.01,
+    backgroundColor: '#e0e0e0',
+  },
+  paginationDotActive: {
+    backgroundColor: "#9B72CF",
+  },
+  paginationText: {
+    fontFamily: "Poppins",
+    fontSize: RFValue(6),
+    color: "#666",
+    fontWeight: "500",
+  },
+  paginationTextActive: {
+    color: "#ffffff",
+    fontWeight: "600",
+  },
+  // PAGE STYLES
+  pageContent: {
+    flex: 1,
+    width: width * 0.9,
+    alignSelf: 'center',
+    marginHorizontal: 'auto',
+  },
+  pageTitle: {
+    fontFamily: "Poppins",
+    fontSize: RFValue(12),
+    color: "#434343",
+    fontWeight: "600",
+    letterSpacing: 0.5,
+    textAlign: "center",
+    marginBottom: height * 0.03,
+  },
+  // INFORMATION CONTAINERS
   ParentInformationContainer: {
     flexDirection: "row",
+    gap: width * 0.04,
   },
   ParentInformation: {
     flex: 1,
-    marginHorizontal: wp(1),
   },
   StudentInformationContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
+    gap: width * 0.03,
   },
   StudentInformation: {
     flex: 1,
-    marginHorizontal: wp(1),
-    minWidth: wp(18),
+    marginBottom: height * 0.02,
   },
   InputTitle: {
     fontFamily: "Poppins",
@@ -1802,36 +1901,22 @@ const styles = StyleSheet.create({
     color: "#434343",
     opacity: 1,
     borderColor: "#434343",
-    backgroundColor: "#fafafa",
-  },
-  layer3: {
-     width: width * 0.9,
-    paddingHorizontal: width * 0.01,
-    paddingVertical: height * 0.03,
-    borderBottomWidth: 1,
-    borderColor: "rgba(67, 67, 67, 0.5)",
-  },
-  layer4: {
-    width: width * 0.9,
-    paddingHorizontal: width * 0.01,
-    paddingVertical: height * 0.03,
+    backgroundColor: "#ffffff",
   },
   EditBtn: {
     backgroundColor: "#9B72CF",
-    paddingVertical: height * 0.02,
+    paddingVertical: height * 0.015,
     paddingHorizontal: width * 0.04,
     borderRadius: width * 0.01,
-    marginTop: height * 0.01,
   },
   ButtonContainer: {
     flexDirection: "row",
     gap: width * 0.02,
-    marginTop: height * 0.01,
   },
   CancelBtn: {
     borderColor: "#9B72CF",
     borderWidth: 1,
-    paddingVertical: height * 0.02,
+    paddingVertical: height * 0.015,
     paddingHorizontal: width * 0.04,
     borderRadius: width * 0.01,
   },
@@ -1844,7 +1929,7 @@ const styles = StyleSheet.create({
   },
   SaveBtn: {
     backgroundColor: "#9B72CF",
-    paddingVertical: height * 0.02,
+    paddingVertical: height * 0.015,
     paddingHorizontal: width * 0.04,
     borderRadius: width * 0.01,
   },
