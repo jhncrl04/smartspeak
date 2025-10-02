@@ -81,9 +81,11 @@ const LearnerProfileCategory = () => {
     categoryId: string,
     learnerId: string
   ) => {
-    const success = await unassignCategory(categoryId, learnerId);
+    const result: any = await unassignCategory(categoryId, learnerId);
 
-    if (success) router.back;
+    console.log(result);
+
+    if (result.success) router.back();
   };
 
   return (

@@ -827,13 +827,7 @@ export default function HomeScreen() {
   }, []);
 
   // UPDATED: Simplified card render function - now uses dynamic background color
-  const renderCard = ({
-    item,
-    index,
-  }: {
-    item: CardType;
-    index: number;
-  }): JSX.Element => {
+  const renderCard = ({ item, index }: { item: CardType; index: number }) => {
     // Get the background color from the current category
     const cardBackgroundColor = getCurrentCategoryBackgroundColor();
 
@@ -894,10 +888,7 @@ export default function HomeScreen() {
   };
 
   // UPDATED: Sentence card now uses individual card's stored category color AND includes logging for removal
-  const renderSentenceCard = (
-    card: SentenceCardType,
-    index: number
-  ): JSX.Element => {
+  const renderSentenceCard = (card: SentenceCardType, index: number) => {
     return (
       <TouchableOpacity
         key={`sentence-${card.id}-${index}`}

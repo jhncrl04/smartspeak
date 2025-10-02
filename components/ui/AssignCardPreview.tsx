@@ -42,7 +42,7 @@ const AssignCardPreview = ({
         </View>
         <Text style={styles.categoryName}>{cardName}</Text>
       </View>
-      <View style={styles.buttonContainer}>
+      <View>
         <PrimaryButton
           title={isAssigned ? "Added" : "Assign"} // change label
           clickHandler={handleAssign}

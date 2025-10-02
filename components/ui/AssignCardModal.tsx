@@ -1,5 +1,5 @@
 import COLORS from "@/constants/Colors";
-import { getUnassignedCards } from "@/services/cardsService";
+import { listenToUnassignedCards } from "@/services/cardsService";
 import { useEffect, useState } from "react";
 import {
   Alert,
@@ -29,23 +29,38 @@ const AssignCardModal = ({
   categoryId,
 }: Props) => {
   const [results, setResults] = useState<any[]>([]);
+  const [filteredResults, setFilteredResults] = useState<any[]>([]);
   const [categoryName, setCategoryName] = useState("");
 
   useEffect(() => {
-    const fetchCards = async () => {
-      try {
-        const [data, categoryName] = await getUnassignedCards(
-          learnerId as string,
-          categoryId as string
-        );
-        setResults(data);
+    // Start listening
+    const unsubscribe = listenToUnassignedCards(
+      learnerId as string,
+      categoryId as string,
+      (cards, categoryName) => {
+        setResults(cards);
+        setFilteredResults(cards);
         setCategoryName(categoryName);
-      } catch (err) {
-        console.error("Error fetching boards: ", err);
       }
-    };
-    fetchCards();
+    );
+
+    return () => unsubscribe();
   }, []);
+
+  const handleSearch = (query: string) => {
+    const filtered: any[] = results.filter((result) => {
+      const card_name = result.card_name;
+
+      if (card_name.startsWith(query)) return card_name;
+    });
+
+    if (query.trim() === "") {
+      setFilteredResults(results);
+      return;
+    }
+
+    setFilteredResults(filtered);
+  };
 
   return (
     <Modal
@@ -82,16 +97,16 @@ const AssignCardModal = ({
               <MySearchBar
                 collectionToSearch="cards"
                 onSearch={(results) => {
-                  //setResults(results);
+                  handleSearch(results as string);
                 }}
                 placeholder="Search Cards"
-                query="card"
+                query="local"
               />
             </View>
 
             {/* Cards List */}
             <View style={styles.cardContainer}>
-              {results?.map((result, index) => (
+              {filteredResults?.map((result, index) => (
                 <AssignCardPreview
                   learnerId={learnerId as string}
                   cardId={result.id}
