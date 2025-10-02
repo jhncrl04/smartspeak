@@ -5,11 +5,18 @@ import LoadingScreen from "@/components/ui/LoadingScreen";
 import COLORS from "@/constants/Colors";
 import { loginAuth } from "@/services/userApi/Authentication";
 import { checkVerification, setLoginState } from "@/services/userService";
-import { useAuthStore } from "@/stores/userAuthStore";
 import auth from "@react-native-firebase/auth";
 import { router } from "expo-router";
 import { useState } from "react";
-import { Alert, StyleSheet, TextInput, View } from "react-native";
+import {
+  Alert,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+
+import Icon from "react-native-vector-icons/Octicons";
 
 const LoginScreen = () => {
   // added a value for testing, remove when done
@@ -19,7 +26,7 @@ const LoginScreen = () => {
   // const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const login = useAuthStore((state) => state.login);
+  const [showPassword, setShowPassword] = useState(false);
 
   const validateInput = async (email: string, password: string) => {
     try {
@@ -105,14 +112,44 @@ const LoginScreen = () => {
                 onChangeText={setEmail}
               />
             </TextFieldWrapper>
+
             <TextFieldWrapper label="Password">
-              <TextInput
-                style={styles.textbox}
-                placeholder=""
-                secureTextEntry={true}
-                value={password}
-                onChangeText={setPassword}
-              />
+              <View
+                style={[
+                  styles.textbox,
+                  {
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+
+                    paddingHorizontal: 0,
+                    paddingVertical: 0,
+                  },
+                ]}
+              >
+                <TextInput
+                  style={[
+                    styles.textbox,
+                    {
+                      flex: 1,
+                      borderWidth: 0,
+                    },
+                  ]}
+                  placeholder=""
+                  secureTextEntry={!showPassword}
+                  value={password}
+                  onChangeText={setPassword}
+                />
+                <TouchableOpacity
+                  style={{
+                    paddingHorizontal: 20,
+                    paddingVertical: 8,
+                  }}
+                  onPress={() => setShowPassword(!showPassword)}
+                >
+                  <Icon name={showPassword ? "eye-closed" : "eye"} size={20} />
+                </TouchableOpacity>
+              </View>
             </TextFieldWrapper>
           </View>
           <ActionLink

@@ -41,7 +41,9 @@ const RootLayout = () => {
   });
 
   const styles = StyleSheet.create({
-    headerContainer: {},
+    headerContainer: {
+      alignItems: "center",
+    },
     title: {
       color: COLORS.accent,
       fontFamily: "Poppins",
@@ -164,7 +166,12 @@ const toastConfig = {
       {...props}
       style={{
         borderLeftColor: COLORS.successBg,
-        backgroundColor: COLORS.pureWhite,
+        backgroundColor: COLORS.toastBg,
+        paddingVertical: 5,
+        paddingHorizontal: 0,
+
+        width: "40%",
+        height: "auto",
       }}
       contentContainerStyle={{ paddingHorizontal: 15 }}
       text1Style={{
@@ -178,6 +185,7 @@ const toastConfig = {
         fontFamily: "Poppins",
         fontWeight: "500",
       }}
+      text2NumberOfLines={2}
     />
   ),
 
@@ -186,19 +194,25 @@ const toastConfig = {
       {...props}
       style={{
         borderLeftColor: COLORS.errorBg,
-        backgroundColor: COLORS.pureWhite,
+        backgroundColor: COLORS.toastBg,
+        paddingVertical: 5,
+        paddingHorizontal: 0,
+
+        width: "40%",
+        height: "auto",
       }}
       text1Style={{
         fontSize: 16,
         fontFamily: "Poppins",
         fontWeight: "600",
-        color: COLORS.accent,
+        color: COLORS.errorText,
       }}
       text2Style={{
         fontSize: 14,
         fontFamily: "Poppins",
         fontWeight: "500",
       }}
+      text2NumberOfLines={2}
     />
   ),
 };

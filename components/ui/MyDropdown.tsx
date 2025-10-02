@@ -54,6 +54,7 @@ const MyDropdown = (props: DropdownProps) => {
 
 const styles = StyleSheet.create({
   dropdown: {
+    backgroundColor: COLORS.pureWhite,
     // flex: 1,
     paddingHorizontal: 10,
     paddingVertical: 8,

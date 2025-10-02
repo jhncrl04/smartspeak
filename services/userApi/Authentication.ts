@@ -1,7 +1,7 @@
+import { showToast } from "@/components/ui/MyToast";
 import { getFriendlyAuthError } from "@/utils/firebaseError";
 import auth from "@react-native-firebase/auth";
 import firestore from "@react-native-firebase/firestore";
-import { Alert } from "react-native";
 
 type userProps = { email: string; password: string };
 
@@ -23,12 +23,7 @@ export const loginAuth = async (email: string, password: string) => {
 
     const friendlyMessage = getFriendlyAuthError(errorCode);
 
-    Alert.alert(
-      "Login Failed", // Title
-      friendlyMessage, // Message
-      [{ text: "OK", style: "default" }], // Button
-      { cancelable: true }
-    );
+    showToast("error", "Login Failed", friendlyMessage);
 
     return null;
   }
