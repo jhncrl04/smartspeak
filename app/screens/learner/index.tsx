@@ -190,13 +190,12 @@ export default function HomeScreen() {
     categoryColor: string; // Store the category color with the card
   };
 
-  // UPDATED: Add background_color to CategoryType
+  // UPDATED: Remove active property from CategoryType - we'll compute it dynamically
   type CategoryType = {
     id: string;
     category_name: string;
     image: string;
-    active: boolean;
-    background_color?: string; // Add this field
+    background_color?: string;
   };
 
   // UPDATED: Change sentenceCards type to SentenceCardType
@@ -226,6 +225,9 @@ export default function HomeScreen() {
   const categoriesRef = useRef<CategoryType[]>([]);
   const allCardsRef = useRef<CardType[]>([]);
   const displayedCardsRef = useRef<CardType[]>([]);
+
+  // NEW: Add state for footer readiness
+  const [isFooterReady, setIsFooterReady] = useState(false);
 
   // UPDATED: Enhanced function to check if arrays are equal (including content changes)
   const areArraysEqual = (arr1: any[], arr2: any[]) => {
@@ -515,11 +517,18 @@ export default function HomeScreen() {
     });
   };
 
+  // FIXED: Handle category press - simplified without active state management
+  const handleCategoryPress = useCallback((categoryId: string) => {
+    console.log("Category pressed:", categoryId);
+    setSelectedCategory(categoryId);
+  }, []); // No dependencies needed
+
   // UPDATED: Use real-time listeners with proper update handling
   useEffect(() => {
     if (!user?.uid) {
       console.log("No user found, not setting up listeners");
       setLoading(false);
+      setIsFooterReady(true);
       return;
     }
 
@@ -527,6 +536,7 @@ export default function HomeScreen() {
     console.log("Current user ID:", user.uid);
 
     setLoading(true);
+    setIsFooterReady(false); // Reset footer readiness
 
     // Fetch user's full name first
     fetchUserFullName();
@@ -581,7 +591,6 @@ export default function HomeScreen() {
                   id: categoryDoc.id,
                   category_name: categoryData.category_name || "Unknown Category",
                   image: categoryData.image || "",
-                  active: false,
                   background_color: categoryData.background_color || "#5FA056",
                 });
                 console.log("✓ Category added to display");
@@ -613,20 +622,27 @@ export default function HomeScreen() {
                 console.log("Auto-selected first category:", firstCategoryId);
               }
 
+              // Mark footer as ready when we have categories
+              setIsFooterReady(true);
+
               // Update displayed cards when categories change
               if (selectedCategory) {
                 updateDisplayedCards(allCardsRef.current, filteredCategories, selectedCategory);
               }
             } else {
               console.log("Categories unchanged - skipping state update");
+              // Still mark footer as ready even if no changes
+              setIsFooterReady(true);
             }
 
           } catch (error) {
             console.error("Error processing categories update:", error);
+            setIsFooterReady(true); // Mark ready even on error to show footer
           }
         },
         (error) => {
           console.error("Error in categories listener:", error);
+          setIsFooterReady(true); // Mark ready even on error to show footer
         }
       );
 
@@ -758,7 +774,13 @@ export default function HomeScreen() {
     unsubscribeListeners.push(cardUpdatesUnsubscribe);
 
     // Set loading to false after initial setup
-    setTimeout(() => setLoading(false), 1000);
+    setTimeout(() => {
+      setLoading(false);
+      // Ensure footer is marked as ready even if no categories were found
+      if (!isFooterReady) {
+        setIsFooterReady(true);
+      }
+    }, 1000);
 
     // Cleanup function to unsubscribe from listeners
     return () => {
@@ -774,21 +796,6 @@ export default function HomeScreen() {
       updateDisplayedCards(allCards, categories, selectedCategory);
     }
   }, [selectedCategory, categories, allCards, updateDisplayedCards]);
-
-  // FIXED: Handle category press - now only updates selectedCategory and filters cards
-  const handleCategoryPress = useCallback((categoryId: string) => {
-    console.log("Category pressed:", categoryId);
-
-    setSelectedCategory(categoryId);
-
-    // Update categories with active state
-    const updatedCategories = categories.map(cat => ({
-      ...cat,
-      active: cat.id === categoryId
-    }));
-
-    setCategories(updatedCategories);
-  }, [categories]);
 
   const clearSentence = () => {
     setSentenceCards([]);
@@ -1183,35 +1190,37 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      {/* FOOTER - Only show if there are categories with cards */}
-      {categories.length > 0 && (
+      {/* FOOTER - Only show when ready and there are categories with cards */}
+      {isFooterReady && categories.length > 0 && (
         <View style={styles.footer}>
           <FlatList
             data={categories}
-            renderItem={({ item, index }) => (
-              <TouchableOpacity
-                style={[
-                  styles.categoryInfos,
-                  item.active && styles.categoryInfosActive,
-                  index === categories.length - 1 && styles.categoryInfosLast, // Remove border on last item
-                ]}
-                onPress={() => handleCategoryPress(item.id)}
-              >
-                <Image
-                  source={
-                    item.image
-                      ? { uri: item.image }
-                      : require("@/assets/images/pecs1.png")
-                  }
-                  style={styles.categoryImage}
-                />
-                <Text
-                  style={styles.categoryText}
+            renderItem={({ item, index }) => {
+              // Compute active state dynamically based on selectedCategory
+              const isActive = item.id === selectedCategory;
+              return (
+                <TouchableOpacity
+                  style={[
+                    styles.categoryInfos,
+                    isActive && styles.categoryInfosActive,
+                    index === categories.length - 1 && styles.categoryInfosLast,
+                  ]}
+                  onPress={() => handleCategoryPress(item.id)}
                 >
-                  {item.category_name}
-                </Text>
-              </TouchableOpacity>
-            )}
+                  <Image
+                    source={
+                      item.image
+                        ? { uri: item.image }
+                        : require("@/assets/images/pecs1.png")
+                    }
+                    style={styles.categoryImage}
+                  />
+                  <Text style={styles.categoryText}>
+                    {item.category_name}
+                  </Text>
+                </TouchableOpacity>
+              );
+            }}
             keyExtractor={(item) => item.id}
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -1578,6 +1587,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#E5E5E5",
     flex: 0,
     justifyContent: "center",
+    minHeight: height * 0.10, // Add minimum height for consistency
   },
 
   categoryContainer: {
