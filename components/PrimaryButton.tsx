@@ -22,9 +22,9 @@ const PrimaryButton = (props: buttonDetail) => {
       opacity: props.disabled ? 0.7 : 1, // faded look
     },
     buttonText: {
-      fontSize: 16,
+      fontSize: 14,
       fontFamily: "Poppins",
-      fontWeight: "500",
+      fontWeight: "700",
       color: props.disabled ? COLORS.semiWhite : COLORS.pureWhite, // lighter text
     },
   });

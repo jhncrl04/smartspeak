@@ -3,14 +3,7 @@ import TextFieldWrapper from "@/components/TextfieldWrapper";
 import COLORS from "@/constants/Colors";
 import { useSignupForm } from "@/context/signupContext";
 import { useEffect, useState } from "react";
-import {
-  Alert,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
 import MyDropdown from "@/components/ui/MyDropdown";
 import { showToast } from "@/components/ui/MyToast";
@@ -300,7 +293,8 @@ const isDataValid = (
   }
 
   if (region !== "" && (province === "" || city === "" || barangay === "")) {
-    Alert.alert(
+    showToast(
+      "error",
       "Uncomplete Address",
       "Please complete your address or skip it"
     );

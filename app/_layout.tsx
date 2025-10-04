@@ -165,8 +165,8 @@ const toastConfig = {
     <BaseToast
       {...props}
       style={{
-        borderLeftColor: COLORS.successBg,
-        backgroundColor: COLORS.toastBg,
+        borderLeftColor: COLORS.successText,
+        backgroundColor: COLORS.black,
         paddingVertical: 5,
         paddingHorizontal: 0,
 
@@ -178,12 +178,13 @@ const toastConfig = {
         fontSize: 16,
         fontFamily: "Poppins",
         fontWeight: "600",
-        color: COLORS.accent,
+        color: COLORS.successText,
       }}
       text2Style={{
         fontSize: 14,
         fontFamily: "Poppins",
         fontWeight: "500",
+        color: COLORS.white,
       }}
       text2NumberOfLines={2}
     />
@@ -193,8 +194,8 @@ const toastConfig = {
     <ErrorToast
       {...props}
       style={{
-        borderLeftColor: COLORS.errorBg,
-        backgroundColor: COLORS.toastBg,
+        borderLeftColor: COLORS.errorText,
+        backgroundColor: COLORS.black,
         paddingVertical: 5,
         paddingHorizontal: 0,
 
@@ -211,6 +212,7 @@ const toastConfig = {
         fontSize: 14,
         fontFamily: "Poppins",
         fontWeight: "500",
+        color: COLORS.white,
       }}
       text2NumberOfLines={2}
     />

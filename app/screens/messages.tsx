@@ -273,7 +273,7 @@ const MessageScreen = ({ userRole = "teacher" }: MessageScreenProps) => {
                     onPress={async (selectedUser: any) => {
                       const currentUserId = auth().currentUser?.uid;
                       const chatId =
-                        currentUserId < selectedUser.id
+                        (currentUserId as string) < selectedUser.id
                           ? `${currentUserId}_${selectedUser.id}`
                           : `${selectedUser.id}_${currentUserId}`;
 

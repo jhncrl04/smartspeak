@@ -271,13 +271,9 @@ const AddCategoryModal = ({ visible, onClose, learners }: modalProps) => {
 
                   addCategory(category)
                     .then(() => {
-                      Alert.alert("Success", "Category added successfully");
                       onClose();
                     })
-                    .catch((err) => {
-                      console.error("Error uploading category: ", err);
-                      Alert.alert("Error", "Failed to upload category.");
-                    });
+                    .catch((err) => {});
                 }}
                 disabled={!canSubmit}
               />

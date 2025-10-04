@@ -1,3 +1,4 @@
+import { showToast } from "@/components/ui/MyToast";
 import imageToBase64 from "@/helper/imageToBase64";
 import { useAuthStore } from "@/stores/userAuthStore";
 import {
@@ -36,6 +37,21 @@ export const addCard = async (cardInfo: cardProps) => {
   const category = await getCategoryWithId(cardInfo.category_id);
   if (!category) throw new Error("Category not found");
 
+  const cardExist = await cardCollection
+    .where("card_name", "==", cardInfo.name)
+    .where("category_id", "==", cardInfo.category_id)
+    .get();
+
+  if (cardExist.docs.length > 0) {
+    showToast(
+      "error",
+      "Card Already Exist",
+      `${cardInfo.name} already exist at ${category.category_name}`
+    );
+
+    return;
+  }
+
   const new_card: any = {
     card_name: cardInfo.name,
     category_name: category.category_name,
@@ -45,21 +61,34 @@ export const addCard = async (cardInfo: cardProps) => {
     image: base64Image,
     created_for: cardInfo.created_for ?? "all",
   };
+  try {
+    const cardRef = await cardCollection.add(new_card);
 
-  const cardRef = await cardCollection.add(new_card);
+    const logBody: CreateLogInput = {
+      action: "Create Card",
+      image: base64Image,
+      item_category: category.category_name,
+      item_id: cardRef.id,
+      item_name: cardInfo.name,
+      item_type: "Card",
+      timestamp: current_date,
+      created_for: cardInfo.created_for ?? "all",
+    };
 
-  const logBody: CreateLogInput = {
-    action: "Create Card",
-    image: base64Image,
-    item_category: category.category_name,
-    item_id: cardRef.id,
-    item_name: cardInfo.name,
-    item_type: "Card",
-    timestamp: current_date,
-    created_for: cardInfo.created_for ?? "all",
-  };
+    createLog(logBody);
 
-  createLog(logBody);
+    showToast(
+      "success",
+      "Card Created",
+      `${cardInfo.name} card created successfully`
+    );
+  } catch (error) {
+    showToast(
+      "error",
+      "Card Creation Failed",
+      `Failed to upload ${cardInfo.name} card.`
+    );
+  }
 };
 
 export const deleteCard = async (cardId: string) => {

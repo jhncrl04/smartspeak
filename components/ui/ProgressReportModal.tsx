@@ -17,6 +17,7 @@ import { useAuthStore } from "@/stores/userAuthStore";
 import { Progress } from "@/types/progressReport";
 import firestore from "@react-native-firebase/firestore";
 import DatePicker from "react-native-date-picker";
+import { showToast } from "./MyToast";
 
 type ProgressReportModalProps = {
   visible: boolean;
@@ -57,6 +58,8 @@ const ProgressReportModal = ({
   const handleSubmit = () => {
     if (!remarks.trim()) {
       // Could add Alert here for validation
+      showToast("error", "", "");
+
       return;
     }
     // onSubmit();
@@ -77,7 +80,7 @@ const ProgressReportModal = ({
     onClose();
   };
 
-  const canSubmit = remarks.trim() !== "";
+  const canSubmit = remarks.trim() !== "" && reportTitle.trim() !== "";
 
   // Reset form when modal closes
   useEffect(() => {

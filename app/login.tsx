@@ -2,6 +2,7 @@ import ActionLink from "@/components/ActionLink";
 import PrimaryButton from "@/components/PrimaryButton";
 import TextFieldWrapper from "@/components/TextfieldWrapper";
 import LoadingScreen from "@/components/ui/LoadingScreen";
+import { showToast } from "@/components/ui/MyToast";
 import COLORS from "@/constants/Colors";
 import { loginAuth } from "@/services/userApi/Authentication";
 import { checkVerification, setLoginState } from "@/services/userService";
@@ -49,19 +50,22 @@ const LoginScreen = () => {
                     const user = auth().currentUser;
                     if (user && !user.emailVerified) {
                       await user.sendEmailVerification();
-                      Alert.alert(
+                      showToast(
+                        "success",
                         "Verification link sent",
                         "Please check your email."
                       );
                     } else {
-                      Alert.alert(
+                      showToast(
+                        "success",
                         "Already verified",
                         "Your email is already verified."
                       );
                     }
                   } catch (error) {
                     console.error("Error sending verification link:", error);
-                    Alert.alert(
+                    showToast(
+                      "error",
                       "Error",
                       "Failed to send verification link. Please try again later."
                     );

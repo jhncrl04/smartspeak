@@ -62,6 +62,48 @@ const SignUpCredentialScreens = () => {
     }
   };
 
+  const [isLoading, setIsLoading] = useState(false);
+
+  const finishRegistration = async (
+    email: string,
+    password: string,
+    confirmPassword: string,
+    userData: userDataType
+  ) => {
+    if (
+      !email ||
+      email.trim().length === 0 ||
+      !password ||
+      password.trim().length === 0 ||
+      !confirmPassword ||
+      confirmPassword.trim().length === 0
+    ) {
+      showToast("error", "Missing input", "Please fill all the inputs");
+
+      return;
+    }
+
+    if (!validator.isEmail(email)) {
+      showToast("error", "Invalid Email", "Please check your email");
+
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      showToast("error", "Password Error", "Password don't match");
+      return;
+    }
+
+    setIsLoading(true);
+    const isRegisterSuccess = await registerAdultUser(userData);
+
+    if (isRegisterSuccess) {
+      router.push("/accountVerification");
+
+      console.log("register successfully");
+    }
+  };
+
   return (
     <View style={styles.container}>
       <ScrollView
@@ -243,45 +285,6 @@ const SignUpCredentialScreens = () => {
       </ScrollView>
     </View>
   );
-};
-
-const finishRegistration = async (
-  email: string,
-  password: string,
-  confirmPassword: string,
-  userData: userDataType
-) => {
-  if (
-    !email ||
-    email.trim().length === 0 ||
-    !password ||
-    password.trim().length === 0 ||
-    !confirmPassword ||
-    confirmPassword.trim().length === 0
-  ) {
-    showToast("error", "Missing input", "Please fill all the inputs");
-
-    return;
-  }
-
-  if (!validator.isEmail(email)) {
-    showToast("error", "Invalid Email", "Please check your email");
-
-    return;
-  }
-
-  if (password !== confirmPassword) {
-    showToast("error", "Password Error", "Password don't match");
-    return;
-  }
-
-  const isRegisterSuccess = await registerAdultUser(userData);
-
-  if (isRegisterSuccess) {
-    router.push("/accountVerification");
-
-    console.log("register successfully");
-  }
 };
 
 const styles = StyleSheet.create({

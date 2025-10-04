@@ -1,3 +1,4 @@
+import { showToast } from "@/components/ui/MyToast";
 import imageToBase64 from "@/helper/imageToBase64";
 import { useAuthStore } from "@/stores/userAuthStore";
 import { CreateLogInput, DeleteLogInput, UpdateLog } from "@/types/log";
@@ -33,6 +34,21 @@ export const addCategory = async (categoryInfo: categoryProps) => {
     }
   }
 
+  const categories = await categoryCollection
+    .where("category_name", "==", categoryInfo.name)
+    .where("created_by", "==", uid)
+    .get();
+
+  if (categories.docs.length > 0) {
+    showToast(
+      "error",
+      "Category Already Exist",
+      `${categoryInfo.name} already exist`
+    );
+
+    return;
+  }
+
   const newCategory = {
     category_name: categoryInfo.name,
     background_color: categoryInfo.color,
@@ -48,19 +64,30 @@ export const addCategory = async (categoryInfo: categoryProps) => {
       : "",
   };
 
-  const categoryRef = await categoryCollection.add(newCategory);
+  try {
+    const categoryRef = await categoryCollection.add(newCategory);
 
-  const logBody: CreateLogInput = {
-    action: "Create Category",
-    image: base64Image,
-    item_category: newCategory.category_name,
-    item_id: categoryRef.id,
-    item_name: newCategory.category_name,
-    item_type: "Card",
-    timestamp: currentDate,
-  };
+    const logBody: CreateLogInput = {
+      action: "Create Category",
+      image: base64Image,
+      item_category: newCategory.category_name,
+      item_id: categoryRef.id,
+      item_name: newCategory.category_name,
+      item_type: "Card",
+      timestamp: currentDate,
+    };
 
-  createLog(logBody);
+    createLog(logBody);
+
+    showToast(
+      "success",
+      "Category added successfully",
+      `${categoryInfo.name} created.`
+    );
+  } catch (err) {
+    console.error("Error uploading category: ", err);
+    showToast("error", "Failed to upload category.", "");
+  }
 };
 
 export const getCategories = async () => {
