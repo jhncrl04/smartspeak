@@ -18,7 +18,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 import {
   GestureHandlerRootView,
@@ -49,6 +49,10 @@ interface ProfileFormData {
   barangay_name: string;
 }
 
+const user = useAuthStore.getState().user?.handledChildren;
+
+console.log("xyz", user);
+
 // Gender options for dropdown
 const GENDER_OPTIONS = [
   { id: 1, label: "Male", value: "Male" },
@@ -58,7 +62,7 @@ const GENDER_OPTIONS = [
 ];
 
 // PSGC API Base URL
-const PSGC_API_BASE = 'https://psgc.gitlab.io/api';
+const PSGC_API_BASE = "https://psgc.gitlab.io/api";
 
 // Interface for PSGC data
 interface PsgcItem {
@@ -78,52 +82,64 @@ const fetchRegions = async (): Promise<PsgcItem[]> => {
       name: region.name,
     }));
   } catch (error) {
-    console.error('Error fetching regions:', error);
+    console.error("Error fetching regions:", error);
     return [];
   }
 };
 
 // Fetch provinces by region code
-const fetchProvincesByRegion = async (regionCode: string): Promise<PsgcItem[]> => {
+const fetchProvincesByRegion = async (
+  regionCode: string
+): Promise<PsgcItem[]> => {
   try {
-    const response = await axios.get(`${PSGC_API_BASE}/regions/${regionCode}/provinces`);
+    const response = await axios.get(
+      `${PSGC_API_BASE}/regions/${regionCode}/provinces`
+    );
     return response.data.map((province: any) => ({
       code: province.code,
       name: province.name,
       regionCode: province.regionCode,
     }));
   } catch (error) {
-    console.error('Error fetching provinces:', error);
+    console.error("Error fetching provinces:", error);
     return [];
   }
 };
 
 // Fetch municipalities by province code
-const fetchMunicipalitiesByProvince = async (provinceCode: string): Promise<PsgcItem[]> => {
+const fetchMunicipalitiesByProvince = async (
+  provinceCode: string
+): Promise<PsgcItem[]> => {
   try {
-    const response = await axios.get(`${PSGC_API_BASE}/provinces/${provinceCode}/municipalities`);
+    const response = await axios.get(
+      `${PSGC_API_BASE}/provinces/${provinceCode}/municipalities`
+    );
     return response.data.map((municipality: any) => ({
       code: municipality.code,
       name: municipality.name,
       provinceCode: municipality.provinceCode,
     }));
   } catch (error) {
-    console.error('Error fetching municipalities:', error);
+    console.error("Error fetching municipalities:", error);
     return [];
   }
 };
 
 // Fetch barangays by municipality code
-const fetchBarangaysByMunicipality = async (municipalityCode: string): Promise<PsgcItem[]> => {
+const fetchBarangaysByMunicipality = async (
+  municipalityCode: string
+): Promise<PsgcItem[]> => {
   try {
-    const response = await axios.get(`${PSGC_API_BASE}/municipalities/${municipalityCode}/barangays`);
+    const response = await axios.get(
+      `${PSGC_API_BASE}/municipalities/${municipalityCode}/barangays`
+    );
     return response.data.map((barangay: any) => ({
       code: barangay.code,
       name: barangay.name,
       municipalityCode: barangay.municipalityCode,
     }));
   } catch (error) {
-    console.error('Error fetching barangays:', error);
+    console.error("Error fetching barangays:", error);
     return [];
   }
 };
@@ -191,9 +207,12 @@ export default function ProfileScreen() {
   const [showGenderDropdown, setShowGenderDropdown] = useState<boolean>(false);
 
   const [showRegionDropdown, setShowRegionDropdown] = useState<boolean>(false);
-  const [showProvinceDropdown, setShowProvinceDropdown] = useState<boolean>(false);
-  const [showMunicipalityDropdown, setShowMunicipalityDropdown] = useState<boolean>(false);
-  const [showBarangayDropdown, setShowBarangayDropdown] = useState<boolean>(false);
+  const [showProvinceDropdown, setShowProvinceDropdown] =
+    useState<boolean>(false);
+  const [showMunicipalityDropdown, setShowMunicipalityDropdown] =
+    useState<boolean>(false);
+  const [showBarangayDropdown, setShowBarangayDropdown] =
+    useState<boolean>(false);
 
   // Date picker states
   const [showDatePicker, setShowDatePicker] = useState<boolean>(false);
@@ -207,7 +226,8 @@ export default function ProfileScreen() {
   const [barangays, setBarangays] = useState<PsgcItem[]>([]);
   const [selectedRegionCode, setSelectedRegionCode] = useState<string>("");
   const [selectedProvinceCode, setSelectedProvinceCode] = useState<string>("");
-  const [selectedMunicipalityCode, setSelectedMunicipalityCode] = useState<string>("");
+  const [selectedMunicipalityCode, setSelectedMunicipalityCode] =
+    useState<string>("");
   const [addressLoading, setAddressLoading] = useState<boolean>(false);
 
   // Page state - REMOVED: scroll related states
@@ -231,7 +251,8 @@ export default function ProfileScreen() {
   };
 
   const [formData, setFormData] = useState<ProfileFormData>(initialFormData);
-  const [originalData, setOriginalData] = useState<ProfileFormData>(initialFormData);
+  const [originalData, setOriginalData] =
+    useState<ProfileFormData>(initialFormData);
 
   // Notification states
   const [notification, setNotification] = useState<{
@@ -250,10 +271,8 @@ export default function ProfileScreen() {
   const fetchLearnerSection = async (userId: string) => {
     try {
       console.log("Fetching sections for learner:", userId);
-      
-      const sectionsSnapshot = await firestore()
-        .collection("sections")
-        .get();
+
+      const sectionsSnapshot = await firestore().collection("sections").get();
 
       let learnerSection = "No Section";
 
@@ -286,7 +305,7 @@ export default function ProfileScreen() {
     try {
       setAddressLoading(true);
       console.log("Starting to fetch address data from PSGC API...");
-      
+
       // Fetch regions
       const regionsData = await fetchRegions();
       console.log("Fetched regions:", regionsData.length);
@@ -294,32 +313,39 @@ export default function ProfileScreen() {
 
       // If user already has region selected, fetch provinces for that region
       if (formData.region_name) {
-        const region = regionsData.find(r => 
-          r.name.toLowerCase() === formData.region_name.toLowerCase()
+        const region = regionsData.find(
+          (r) => r.name.toLowerCase() === formData.region_name.toLowerCase()
         );
         if (region) {
           setSelectedRegionCode(region.code);
           const provincesData = await fetchProvincesByRegion(region.code);
           setProvinces(provincesData);
-          
+
           // Continue cascading for existing data...
           if (formData.province_name) {
-            const province = provincesData.find(p => 
-              p.name.toLowerCase() === formData.province_name.toLowerCase()
+            const province = provincesData.find(
+              (p) =>
+                p.name.toLowerCase() === formData.province_name.toLowerCase()
             );
             if (province) {
               setSelectedProvinceCode(province.code);
-              const municipalitiesData = await fetchMunicipalitiesByProvince(province.code);
+              const municipalitiesData = await fetchMunicipalitiesByProvince(
+                province.code
+              );
               setMunicipalities(municipalitiesData);
-              
+
               // Continue for municipality
               if (formData.municipality_name) {
-                const municipality = municipalitiesData.find(m => 
-                  m.name.toLowerCase() === formData.municipality_name.toLowerCase()
+                const municipality = municipalitiesData.find(
+                  (m) =>
+                    m.name.toLowerCase() ===
+                    formData.municipality_name.toLowerCase()
                 );
                 if (municipality) {
                   setSelectedMunicipalityCode(municipality.code);
-                  const barangaysData = await fetchBarangaysByMunicipality(municipality.code);
+                  const barangaysData = await fetchBarangaysByMunicipality(
+                    municipality.code
+                  );
                   setBarangays(barangaysData);
                 }
               }
@@ -327,7 +353,6 @@ export default function ProfileScreen() {
           }
         }
       }
-      
     } catch (error) {
       console.error("Error fetching address data:", error);
       showNotification("Error loading address data", "error");
@@ -370,7 +395,7 @@ export default function ProfileScreen() {
   const handleRegionSelect = async (selectedRegion: PsgcItem) => {
     updateFormData("region_name", selectedRegion.name);
     setSelectedRegionCode(selectedRegion.code);
-    
+
     // Reset dependent fields
     updateFormData("province_name", "");
     updateFormData("municipality_name", "");
@@ -380,9 +405,9 @@ export default function ProfileScreen() {
     setBarangays([]);
     setSelectedProvinceCode("");
     setSelectedMunicipalityCode("");
-    
+
     setShowRegionDropdown(false);
-    
+
     // Fetch provinces for selected region
     if (selectedRegion.code) {
       setAddressLoading(true);
@@ -396,20 +421,22 @@ export default function ProfileScreen() {
   const handleProvinceSelect = async (selectedProvince: PsgcItem) => {
     updateFormData("province_name", selectedProvince.name);
     setSelectedProvinceCode(selectedProvince.code);
-    
+
     // Reset dependent fields
     updateFormData("municipality_name", "");
     updateFormData("barangay_name", "");
     setMunicipalities([]);
     setBarangays([]);
     setSelectedMunicipalityCode("");
-    
+
     setShowProvinceDropdown(false);
-    
+
     // Fetch municipalities for selected province
     if (selectedProvince.code) {
       setAddressLoading(true);
-      const municipalitiesData = await fetchMunicipalitiesByProvince(selectedProvince.code);
+      const municipalitiesData = await fetchMunicipalitiesByProvince(
+        selectedProvince.code
+      );
       setMunicipalities(municipalitiesData);
       setAddressLoading(false);
     }
@@ -419,17 +446,19 @@ export default function ProfileScreen() {
   const handleMunicipalitySelect = async (selectedMunicipality: PsgcItem) => {
     updateFormData("municipality_name", selectedMunicipality.name);
     setSelectedMunicipalityCode(selectedMunicipality.code);
-    
+
     // Reset dependent field
     updateFormData("barangay_name", "");
     setBarangays([]);
-    
+
     setShowMunicipalityDropdown(false);
-    
+
     // Fetch barangays for selected municipality
     if (selectedMunicipality.code) {
       setAddressLoading(true);
-      const barangaysData = await fetchBarangaysByMunicipality(selectedMunicipality.code);
+      const barangaysData = await fetchBarangaysByMunicipality(
+        selectedMunicipality.code
+      );
       setBarangays(barangaysData);
       setAddressLoading(false);
     }
@@ -458,21 +487,23 @@ export default function ProfileScreen() {
         let day, month, year;
 
         if (i === 2) {
-
           year = parseInt(match[1]);
           month = parseInt(match[2]) - 1;
           day = parseInt(match[3]);
         } else {
-
           month = parseInt(match[1]) - 1;
           day = parseInt(match[2]);
           year = parseInt(match[3]);
         }
-        
-        if (year >= 1900 && year <= new Date().getFullYear() && 
-            month >= 0 && month <= 11 && 
-            day >= 1 && day <= 31) {
 
+        if (
+          year >= 1900 &&
+          year <= new Date().getFullYear() &&
+          month >= 0 &&
+          month <= 11 &&
+          day >= 1 &&
+          day <= 31
+        ) {
           parsedDate = new Date(year, month, day);
           break;
         }
@@ -482,12 +513,12 @@ export default function ProfileScreen() {
     if (parsedDate && !isNaN(parsedDate.getTime())) {
       setSelectedDate(parsedDate);
 
-      const formattedDate = parsedDate.toLocaleDateString('en-US', {
-        month: '2-digit',
-        day: '2-digit',
-        year: 'numeric'
+      const formattedDate = parsedDate.toLocaleDateString("en-US", {
+        month: "2-digit",
+        day: "2-digit",
+        year: "numeric",
       });
-      
+
       updateFormData("dob", formattedDate);
 
       setDobTimestamp(firestore.Timestamp.fromDate(parsedDate));
@@ -495,10 +526,12 @@ export default function ProfileScreen() {
       console.log("Date parsed successfully:", parsedDate);
       console.log("Formatted date:", formattedDate);
 
-      console.log("Firebase timestamp:", firestore.Timestamp.fromDate(parsedDate));
-      
-      return true;
+      console.log(
+        "Firebase timestamp:",
+        firestore.Timestamp.fromDate(parsedDate)
+      );
 
+      return true;
     } else {
       console.log("Invalid date format entered:", dateString);
       return false;
@@ -509,12 +542,12 @@ export default function ProfileScreen() {
   const handleManualDateInput = (text: string) => {
     updateFormData("dob", text);
 
-    
     if (text.length >= 8) {
       const success = handleDateChange(text);
       if (!success && text.length >= 10) {
-        console.log("Please enter a valid date format (MM/DD/YYYY, MM-DD-YYYY, or YYYY-MM-DD)");
-
+        console.log(
+          "Please enter a valid date format (MM/DD/YYYY, MM-DD-YYYY, or YYYY-MM-DD)"
+        );
       }
     }
   };
@@ -696,7 +729,8 @@ export default function ProfileScreen() {
             email: userData?.email || "",
             region_name: userData?.region_name || userData?.region || "",
             province_name: userData?.province_name || userData?.province || "",
-            municipality_name: userData?.municipality_name || userData?.municipality || "",
+            municipality_name:
+              userData?.municipality_name || userData?.municipality || "",
             barangay_name: userData?.barangay_name || userData?.barangay || "",
           };
 
@@ -750,9 +784,9 @@ export default function ProfileScreen() {
     setShowProvinceDropdown(false);
     setShowMunicipalityDropdown(false);
     setShowBarangayDropdown(false);
-    
+
     setFormData(originalData);
-    
+
     if (originalData.dob) {
       const originalDate = new Date(originalData.dob);
       if (!isNaN(originalDate.getTime())) {
@@ -892,7 +926,7 @@ export default function ProfileScreen() {
       }}
     >
       <Text style={styles.dropdownItemText}>
-        {item.label || item.name || 'Unknown'}
+        {item.label || item.name || "Unknown"}
       </Text>
     </TouchableOpacity>
   );
@@ -917,7 +951,7 @@ export default function ProfileScreen() {
         return (
           <View style={styles.pageContent}>
             <Text style={styles.pageTitle}>Parent Information</Text>
-            
+
             <View style={styles.ParentInformationContainer}>
               <View style={styles.ParentInformation}>
                 <Text style={styles.InputTitle}>Name</Text>
@@ -1040,7 +1074,11 @@ export default function ProfileScreen() {
                 </Text>
                 {isEditing ? (
                   <TouchableOpacity
-                    style={[styles.InputData, styles.InputDataEditing, styles.dropdownButton]}
+                    style={[
+                      styles.InputData,
+                      styles.InputDataEditing,
+                      styles.dropdownButton,
+                    ]}
                     onPress={() => setShowGenderDropdown(true)}
                   >
                     <Text style={styles.dropdownButtonText}>
@@ -1074,7 +1112,11 @@ export default function ProfileScreen() {
                 </Text>
                 {isEditing ? (
                   <TouchableOpacity
-                    style={[styles.InputData, styles.InputDataEditing, styles.dropdownButton]}
+                    style={[
+                      styles.InputData,
+                      styles.InputDataEditing,
+                      styles.dropdownButton,
+                    ]}
                     onPress={() => setShowRegionDropdown(true)}
                   >
                     <Text style={styles.dropdownButtonText}>
@@ -1104,17 +1146,25 @@ export default function ProfileScreen() {
                 </Text>
                 {isEditing ? (
                   <TouchableOpacity
-                    style={[styles.InputData, styles.InputDataEditing, styles.dropdownButton]}
+                    style={[
+                      styles.InputData,
+                      styles.InputDataEditing,
+                      styles.dropdownButton,
+                    ]}
                     onPress={() => setShowProvinceDropdown(true)}
                     disabled={!formData.region_name}
                   >
-                    <Text style={[
-                      styles.dropdownButtonText,
-                      !formData.region_name && styles.dropdownButtonTextDisabled
-                    ]}>
-                      {formData.province_name || (
-                        formData.region_name ? "Select Province" : "Select Region First"
-                      )}
+                    <Text
+                      style={[
+                        styles.dropdownButtonText,
+                        !formData.region_name &&
+                          styles.dropdownButtonTextDisabled,
+                      ]}
+                    >
+                      {formData.province_name ||
+                        (formData.region_name
+                          ? "Select Province"
+                          : "Select Region First")}
                     </Text>
                     {addressLoading ? (
                       <ActivityIndicator size="small" color="#9B72CF" />
@@ -1140,17 +1190,25 @@ export default function ProfileScreen() {
                 </Text>
                 {isEditing ? (
                   <TouchableOpacity
-                    style={[styles.InputData, styles.InputDataEditing, styles.dropdownButton]}
+                    style={[
+                      styles.InputData,
+                      styles.InputDataEditing,
+                      styles.dropdownButton,
+                    ]}
                     onPress={() => setShowMunicipalityDropdown(true)}
                     disabled={!formData.province_name}
                   >
-                    <Text style={[
-                      styles.dropdownButtonText,
-                      !formData.province_name && styles.dropdownButtonTextDisabled
-                    ]}>
-                      {formData.municipality_name || (
-                        formData.province_name ? "Select Municipality" : "Select Province First"
-                      )}
+                    <Text
+                      style={[
+                        styles.dropdownButtonText,
+                        !formData.province_name &&
+                          styles.dropdownButtonTextDisabled,
+                      ]}
+                    >
+                      {formData.municipality_name ||
+                        (formData.province_name
+                          ? "Select Municipality"
+                          : "Select Province First")}
                     </Text>
                     {addressLoading ? (
                       <ActivityIndicator size="small" color="#9B72CF" />
@@ -1176,17 +1234,25 @@ export default function ProfileScreen() {
                 </Text>
                 {isEditing ? (
                   <TouchableOpacity
-                    style={[styles.InputData, styles.InputDataEditing, styles.dropdownButton]}
+                    style={[
+                      styles.InputData,
+                      styles.InputDataEditing,
+                      styles.dropdownButton,
+                    ]}
                     onPress={() => setShowBarangayDropdown(true)}
                     disabled={!formData.municipality_name}
                   >
-                    <Text style={[
-                      styles.dropdownButtonText,
-                      !formData.municipality_name && styles.dropdownButtonTextDisabled
-                    ]}>
-                      {formData.barangay_name || (
-                        formData.municipality_name ? "Select Barangay" : "Select Municipality First"
-                      )}
+                    <Text
+                      style={[
+                        styles.dropdownButtonText,
+                        !formData.municipality_name &&
+                          styles.dropdownButtonTextDisabled,
+                      ]}
+                    >
+                      {formData.barangay_name ||
+                        (formData.municipality_name
+                          ? "Select Barangay"
+                          : "Select Municipality First")}
                     </Text>
                     {addressLoading ? (
                       <ActivityIndicator size="small" color="#9B72CF" />
@@ -1247,9 +1313,9 @@ export default function ProfileScreen() {
             <View style={styles.modalContent}>
               <Text style={styles.modalTitle}>Select Gender</Text>
               <FlatList
-                data={GENDER_OPTIONS.map(gender => ({
+                data={GENDER_OPTIONS.map((gender) => ({
                   ...gender,
-                  onPress: (item) => handleGenderSelect(item.value)
+                  onPress: (item) => handleGenderSelect(item.value),
                 }))}
                 keyExtractor={(item) => item.id.toString()}
                 renderItem={renderDropdownItem}
@@ -1280,11 +1346,11 @@ export default function ProfileScreen() {
             <View style={styles.modalContent}>
               <Text style={styles.modalTitle}>Select Region</Text>
               <FlatList
-                data={regions.map(region => ({
+                data={regions.map((region) => ({
                   ...region,
                   label: region.name,
                   value: region.name,
-                  onPress: handleRegionSelect
+                  onPress: handleRegionSelect,
                 }))}
                 keyExtractor={(item) => item.code}
                 renderItem={renderDropdownItem}
@@ -1315,11 +1381,11 @@ export default function ProfileScreen() {
             <View style={styles.modalContent}>
               <Text style={styles.modalTitle}>Select Province</Text>
               <FlatList
-                data={provinces.map(province => ({
+                data={provinces.map((province) => ({
                   ...province,
                   label: province.name,
                   value: province.name,
-                  onPress: handleProvinceSelect
+                  onPress: handleProvinceSelect,
                 }))}
                 keyExtractor={(item) => item.code}
                 renderItem={renderDropdownItem}
@@ -1350,11 +1416,11 @@ export default function ProfileScreen() {
             <View style={styles.modalContent}>
               <Text style={styles.modalTitle}>Select Municipality</Text>
               <FlatList
-                data={municipalities.map(municipality => ({
+                data={municipalities.map((municipality) => ({
                   ...municipality,
                   label: municipality.name,
                   value: municipality.name,
-                  onPress: handleMunicipalitySelect
+                  onPress: handleMunicipalitySelect,
                 }))}
                 keyExtractor={(item) => item.code}
                 renderItem={renderDropdownItem}
@@ -1385,11 +1451,11 @@ export default function ProfileScreen() {
             <View style={styles.modalContent}>
               <Text style={styles.modalTitle}>Select Barangay</Text>
               <FlatList
-                data={barangays.map(barangay => ({
+                data={barangays.map((barangay) => ({
                   ...barangay,
                   label: barangay.name,
                   value: barangay.name,
-                  onPress: handleBarangaySelect
+                  onPress: handleBarangaySelect,
                 }))}
                 keyExtractor={(item) => item.code}
                 renderItem={renderDropdownItem}
@@ -1447,13 +1513,13 @@ export default function ProfileScreen() {
             </TouchableOpacity>
 
             <View style={styles.ProfileTextContainer}>
-              <Text style={styles.LayerTitle}>{formData.fname} {formData.mname} {formData.lname}</Text>
+              <Text style={styles.LayerTitle}>
+                {formData.fname} {formData.mname} {formData.lname}
+              </Text>
               <Text style={styles.ProfileText}>
                 {formData?.email || "No email available"}
               </Text>
-              <Text style={styles.ProfileSubText}>
-                Section: {sectionName}
-              </Text>
+              <Text style={styles.ProfileSubText}>Section: {sectionName}</Text>
             </View>
           </View>
 
@@ -1474,51 +1540,55 @@ export default function ProfileScreen() {
         </View>
 
         {/* UPDATED: CONTENT AREA - No longer scrollable, shows current page */}
-        <View style={styles.contentArea}>
-          {renderCurrentPage()}
-        </View>
+        <View style={styles.contentArea}>{renderCurrentPage()}</View>
 
         {/* PAGINATION INDICATOR */}
         <View style={styles.paginationContainer}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[
-              styles.paginationDot, 
-              currentPage === 0 && styles.paginationDotActive
-            ]} 
+              styles.paginationDot,
+              currentPage === 0 && styles.paginationDotActive,
+            ]}
             onPress={() => navigateToPage(0)}
           >
-            <Text style={[
-              styles.paginationText,
-              currentPage === 0 && styles.paginationTextActive
-            ]}>
+            <Text
+              style={[
+                styles.paginationText,
+                currentPage === 0 && styles.paginationTextActive,
+              ]}
+            >
               Parent Info
             </Text>
           </TouchableOpacity>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[
-              styles.paginationDot, 
-              currentPage === 1 && styles.paginationDotActive
-            ]} 
+              styles.paginationDot,
+              currentPage === 1 && styles.paginationDotActive,
+            ]}
             onPress={() => navigateToPage(1)}
           >
-            <Text style={[
-              styles.paginationText,
-              currentPage === 1 && styles.paginationTextActive
-            ]}>
+            <Text
+              style={[
+                styles.paginationText,
+                currentPage === 1 && styles.paginationTextActive,
+              ]}
+            >
               Student Info
             </Text>
           </TouchableOpacity>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[
-              styles.paginationDot, 
-              currentPage === 2 && styles.paginationDotActive
-            ]} 
+              styles.paginationDot,
+              currentPage === 2 && styles.paginationDotActive,
+            ]}
             onPress={() => navigateToPage(2)}
           >
-            <Text style={[
-              styles.paginationText,
-              currentPage === 2 && styles.paginationTextActive
-            ]}>
+            <Text
+              style={[
+                styles.paginationText,
+                currentPage === 2 && styles.paginationTextActive,
+              ]}
+            >
               Address Info
             </Text>
           </TouchableOpacity>
@@ -1626,35 +1696,35 @@ const styles = StyleSheet.create({
   },
   // Image edit overlay styles
   imageEditOverlay: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(155, 114, 207, 0.8)',
-    width: width * 0.10,
-    borderRadius: (width * 0.10) / 2,
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(155, 114, 207, 0.8)",
+    width: width * 0.1,
+    borderRadius: (width * 0.1) / 2,
+    justifyContent: "center",
+    alignItems: "center",
   },
   imageEditIcon: {
     width: width * 0.08,
     height: width * 0.08,
     borderRadius: width * 0.015,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   cameraIcon: {
-    width: '80%',
-    height: '80%',
-    resizeMode: 'contain',
+    width: "80%",
+    height: "80%",
+    resizeMode: "contain",
   },
   imageEditText: {
-    color: '#fafafa',
+    color: "#fafafa",
     fontSize: RFValue(6),
-    fontFamily: 'Poppins',
-    fontWeight: '600',
-    textAlign: 'center',
+    fontFamily: "Poppins",
+    fontWeight: "600",
+    textAlign: "center",
   },
   // Dropdown styles
   modalOverlay: {
@@ -1748,9 +1818,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: '#fafafa',
-    alignSelf: 'center',
-    marginHorizontal: 'auto',
+    backgroundColor: "#fafafa",
+    alignSelf: "center",
+    marginHorizontal: "auto",
   },
   ProfileContainer: {
     display: "flex",
@@ -1761,9 +1831,9 @@ const styles = StyleSheet.create({
     position: "relative",
   },
   ProfileImage: {
-    width: width * 0.10,
-    height: width * 0.10,
-    borderRadius: (width * 0.10) / 2,
+    width: width * 0.1,
+    height: width * 0.1,
+    borderRadius: (width * 0.1) / 2,
     resizeMode: "cover",
     marginRight: width * 0.03,
   },
@@ -1808,19 +1878,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingTop: height * 0.02,
     paddingBottom: height * 0.04,
-    backgroundColor: '#f8f8f8',
+    backgroundColor: "#f8f8f8",
     borderTopWidth: 1,
     borderColor: "rgba(67, 67, 67, 0.2)",
     width: width * 0.9,
-    alignSelf: 'center',
-    marginHorizontal: 'auto',
+    alignSelf: "center",
+    marginHorizontal: "auto",
   },
   paginationDot: {
     paddingHorizontal: width * 0.03,
     paddingVertical: height * 0.01,
     marginHorizontal: width * 0.01,
     borderRadius: width * 0.01,
-    backgroundColor: '#e0e0e0',
+    backgroundColor: "#e0e0e0",
   },
   paginationDotActive: {
     backgroundColor: "#9B72CF",
@@ -1839,8 +1909,8 @@ const styles = StyleSheet.create({
   pageContent: {
     flex: 1,
     width: width * 0.9,
-    alignSelf: 'center',
-    marginHorizontal: 'auto',
+    alignSelf: "center",
+    marginHorizontal: "auto",
   },
   pageTitle: {
     fontFamily: "Poppins",

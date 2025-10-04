@@ -141,7 +141,7 @@ const Sidebar = ({ onNavigate, userRole }: SidebarProps) => {
                       source={
                         user?.profile
                           ? { uri: user.profile }
-                          : require("../assets/images/creeper.png")
+                          : require("@/assets/images/default.jpg")
                       }
                       style={styles.profile}
                     />
@@ -251,6 +251,9 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     borderRightWidth: 1,
     borderRightColor: COLORS.shadow,
+
+    borderTopRightRadius: 20,
+    borderBottomRightRadius: 20,
   },
   profile: {
     width: 36,

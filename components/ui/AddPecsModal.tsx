@@ -24,13 +24,12 @@ import {
 } from "@/helper/imageCompressor";
 import imageToBase64 from "@/helper/imageToBase64";
 import { addCard } from "@/services/cardsService";
-import { getCategories } from "@/services/categoryService";
-import { getChild, getStudents } from "@/services/userService";
+import { useCategoriesStore } from "@/stores/categoriesStores";
 import { useAuthStore } from "@/stores/userAuthStore";
+import { useUsersStore } from "@/stores/userStore";
 import { useEffect, useState } from "react";
 import TextFieldWrapper from "../TextfieldWrapper";
 import LoadingScreen from "./LoadingScreen";
-import { showToast } from "./MyToast";
 
 type AddPecsModalProps = {
   visible: boolean;
@@ -41,9 +40,20 @@ type AddPecsModalProps = {
 const user = useAuthStore.getState().user;
 
 const AddPecsModal = ({ visible, onClose, categoryId }: AddPecsModalProps) => {
-  // image upload functionalities
+  const { users: students } = useUsersStore();
+  // ✅ FIX: Get all categories once (stable reference)
+  const allCategories = useCategoriesStore((state) => state.categories);
+
+  // ✅ Filter in useMemo with stable dependency
+  const categories = allCategories.filter((c) => c.created_by === user?.uid);
+
   const [image, setImage] = useState("");
   const [error, setError] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [cardName, setCardName] = useState("");
+  const [isSpecificLearnerCard, setIsSpecificLearnerCard] = useState(false);
+  const [selectedLearner, setSelectedLearner] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const showImagePickerOptions = () => {
     Alert.alert("Select Photo", "Choose how you want to add a photo", [
@@ -143,6 +153,10 @@ const AddPecsModal = ({ visible, onClose, categoryId }: AddPecsModalProps) => {
     }
   };
 
+  const selectedCategoryData = categories.find(
+    (cat) => cat.id === selectedCategory
+  );
+
   useEffect(() => {
     if (!visible) {
       setImage("");
@@ -154,103 +168,60 @@ const AddPecsModal = ({ visible, onClose, categoryId }: AddPecsModalProps) => {
     }
   }, [visible, categoryId]);
 
-  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const mappedStudents = students
+    .filter((student) => user?.handledChildren?.includes(student.id))
+    .map((student) => ({
+      label: `${student.first_name} ${student.last_name}`,
+      value: student.id,
+    }));
 
-  const [cardName, setCardName] = useState("asdasd");
-  const [isSpecificLearnerCard, setIsSpecificLearnerCard] = useState(false);
-  const [selectedLearner, setSelectedLearner] = useState<string>("");
+  // ✅ Handle category change properly
+  const handleCategoryChange = (categoryId: string) => {
+    setSelectedCategory(categoryId);
 
-  const dropdownItems: any[] = [];
+    const categoryData = categories.find((cat) => cat.id === categoryId);
 
-  const [categories, setCategories] = useState<any[]>([]);
-  const [selectedCategoryData, setSelectedCategoryData] = useState<any>(null);
-
-  const [students, setStudents] = useState<{ label: string; value: string }[]>([
-    { label: "", value: "" },
-  ]);
-
-  useEffect(() => {
-    const fetchStudents = async () => {
-      const students =
-        user?.role.toLowerCase() === "teacher"
-          ? await getStudents()
-          : await getChild();
-
-      const studentItems = students.map((student) => {
-        return {
-          label: `${student.first_name} ${student.last_name}`,
-          value: student.id,
-        };
-      });
-
-      setStudents(studentItems);
-    };
-
-    fetchStudents();
-  }, []);
-
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const data = await getCategories();
-        setCategories(data);
-      } catch (err) {
-        console.error("Error fetching boards: ", err);
-      }
-    };
-    fetchCategories();
-
-    if (categoryId) {
-      setIsDropdownDisabled(true);
-      setSelectedCategory(categoryId);
-    }
-  }, [categoryId]);
-
-  // Update selected category data when categories or selectedCategory changes
-  useEffect(() => {
-    if (selectedCategory && categories.length > 0) {
-      const categoryData = categories.find(
-        (cat) => cat.id === selectedCategory
-      );
-      setSelectedCategoryData(categoryData);
-
-      // Set default behavior based on category assignability
-      if (categoryData) {
-        if (categoryData.is_assignable !== false) {
-          // For assignable categories, default to assignable (false = assignable)
-          setIsSpecificLearnerCard(false);
-        } else {
-          // For non-assignable categories, default to specific learner (true = specific learner)
-          setIsSpecificLearnerCard(true);
-          setSelectedLearner(categoryData.assigned_to[0]);
+    if (categoryData) {
+      if (categoryData.is_assignable !== false) {
+        // Assignable category - default to assignable
+        setIsSpecificLearnerCard(false);
+        setSelectedLearner("");
+      } else {
+        // Non-assignable category - default to specific learner
+        setIsSpecificLearnerCard(true);
+        // Set the learner this category is assigned to
+        if (categoryData.created_for) {
+          setSelectedLearner(categoryData.created_for);
         }
       }
     }
-  }, [selectedCategory, categories]);
+  };
 
-  categories.forEach((category) => {
-    const label =
-      category.is_assignable === false
-        ? `${category.category_name} (${category.assigned_to_name} use only)`
-        : category.category_name;
+  const categoryDropdownItems = categories.map((cat) => {
+    if (cat.is_assignable === false) {
+      const assignedUser = students.find((u) => u.id === cat.created_for);
 
-    const categoryDetail = {
-      label: label,
-      value: category.id,
+      const userName = assignedUser
+        ? `${assignedUser.first_name} ${assignedUser.last_name}`.trim()
+        : "Unknown";
+
+      return {
+        label: `${cat.category_name} (${userName} use only)`,
+        value: cat.id,
+      };
+    }
+
+    return {
+      label: cat.category_name,
+      value: cat.id,
     };
-
-    dropdownItems.push(categoryDetail);
   });
-
-  const [isDropdownDisabled, setIsDropdownDisabled] = useState(false);
 
   // Show card type selection only when category is assignable (gives user freedom to choose)
   const showCardTypeSelection =
     selectedCategoryData && selectedCategoryData.is_assignable !== false;
 
   const canSubmit = image !== "" && cardName !== "" && selectedCategory !== "";
-
-  const [isLoading, setIsLoading] = useState(false);
 
   return (
     <>
@@ -303,11 +274,10 @@ const AddPecsModal = ({ visible, onClose, categoryId }: AddPecsModalProps) => {
               {/* Category Selection */}
               <TextFieldWrapper label="Category Name">
                 <MyDropdown
-                  isDisabled={isDropdownDisabled}
-                  dropdownItems={dropdownItems}
+                  dropdownItems={categoryDropdownItems}
                   placeholder="Select Category"
                   value={selectedCategory}
-                  onChange={(val) => setSelectedCategory(val)}
+                  onChange={handleCategoryChange}
                 />
               </TextFieldWrapper>
 
@@ -362,7 +332,7 @@ const AddPecsModal = ({ visible, onClose, categoryId }: AddPecsModalProps) => {
                 selectedCategoryData?.is_assignable !== false && (
                   <TextFieldWrapper label="Select Learner">
                     <MyDropdown
-                      dropdownItems={students}
+                      dropdownItems={mappedStudents}
                       onChange={(value) => {
                         setSelectedLearner(value as string);
                       }}

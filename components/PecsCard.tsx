@@ -1,6 +1,8 @@
 import COLORS from "@/constants/Colors";
 import getCurrentUid from "@/helper/getCurrentUid";
 import { useResponsiveCardSize } from "@/helper/setCardWidth";
+import { useCardsStore } from "@/stores/cardsStore";
+import { useCategoriesStore } from "@/stores/categoriesStores";
 import { useState } from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Icon from "react-native-vector-icons/Octicons";
@@ -12,16 +14,18 @@ type CardProps = {
   learnerId?: string;
   action?: actionType;
   cardId: string;
-  cardName: string;
-  cardCategory: string;
-  categoryColor: string;
-  image: string;
-  isDisabled?: boolean;
-  creatorId?: string;
 };
 
-const PecsCard = (props: CardProps) => {
+const PecsCard = ({ learnerId, action, cardId }: CardProps) => {
   const { cardWidth } = useResponsiveCardSize();
+  const uid = getCurrentUid();
+
+  const card = useCardsStore((state) =>
+    state.cards.find((c) => c.id === cardId)
+  );
+  const category = useCategoriesStore((state) =>
+    state.categories.find((c) => c.id === card?.category_id)
+  );
 
   const styles = StyleSheet.create({
     lockIconContainer: {
@@ -58,8 +62,8 @@ const PecsCard = (props: CardProps) => {
       paddingVertical: 10,
       justifyContent: "center",
       alignItems: "center",
-      backgroundColor: props.categoryColor
-        ? props.categoryColor
+      backgroundColor: category?.background_color
+        ? category?.background_color
         : COLORS.successText,
     },
     pecsName: {
@@ -74,32 +78,30 @@ const PecsCard = (props: CardProps) => {
   });
 
   const [modalVisible, setModalVisible] = useState(false);
-  const uid = getCurrentUid();
 
   return (
     <>
       <ViewCardModal
-        action={props.action as string}
-        learnerId={props.learnerId as string}
+        action={action!}
+        learnerId={learnerId!}
         onClose={() => setModalVisible(false)}
         visible={modalVisible}
-        cardId={props.cardId}
-        isDisabled={props.isDisabled}
+        cardId={cardId}
       />
       <View style={styles.shadowWrapper}>
         <TouchableOpacity
           style={styles.pecsContainer}
           onPress={() => setModalVisible(true)}
         >
-          {props.creatorId !== uid && (
+          {card?.created_by !== uid && (
             <View style={styles.lockIconContainer}>
               <Icon name="lock" size={15} color={COLORS.black} />
             </View>
           )}
-          <Image style={styles.pecsImage} source={{ uri: props.image }} />
+          <Image style={styles.pecsImage} source={{ uri: card?.image }} />
           <View style={styles.pecsInfoContainer}>
-            <Text style={styles.pecsName}>{props.cardName}</Text>
-            <Text style={styles.pecsCategory}>{props.cardCategory}</Text>
+            <Text style={styles.pecsName}>{card?.card_name}</Text>
+            <Text style={styles.pecsCategory}>{category?.category_name}</Text>
           </View>
         </TouchableOpacity>
       </View>

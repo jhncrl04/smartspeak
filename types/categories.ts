@@ -9,6 +9,7 @@ export type Category = {
   created_for?: string;
   image: string;
   is_assignable?: boolean;
+  assigned_to?: string[];
 };
 
 export type CategoriesStore = {

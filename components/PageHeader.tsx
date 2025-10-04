@@ -9,7 +9,7 @@ type pageProps = {
   pageTitle: string;
   searchPlaceholder: string;
   hasFilter: boolean;
-  onSearch: (results: any[]) => void;
+  onSearch: (results: any[] | string) => void;
   collectionToSearch: collectionType;
   query: queryType;
 };

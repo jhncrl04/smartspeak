@@ -315,6 +315,13 @@ export const setLoginState = (
 ) => {
   const login = useAuthStore.getState().login;
 
+  const children: string[] =
+    userDoc.role.toLowerCase() === "teacher"
+      ? userDoc.students
+      : userDoc.children;
+
+  console.log(children);
+
   login({
     fname: userDoc.first_name,
     lname: userDoc.last_name,
@@ -331,6 +338,7 @@ export const setLoginState = (
     profile: userDoc.profile_pic as string,
     role: userDoc.role,
     uid: firebaseUser?.uid,
+    handledChildren: children,
   });
 };
 

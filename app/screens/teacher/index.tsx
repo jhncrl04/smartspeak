@@ -45,29 +45,11 @@ const ManageLearnersScreen = () => {
     error: gradeLevelError,
   } = useGradeLevelsStore();
 
-  // useEffect(() => {
-  //   const fetch = async () => {
-  //     try {
-  //       const data = await getSectionsWithStudents();
-  //       setSections(data);
-
-  //       if (data.length > 0) setActiveSection(data[0].sectionId);
-  //     } catch (err) {
-  //       console.error("Error fetching sections:", err);
-  //     } finally {
-  //       setLoading(false);
-  //     }
-  //   };
-  //   fetch();
-  // }, []);
-
-  if (sectionLoading || gradeLevelLoading) {
-    return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" />
-      </View>
-    );
-  }
+  const {
+    users: learners,
+    isLoading: learnersLoading,
+    error: learnersError,
+  } = useUsersStore();
 
   const mappedSection = sections
     .map((section) => {
@@ -86,6 +68,14 @@ const ManageLearnersScreen = () => {
     }
   }, [mappedSection, activeSection]);
 
+  if (sectionLoading || gradeLevelLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+
   if (sectionError || gradeLevelError) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
@@ -98,12 +88,6 @@ const ManageLearnersScreen = () => {
 
   const filteredStudents: string[] =
     sections.find((s) => s.id === activeSection)?.students || [];
-
-  const {
-    users: learners,
-    isLoading: learnersLoading,
-    error: learnersError,
-  } = useUsersStore();
 
   const mappedStudents = learners.filter((learner) => {
     if (filteredStudents.includes(learner.id)) return learner;

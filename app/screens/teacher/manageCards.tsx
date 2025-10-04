@@ -4,9 +4,9 @@ import PecsCard from "@/components/PecsCard";
 import Sidebar from "@/components/Sidebar";
 import AddPecsModal from "@/components/ui/AddPecsModal";
 import COLORS from "@/constants/Colors";
-import { listenToCards } from "@/services/cardsService";
+import { useCardsStore } from "@/stores/cardsStore";
 import { router } from "expo-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 
 const ManageCardsScreen = () => {
@@ -14,15 +14,7 @@ const ManageCardsScreen = () => {
     router.push(screen as any);
   };
 
-  const [cards, setCards] = useState<any[]>([]);
-
-  useEffect(() => {
-    const unsubscribe = listenToCards((cards) => {
-      setCards(cards); // update your state
-    });
-
-    return () => unsubscribe(); // clean up listener on unmount
-  }, []);
+  const { cards, isLoading: cardsLoading, error: cardsError } = useCardsStore();
 
   const [activeModal, setActiveModal] = useState<"add" | null>(null);
 
@@ -67,16 +59,7 @@ const ManageCardsScreen = () => {
                 </View>
               ) : (
                 cards.map((card, index) => (
-                  <PecsCard
-                    action="Delete"
-                    key={index}
-                    cardName={card.card_name}
-                    cardCategory={card.category_title}
-                    categoryColor={card.background_color}
-                    image={card.image}
-                    cardId={card.id}
-                    creatorId={card.created_by}
-                  />
+                  <PecsCard action="Delete" key={card.id} cardId={card.id} />
                 ))
               )}
             </View>

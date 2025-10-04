@@ -10,7 +10,7 @@ import {
 import { useAuthStore } from "@/stores/userAuthStore";
 import { useUsersStore } from "@/stores/userStore";
 import { useFonts } from "expo-font";
-import { Stack, usePathname } from "expo-router";
+import { Stack } from "expo-router";
 import * as ScreenOrientation from "expo-screen-orientation";
 import { StatusBar } from "expo-status-bar";
 import { View } from "moti";
@@ -43,6 +43,14 @@ const RootLayout = () => {
   );
 
   useEffect(() => {
+    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+
+    setAppToFullscreen();
+
+    if (!user?.uid || !user?.role) return;
+
+    const role = user.role.toLowerCase();
+
     if (user?.uid && user?.role) {
       // Start all listeners when user logs in
       startCardsListener(user.uid);
@@ -61,14 +69,6 @@ const RootLayout = () => {
       stopGradeLevelsListener();
     };
   }, [user?.uid]);
-
-  const pathname = usePathname();
-
-  useEffect(() => {
-    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
-
-    setAppToFullscreen();
-  }, [pathname]);
 
   // setting default font, working on web but not on android
   const [fontsLoaded] = useFonts({
