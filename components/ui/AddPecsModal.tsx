@@ -404,22 +404,11 @@ const AddPecsModal = ({ visible, onClose, categoryId }: AddPecsModalProps) => {
                       .then(() => {
                         setIsLoading(false);
 
-                        showToast(
-                          "success",
-                          "Card Created",
-                          `${cardName} card created successfully`
-                        );
-
                         onClose();
                       })
                       .catch((err) => {
                         console.error("Error uploading card:", err);
-
-                        showToast(
-                          "error",
-                          "Card Creation Failed",
-                          `Failed to upload ${cardName} card.`
-                        );
+                        setIsLoading(false);
                       });
                   }}
                   disabled={!canSubmit}

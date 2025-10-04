@@ -24,7 +24,7 @@ const AssignCategoryPreview = ({
     try {
       await assignCategory(categoryId, learnerId);
       setIsAssigned(true); // update UI after assigning
-      setIsButtonDisable(true);
+      // setIsButtonDisable(true);
     } catch (err) {
       console.error("Failed to assign category:", err);
     }
@@ -36,9 +36,9 @@ const AssignCategoryPreview = ({
         <Image source={{ uri: categoryImage }} style={styles.categoryImage} />
         <Text style={styles.categoryName}>{categoryName}</Text>
       </View>
-      <View style={styles.buttonContainer}>
+      <View>
         <PrimaryButton
-          title={isAssigned ? "Added" : "Assign"} // change label
+          title={"Assign"} // change label
           clickHandler={handleAssign}
           disabled={isButtonDisabled}
         />
@@ -60,9 +60,6 @@ const styles = StyleSheet.create({
   },
   categoryImage: { width: 50, height: 50, borderRadius: 50 },
   categoryName: { fontSize: 16, fontFamily: "Poppins", color: COLORS.gray },
-  buttonContainer: {
-    width: 75,
-  },
 });
 
 export default AssignCategoryPreview;

@@ -27,6 +27,7 @@ import {
 } from "@/helper/imageCompressor";
 import Constants from "expo-constants";
 
+import { showToast } from "@/components/ui/MyToast";
 import { getUserInfo } from "@/services/userApi/Authentication";
 import { User } from "@/types/user";
 import Icon from "react-native-vector-icons/Octicons";
@@ -130,8 +131,7 @@ const ChildSettings = () => {
     setIsUpdating(true);
 
     try {
-      const result = await updateUserInfo({
-        user_id: userId as string,
+      const result = await updateUserInfo(userId as string, {
         first_name: formData.first_name.trim(),
         last_name: formData.last_name.trim(),
         region: formData.region,
@@ -145,13 +145,13 @@ const ChildSettings = () => {
       });
 
       if (result.success) {
-        Alert.alert("Success", "Profile updated successfully!");
+        showToast("success", "Profile updated successfully!", "");
       } else {
-        Alert.alert("Error", result.error || "Failed to update profile");
+        showToast("error", result.error || "Failed to update profile", "");
       }
     } catch (err) {
       console.error("Update error:", err);
-      Alert.alert("Error", "An unexpected error occurred");
+      showToast("error", "An unexpected error occurred", "");
     } finally {
       setIsUpdating(false);
     }
@@ -178,12 +178,14 @@ const ChildSettings = () => {
       }
 
       if (permissionResult.status !== "granted") {
-        Alert.alert(
+        showToast(
+          "error",
           "Permission Denied",
           `Sorry, ${
             useCamera ? "camera" : "media library"
           } permission is needed to upload.`
         );
+
         return;
       }
 
@@ -207,13 +209,14 @@ const ChildSettings = () => {
 
       const validate = await validateImage(uri);
       if (!validate.isValid && validate.error?.includes("Invalid image type")) {
-        Alert.alert("Invalid Image", validate.error);
+        showToast("error", "Invalid Image", validate.error);
         return;
       }
 
       const compression = await compressImageToSize(uri);
       if (!compression.success) {
-        Alert.alert(
+        showToast(
+          "error",
           "Compression Failed",
           compression.error || "Failed to process image"
         );

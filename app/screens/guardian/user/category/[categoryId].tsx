@@ -4,6 +4,7 @@ import LearnerProfileHeader from "@/components/LeanerProfileHeader";
 import PecsCard from "@/components/PecsCard";
 import Sidebar from "@/components/Sidebar";
 import AssignCardModal from "@/components/ui/AssignCardModal";
+import PreviousReportsModal from "@/components/ui/PreviousReportModal";
 import COLORS from "@/constants/Colors";
 import { calculateAge } from "@/helper/calculateAge";
 import getCurrentUid from "@/helper/getCurrentUid";
@@ -81,10 +82,12 @@ const LearnerProfileCategory = () => {
     categoryId: string,
     learnerId: string
   ) => {
-    const success = await unassignCategory(categoryId, learnerId);
+    const result: any = await unassignCategory(categoryId, learnerId);
 
-    if (success) router.back;
+    if (result.success) router.back();
   };
+
+  const [isReportModalActive, setIsReportModalActive] = useState(false);
 
   return (
     <>
@@ -116,6 +119,7 @@ const LearnerProfileCategory = () => {
                   },
                 });
               }}
+              onViewReports={() => setIsReportModalActive(true)}
               screen="guardian"
             />
           </View>
@@ -174,6 +178,12 @@ const LearnerProfileCategory = () => {
       </SafeAreaView>
 
       {/* modals */}
+      <PreviousReportsModal
+        visible={isReportModalActive}
+        onClose={() => setIsReportModalActive(false)}
+        studentId={userId as string}
+        studentName={`${userInfo?.first_name} ${userInfo?.last_name}`}
+      />
       <AssignCardModal
         visible={activeModal === "assign-card"}
         categoryId={categoryId as string}

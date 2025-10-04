@@ -1,5 +1,5 @@
 import COLORS from "@/constants/Colors";
-import { getUnassignedCategories } from "@/services/categoryService";
+import { listenToUnassignedCategories } from "@/services/categoryService";
 import { useEffect, useState } from "react";
 import {
   Alert,
@@ -23,18 +23,34 @@ type Props = {
 
 const AssignCategoryModal = ({ visible, onClose, learnerId }: Props) => {
   const [results, setResults] = useState<any[]>([]);
+  const [filteredResults, setFilteredResults] = useState<any[]>([]);
 
   useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const data = await getUnassignedCategories(learnerId as string);
-        setResults(data);
-      } catch (err) {
-        console.error("Error fetching boards: ", err);
+    const unsubscribe = listenToUnassignedCategories(
+      learnerId as string,
+      (categories) => {
+        setResults(categories);
+        setFilteredResults(categories);
       }
-    };
-    fetchCategories();
+    );
+
+    return () => unsubscribe();
   }, []);
+
+  const handleSearch = (query: string) => {
+    const filtered: any[] = results.filter((result) => {
+      const category_name = result.category_name;
+
+      if (category_name.startsWith(query)) return category_name;
+    });
+
+    if (query.trim() === "") {
+      setFilteredResults(results);
+      return;
+    }
+
+    setFilteredResults(filtered);
+  };
 
   return (
     <Modal
@@ -71,16 +87,16 @@ const AssignCategoryModal = ({ visible, onClose, learnerId }: Props) => {
               <MySearchBar
                 collectionToSearch="pecsCategories"
                 onSearch={(results) => {
-                  // setResults(results);
+                  handleSearch(results as string);
                 }}
                 placeholder="Search Category"
-                query="assignCategory"
+                query="local"
               />
             </View>
 
             {/* Categories List */}
             <View style={styles.categoryContainer}>
-              {results?.map((result, index) => (
+              {filteredResults?.map((result, index) => (
                 <AssignCategoryPreview
                   categoryName={result.category_name}
                   categoryImage={result?.image}

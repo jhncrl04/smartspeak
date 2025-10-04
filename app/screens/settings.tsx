@@ -25,11 +25,13 @@ import { useAuthStore } from "@/stores/userAuthStore";
 import * as ImagePicker from "expo-image-picker";
 
 import MyDropdown from "@/components/ui/MyDropdown";
+import { showToast } from "@/components/ui/MyToast";
 import {
   cleanupCompressedImage,
   compressImageToSize,
   validateImage,
 } from "@/helper/imageCompressor";
+import imageToBase64 from "@/helper/imageToBase64";
 import Constants from "expo-constants";
 
 const { width: screenWidth } = Dimensions.get("window");
@@ -75,7 +77,8 @@ const SettingScreen = () => {
       }
 
       if (permissionResult.status !== "granted") {
-        Alert.alert(
+        showToast(
+          "error",
           "Permission Denied",
           `Sorry, ${
             useCamera ? "camera" : "media library"
@@ -88,77 +91,103 @@ const SettingScreen = () => {
       const result = useCamera
         ? await ImagePicker.launchCameraAsync({
             allowsEditing: true,
-            quality: 0.9, // Slightly reduce initial quality
-            aspect: [1, 1], // Square aspect for profile pics
+            quality: 0.9,
+            aspect: [1, 1],
           })
         : await ImagePicker.launchImageLibraryAsync({
             allowsEditing: true,
-            quality: 0.9, // Slightly reduce initial quality
-            aspect: [1, 1], // Square aspect for profile pics
-            mediaTypes: ImagePicker.MediaTypeOptions.Images, // Only images
+            quality: 0.9,
+            aspect: [1, 1],
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
           });
 
       if (result.canceled) {
-        return; // User cancelled
+        return;
       }
 
       const uri = result.assets[0].uri;
+      setError("");
 
-      setError(""); // clear error first
+      let uploadedBase64: any;
 
-      // 1. Only validate file type (not size - we'll compress it)
+      // 1. Validate file type
       const validate = await validateImage(uri);
       if (!validate.isValid && validate.error?.includes("Invalid image type")) {
-        Alert.alert("Invalid Image", validate.error);
+        showToast("error", "Invalid Image", validate.error);
         return;
       }
 
-      // 2. Always compress the image (handles oversized images automatically)
-      const compression = await compressImageToSize(uri);
-      if (!compression.success) {
-        Alert.alert(
-          "Compression Failed",
-          compression.error || "Failed to process image"
-        );
-        return;
-      }
+      // 2. Check if image size is too big
+      if (validate.invalidSize) {
+        Alert.alert("Image size is too big", "Do you want to compress it?", [
+          {
+            text: "Compress",
+            onPress: async () => {
+              const compression = await compressImageToSize(uri);
+              if (!compression.success) {
+                showToast(
+                  "error",
+                  "Compression Failed",
+                  compression.error || "Failed to process image"
+                );
+                return;
+              }
 
-      // Skip base64 size validation - compressImageToSize already handles this
+              // Log compression stats
+              if (compression.originalSize && compression.compressedSize) {
+                const savings = (
+                  ((compression.originalSize - compression.compressedSize) /
+                    compression.originalSize) *
+                  100
+                ).toFixed(1);
+                console.log(
+                  `Image compressed: ${Math.round(
+                    compression.originalSize / 1024
+                  )}KB → ${Math.round(
+                    compression.compressedSize / 1024
+                  )}KB (${savings}% reduction)`
+                );
+              }
 
-      // 3. Log compression stats (optional)
-      if (compression.originalSize && compression.compressedSize) {
-        const savings = (
-          ((compression.originalSize - compression.compressedSize) /
-            compression.originalSize) *
-          100
-        ).toFixed(1);
-        console.log(
-          `Image compressed: ${Math.round(
-            compression.originalSize / 1024
-          )}KB → ${Math.round(
-            compression.compressedSize / 1024
-          )}KB (${savings}% reduction)`
-        );
-      }
+              // Upload compressed image
+              uploadedBase64 = await uploadProfilePic(compression.base64!);
 
-      // 4. Upload the compressed base64 image
-      const uploadedBase64 = await uploadProfilePic(compression.base64!);
+              // Cleanup temporary file
+              if (compression.compressedUri) {
+                await cleanupCompressedImage(compression.compressedUri);
+              }
 
-      if (uploadedBase64) {
-        setImage(uploadedBase64);
-        updateUser({ profile: uploadedBase64 });
-        Alert.alert("Success", "Profile picture updated!");
+              // Update UI after upload
+              if (uploadedBase64) {
+                setImage(uploadedBase64);
+                updateUser({ profile: uploadedBase64 });
+                showToast("success", "Success", "Profile picture updated!");
+              } else {
+                showToast("error", "Upload Failed", "Please try again.");
+              }
+            },
+          },
+          {
+            text: "Select another image",
+            style: "cancel",
+          },
+        ]);
       } else {
-        Alert.alert("Upload Failed", "Please try again.");
-      }
+        // 3. Image size is fine, upload directly without compression
+        const base64Image = await imageToBase64(uri);
+        uploadedBase64 = await uploadProfilePic(base64Image);
 
-      // 5. Cleanup temporary file
-      if (compression.compressedUri) {
-        await cleanupCompressedImage(compression.compressedUri);
+        if (uploadedBase64) {
+          setImage(uploadedBase64);
+          updateUser({ profile: uploadedBase64 });
+          showToast("success", "Success", "Profile picture updated!");
+        } else {
+          showToast("error", "Upload Failed", "Please try again.");
+        }
       }
     } catch (err) {
       console.error("Upload failed:", err);
-      Alert.alert("Upload Failed", "Something went wrong.");
+      showToast("error", "Upload Failed", "Something went wrong.");
     }
   };
 
@@ -205,7 +234,7 @@ const SettingScreen = () => {
         barangay_name,
       });
 
-      Alert.alert("Success", "Profile updated!");
+      showToast("success", "Success", "Profile updated!");
     } catch (err) {
       console.error("Error updating user info: ", err);
     }
@@ -220,24 +249,24 @@ const SettingScreen = () => {
       confirmPassword.trim() === "" ||
       currentPassword.trim() === ""
     ) {
-      Alert.alert("Error", "Fill all the required field");
+      showToast("error", "Error", "Fill all the required field");
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      Alert.alert("Error", "New Password don't match");
+      showToast("error", "Error", "New Password don't match");
       return;
     }
 
     const result = await updateUserPassword(currentPassword, newPassword);
     if (result.success) {
-      Alert.alert("Success", result.message);
+      showToast("success", "Success", result.message);
 
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
     } else {
-      Alert.alert("Updating password failed\n", result.message);
+      showToast("error", "Updating password failed\n", result.message);
     }
   };
 

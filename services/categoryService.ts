@@ -1,3 +1,4 @@
+import { showToast } from "@/components/ui/MyToast";
 import imageToBase64 from "@/helper/imageToBase64";
 import { useAuthStore } from "@/stores/userAuthStore";
 import { CreateLogInput, DeleteLogInput, UpdateLog } from "@/types/log";
@@ -33,6 +34,21 @@ export const addCategory = async (categoryInfo: categoryProps) => {
     }
   }
 
+  const categories = await categoryCollection
+    .where("category_name", "==", categoryInfo.name)
+    .where("created_by", "==", uid)
+    .get();
+
+  if (categories.docs.length > 0) {
+    showToast(
+      "error",
+      "Category Already Exist",
+      `${categoryInfo.name} already exist`
+    );
+
+    return;
+  }
+
   const newCategory = {
     category_name: categoryInfo.name,
     background_color: categoryInfo.color,
@@ -48,19 +64,30 @@ export const addCategory = async (categoryInfo: categoryProps) => {
       : "",
   };
 
-  const categoryRef = await categoryCollection.add(newCategory);
+  try {
+    const categoryRef = await categoryCollection.add(newCategory);
 
-  const logBody: CreateLogInput = {
-    action: "Create Category",
-    image: base64Image,
-    item_category: newCategory.category_name,
-    item_id: categoryRef.id,
-    item_name: newCategory.category_name,
-    item_type: "Card",
-    timestamp: currentDate,
-  };
+    const logBody: CreateLogInput = {
+      action: "Create Category",
+      image: base64Image,
+      item_category: newCategory.category_name,
+      item_id: categoryRef.id,
+      item_name: newCategory.category_name,
+      item_type: "Card",
+      timestamp: currentDate,
+    };
 
-  createLog(logBody);
+    createLog(logBody);
+
+    showToast(
+      "success",
+      "Category added successfully",
+      `${categoryInfo.name} created.`
+    );
+  } catch (err) {
+    console.error("Error uploading category: ", err);
+    showToast("error", "Failed to upload category.", "");
+  }
 };
 
 export const getCategories = async () => {
@@ -137,6 +164,45 @@ export const listenCategories = (callback: (categories: any[]) => void) => {
   });
 };
 
+export const listenToUnassignedCategories = (
+  learnerId: string,
+  callback: (categories: any[]) => void
+) => {
+  const uid = useAuthStore.getState().user?.uid;
+  if (!uid) return () => {};
+
+  return categoryCollection.onSnapshot(async (snapshot) => {
+    const categories: any[] = [];
+
+    // We’ll collect promises here for fetching creator names
+    const promises = snapshot.docs.map(async (doc) => {
+      const category = doc.data();
+      category.id = doc.id;
+
+      // console.log(
+      //   `${category.category_name}: {assignedTo: ${
+      //     category.assigned_to
+      //   }, createdBy: ${
+      //     category.created_by || category.created_by_role.toLowerCase()
+      //   }, createdFor: ${category.created_for}}`
+      // );
+
+      if (
+        !category.assigned_to?.includes(learnerId) &&
+        category.created_by === uid &&
+        category.created_by_role?.toString().toLowerCase() !== "admin"
+      ) {
+        if (!category.created_for || category.created_for === learnerId) {
+          categories.push(category);
+        }
+      }
+    });
+
+    await Promise.all(promises); // wait for all creator lookups
+    callback(categories); // push enriched categories to state
+  });
+};
+
 export const getUnassignedCategories = async (learnerId: string) => {
   const uid = useAuthStore.getState().user?.uid;
 
@@ -205,7 +271,7 @@ export const assignCategory = async (
 export const unassignCategory = async (
   categoryId: string,
   learnerId: string
-): Promise<boolean> => {
+) => {
   try {
     const cardCollection = firestore().collection("cards");
 
@@ -267,10 +333,10 @@ export const unassignCategory = async (
       .doc(categoryId)
       .update({ assigned_to: arrayRemove(learnerId) });
 
-    return true;
+    return { success: true };
   } catch (err) {
     console.error("Error unassigning category: ", err);
-    return false;
+    return { success: false, error: err };
   }
 };
 
@@ -327,11 +393,6 @@ export const updateCategory = async (
   }
 ) => {
   try {
-    await categoryCollection.doc(categoryId).update({
-      ...updates,
-      updated_at: firestore.FieldValue.serverTimestamp(), // for tracking
-    });
-
     const category = await getCategoryWithId(categoryId);
 
     const logBody: UpdateLog = {
@@ -351,6 +412,11 @@ export const updateCategory = async (
       user_name: "",
       user_type: "",
     };
+
+    await categoryCollection.doc(categoryId).update({
+      ...updates,
+      updated_at: firestore.FieldValue.serverTimestamp(), // for tracking
+    });
 
     createLog(logBody);
 

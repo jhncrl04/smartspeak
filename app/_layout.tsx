@@ -89,7 +89,9 @@ const RootLayout = () => {
   });
 
   const styles = StyleSheet.create({
-    headerContainer: {},
+    headerContainer: {
+      alignItems: "center",
+    },
     title: {
       color: COLORS.accent,
       fontFamily: "Poppins",
@@ -211,21 +213,28 @@ const toastConfig = {
     <BaseToast
       {...props}
       style={{
-        borderLeftColor: COLORS.successBg,
-        backgroundColor: COLORS.pureWhite,
+        borderLeftColor: COLORS.successText,
+        backgroundColor: COLORS.black,
+        paddingVertical: 5,
+        paddingHorizontal: 0,
+
+        width: "40%",
+        height: "auto",
       }}
       contentContainerStyle={{ paddingHorizontal: 15 }}
       text1Style={{
         fontSize: 16,
         fontFamily: "Poppins",
         fontWeight: "600",
-        color: COLORS.accent,
+        color: COLORS.successText,
       }}
       text2Style={{
         fontSize: 14,
         fontFamily: "Poppins",
         fontWeight: "500",
+        color: COLORS.white,
       }}
+      text2NumberOfLines={2}
     />
   ),
 
@@ -233,20 +242,27 @@ const toastConfig = {
     <ErrorToast
       {...props}
       style={{
-        borderLeftColor: COLORS.errorBg,
-        backgroundColor: COLORS.pureWhite,
+        borderLeftColor: COLORS.errorText,
+        backgroundColor: COLORS.black,
+        paddingVertical: 5,
+        paddingHorizontal: 0,
+
+        width: "40%",
+        height: "auto",
       }}
       text1Style={{
         fontSize: 16,
         fontFamily: "Poppins",
         fontWeight: "600",
-        color: COLORS.accent,
+        color: COLORS.errorText,
       }}
       text2Style={{
         fontSize: 14,
         fontFamily: "Poppins",
         fontWeight: "500",
+        color: COLORS.white,
       }}
+      text2NumberOfLines={2}
     />
   ),
 };

@@ -30,6 +30,7 @@ const COLORS = {
   gray: "#434343b3",
   lightGray: "#d3d3d3ff",
   white: "#F5F5F5",
+  toastBg: "#fffcfcff",
   cardBg: "#e9e9e9ff",
   semiWhite: "#f5f5f5cc",
   pureWhite: "#ffffff",
@@ -37,10 +38,10 @@ const COLORS = {
   navbarBg: "#EBEBEB",
   accent: "#9B72CF",
   errorBg: "#FEE2E2",
-  errorText: "#B91C1C",
+  errorText: "#ca6363ff",
   successBg: "#A5FFD5",
   successText: "#3F947F",
-  warningBg: "#FF9800",
+  warningBg: "#ddab60ff",
 };
 
 export default COLORS;

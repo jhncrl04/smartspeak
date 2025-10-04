@@ -4,6 +4,8 @@ import LearnerProfileHeader from "@/components/LeanerProfileHeader";
 import PecsCard from "@/components/PecsCard";
 import Sidebar from "@/components/Sidebar";
 import AssignCardModal from "@/components/ui/AssignCardModal";
+import { showToast } from "@/components/ui/MyToast";
+import PreviousReportsModal from "@/components/ui/PreviousReportModal";
 import ProgressReportModal from "@/components/ui/ProgressReportModal";
 import COLORS from "@/constants/Colors";
 import { calculateAge } from "@/helper/calculateAge";
@@ -80,14 +82,22 @@ const LearnerProfileCategory = () => {
   const [activeModal, setActiveModal] = useState<"assign-card" | null>(null);
 
   const [isReportModalActive, setIsReportModalActive] = useState(false);
+  const [isPreviousReportsModalActive, setIsPreviousReportsModalActive] =
+    useState(false);
 
   const handleUnassignCategory = async (
     categoryId: string,
     learnerId: string
   ) => {
-    const success = await unassignCategory(categoryId, learnerId);
+    const result: any = await unassignCategory(categoryId, learnerId);
 
-    if (success) router.back;
+    showToast(
+      "success",
+      "Unassign Category",
+      `${categoryName} has been unassigned`
+    );
+
+    if (result.success) router.back();
   };
 
   return (
@@ -113,6 +123,7 @@ const LearnerProfileCategory = () => {
               name={`${userInfo?.first_name} ${userInfo?.last_name}`}
               age={calculateAge(userInfo?.date_of_birth)}
               buttonHandler={() => setIsReportModalActive(true)}
+              onViewReports={() => setIsPreviousReportsModalActive(true)}
               screen="teacher"
             />
           </View>
@@ -178,6 +189,14 @@ const LearnerProfileCategory = () => {
         onClose={() => setIsReportModalActive(false)}
         onSubmit={() => {}}
         studentId={userId as string}
+      />
+
+      {/* New Previous Reports Modal */}
+      <PreviousReportsModal
+        visible={isPreviousReportsModalActive}
+        onClose={() => setIsPreviousReportsModalActive(false)}
+        studentId={userId as string}
+        studentName={`${userInfo?.first_name} ${userInfo?.last_name}`}
       />
 
       <AssignCardModal

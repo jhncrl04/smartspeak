@@ -92,7 +92,10 @@ export const createLog = async (
     console.log("Log created");
   }
 
-  if (logBody.action === "Assign Card") {
+  if (
+    logBody.action === "Assign Card" ||
+    logBody.action === "Assign Category"
+  ) {
     const finalLog = {
       ...logBody,
       timestamp: firestore.Timestamp.fromDate(new Date()) as any,

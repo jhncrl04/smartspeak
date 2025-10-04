@@ -1,5 +1,6 @@
 import { ThemedView } from "@/components/ThemedView";
 import { useAuthStore } from "@/stores/userAuthStore";
+import axios from "axios";
 import * as FileSystem from "expo-file-system";
 import { useFonts } from "expo-font";
 import * as ImagePicker from "expo-image-picker";
@@ -17,7 +18,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import {
   GestureHandlerRootView,
@@ -28,7 +29,6 @@ import {
   heightPercentageToDP as hp,
   widthPercentageToDP as wp,
 } from "react-native-responsive-screen";
-// Removed DateTimePicker import - using alternative approach
 
 // React Native Firebase SDK imports
 import firestore from "@react-native-firebase/firestore";
@@ -43,6 +43,10 @@ interface ProfileFormData {
   phoneNumber: string;
   studId: string;
   email: string;
+  region_name: string;
+  province_name: string;
+  municipality_name: string;
+  barangay_name: string;
 }
 
 // Gender options for dropdown
@@ -52,6 +56,77 @@ const GENDER_OPTIONS = [
   { id: 3, label: "Other", value: "Other" },
   { id: 4, label: "Prefer not to say", value: "Prefer not to say" },
 ];
+
+// PSGC API Base URL
+const PSGC_API_BASE = 'https://psgc.gitlab.io/api';
+
+// Interface for PSGC data
+interface PsgcItem {
+  code: string;
+  name: string;
+  regionCode?: string;
+  provinceCode?: string;
+  cityCode?: string;
+}
+
+// Fetch regions
+const fetchRegions = async (): Promise<PsgcItem[]> => {
+  try {
+    const response = await axios.get(`${PSGC_API_BASE}/regions`);
+    return response.data.map((region: any) => ({
+      code: region.code,
+      name: region.name,
+    }));
+  } catch (error) {
+    console.error('Error fetching regions:', error);
+    return [];
+  }
+};
+
+// Fetch provinces by region code
+const fetchProvincesByRegion = async (regionCode: string): Promise<PsgcItem[]> => {
+  try {
+    const response = await axios.get(`${PSGC_API_BASE}/regions/${regionCode}/provinces`);
+    return response.data.map((province: any) => ({
+      code: province.code,
+      name: province.name,
+      regionCode: province.regionCode,
+    }));
+  } catch (error) {
+    console.error('Error fetching provinces:', error);
+    return [];
+  }
+};
+
+// Fetch municipalities by province code
+const fetchMunicipalitiesByProvince = async (provinceCode: string): Promise<PsgcItem[]> => {
+  try {
+    const response = await axios.get(`${PSGC_API_BASE}/provinces/${provinceCode}/municipalities`);
+    return response.data.map((municipality: any) => ({
+      code: municipality.code,
+      name: municipality.name,
+      provinceCode: municipality.provinceCode,
+    }));
+  } catch (error) {
+    console.error('Error fetching municipalities:', error);
+    return [];
+  }
+};
+
+// Fetch barangays by municipality code
+const fetchBarangaysByMunicipality = async (municipalityCode: string): Promise<PsgcItem[]> => {
+  try {
+    const response = await axios.get(`${PSGC_API_BASE}/municipalities/${municipalityCode}/barangays`);
+    return response.data.map((barangay: any) => ({
+      code: barangay.code,
+      name: barangay.name,
+      municipalityCode: barangay.municipalityCode,
+    }));
+  } catch (error) {
+    console.error('Error fetching barangays:', error);
+    return [];
+  }
+};
 
 // Function to create a log entry in the database
 const createLog = async (
@@ -110,15 +185,33 @@ export default function ProfileScreen() {
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
   const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
-  const [sectionName, setSectionName] = useState<string>("No Section"); // Added section state
+  const [sectionName, setSectionName] = useState<string>("No Section");
 
-  // Gender dropdown state
+  // Dropdown states
   const [showGenderDropdown, setShowGenderDropdown] = useState<boolean>(false);
+
+  const [showRegionDropdown, setShowRegionDropdown] = useState<boolean>(false);
+  const [showProvinceDropdown, setShowProvinceDropdown] = useState<boolean>(false);
+  const [showMunicipalityDropdown, setShowMunicipalityDropdown] = useState<boolean>(false);
+  const [showBarangayDropdown, setShowBarangayDropdown] = useState<boolean>(false);
 
   // Date picker states
   const [showDatePicker, setShowDatePicker] = useState<boolean>(false);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [dobTimestamp, setDobTimestamp] = useState<any>(null);
+
+  // PSGC Address data states
+  const [regions, setRegions] = useState<PsgcItem[]>([]);
+  const [provinces, setProvinces] = useState<PsgcItem[]>([]);
+  const [municipalities, setMunicipalities] = useState<PsgcItem[]>([]);
+  const [barangays, setBarangays] = useState<PsgcItem[]>([]);
+  const [selectedRegionCode, setSelectedRegionCode] = useState<string>("");
+  const [selectedProvinceCode, setSelectedProvinceCode] = useState<string>("");
+  const [selectedMunicipalityCode, setSelectedMunicipalityCode] = useState<string>("");
+  const [addressLoading, setAddressLoading] = useState<boolean>(false);
+
+  // Page state - REMOVED: scroll related states
+  const [currentPage, setCurrentPage] = useState<number>(0);
 
   // Initialize with proper typing
   const initialFormData: ProfileFormData = {
@@ -131,11 +224,14 @@ export default function ProfileScreen() {
     phoneNumber: "",
     studId: "",
     email: "",
+    region_name: "",
+    province_name: "",
+    municipality_name: "",
+    barangay_name: "",
   };
 
   const [formData, setFormData] = useState<ProfileFormData>(initialFormData);
-  const [originalData, setOriginalData] =
-    useState<ProfileFormData>(initialFormData);
+  const [originalData, setOriginalData] = useState<ProfileFormData>(initialFormData);
 
   // Notification states
   const [notification, setNotification] = useState<{
@@ -154,13 +250,13 @@ export default function ProfileScreen() {
   const fetchLearnerSection = async (userId: string) => {
     try {
       console.log("Fetching sections for learner:", userId);
-
-      // Get all sections
-      const sectionsSnapshot = await firestore().collection("sections").get();
+      
+      const sectionsSnapshot = await firestore()
+        .collection("sections")
+        .get();
 
       let learnerSection = "No Section";
 
-      // Check each section to see if the learner is in the students array
       for (const doc of sectionsSnapshot.docs) {
         const sectionData = doc.data();
         const students = sectionData.students || [];
@@ -170,7 +266,6 @@ export default function ProfileScreen() {
           students: students,
         });
 
-        // Check if current user ID is in the students array
         if (students.includes(userId)) {
           learnerSection = sectionData.name || "Unnamed Section";
           console.log("Found section for learner:", learnerSection);
@@ -186,6 +281,61 @@ export default function ProfileScreen() {
     }
   };
 
+  // Function to fetch address data from PSGC API
+  const fetchAddressData = async () => {
+    try {
+      setAddressLoading(true);
+      console.log("Starting to fetch address data from PSGC API...");
+      
+      // Fetch regions
+      const regionsData = await fetchRegions();
+      console.log("Fetched regions:", regionsData.length);
+      setRegions(regionsData);
+
+      // If user already has region selected, fetch provinces for that region
+      if (formData.region_name) {
+        const region = regionsData.find(r => 
+          r.name.toLowerCase() === formData.region_name.toLowerCase()
+        );
+        if (region) {
+          setSelectedRegionCode(region.code);
+          const provincesData = await fetchProvincesByRegion(region.code);
+          setProvinces(provincesData);
+          
+          // Continue cascading for existing data...
+          if (formData.province_name) {
+            const province = provincesData.find(p => 
+              p.name.toLowerCase() === formData.province_name.toLowerCase()
+            );
+            if (province) {
+              setSelectedProvinceCode(province.code);
+              const municipalitiesData = await fetchMunicipalitiesByProvince(province.code);
+              setMunicipalities(municipalitiesData);
+              
+              // Continue for municipality
+              if (formData.municipality_name) {
+                const municipality = municipalitiesData.find(m => 
+                  m.name.toLowerCase() === formData.municipality_name.toLowerCase()
+                );
+                if (municipality) {
+                  setSelectedMunicipalityCode(municipality.code);
+                  const barangaysData = await fetchBarangaysByMunicipality(municipality.code);
+                  setBarangays(barangaysData);
+                }
+              }
+            }
+          }
+        }
+      }
+      
+    } catch (error) {
+      console.error("Error fetching address data:", error);
+      showNotification("Error loading address data", "error");
+    } finally {
+      setAddressLoading(false);
+    }
+  };
+
   // Show notification function
   const showNotification = (
     message: string,
@@ -193,14 +343,12 @@ export default function ProfileScreen() {
   ) => {
     setNotification({ visible: true, message, type });
 
-    // Slide down animation
     Animated.timing(slideAnim, {
       toValue: 0,
       duration: 300,
       useNativeDriver: true,
     }).start();
 
-    // Hide after 3 seconds for better readability
     setTimeout(() => {
       Animated.timing(slideAnim, {
         toValue: -100,
@@ -218,17 +366,90 @@ export default function ProfileScreen() {
     setShowGenderDropdown(false);
   };
 
-  // Handle date selection - UPDATED (without external date picker)
+  // Handle region selection
+  const handleRegionSelect = async (selectedRegion: PsgcItem) => {
+    updateFormData("region_name", selectedRegion.name);
+    setSelectedRegionCode(selectedRegion.code);
+    
+    // Reset dependent fields
+    updateFormData("province_name", "");
+    updateFormData("municipality_name", "");
+    updateFormData("barangay_name", "");
+    setProvinces([]);
+    setMunicipalities([]);
+    setBarangays([]);
+    setSelectedProvinceCode("");
+    setSelectedMunicipalityCode("");
+    
+    setShowRegionDropdown(false);
+    
+    // Fetch provinces for selected region
+    if (selectedRegion.code) {
+      setAddressLoading(true);
+      const provincesData = await fetchProvincesByRegion(selectedRegion.code);
+      setProvinces(provincesData);
+      setAddressLoading(false);
+    }
+  };
+
+  // Handle province selection
+  const handleProvinceSelect = async (selectedProvince: PsgcItem) => {
+    updateFormData("province_name", selectedProvince.name);
+    setSelectedProvinceCode(selectedProvince.code);
+    
+    // Reset dependent fields
+    updateFormData("municipality_name", "");
+    updateFormData("barangay_name", "");
+    setMunicipalities([]);
+    setBarangays([]);
+    setSelectedMunicipalityCode("");
+    
+    setShowProvinceDropdown(false);
+    
+    // Fetch municipalities for selected province
+    if (selectedProvince.code) {
+      setAddressLoading(true);
+      const municipalitiesData = await fetchMunicipalitiesByProvince(selectedProvince.code);
+      setMunicipalities(municipalitiesData);
+      setAddressLoading(false);
+    }
+  };
+
+  // Handle municipality selection
+  const handleMunicipalitySelect = async (selectedMunicipality: PsgcItem) => {
+    updateFormData("municipality_name", selectedMunicipality.name);
+    setSelectedMunicipalityCode(selectedMunicipality.code);
+    
+    // Reset dependent field
+    updateFormData("barangay_name", "");
+    setBarangays([]);
+    
+    setShowMunicipalityDropdown(false);
+    
+    // Fetch barangays for selected municipality
+    if (selectedMunicipality.code) {
+      setAddressLoading(true);
+      const barangaysData = await fetchBarangaysByMunicipality(selectedMunicipality.code);
+      setBarangays(barangaysData);
+      setAddressLoading(false);
+    }
+  };
+
+  // Handle barangay selection
+  const handleBarangaySelect = (selectedBarangay: PsgcItem) => {
+    updateFormData("barangay_name", selectedBarangay.name);
+    setShowBarangayDropdown(false);
+  };
+
+  // Handle date selection
   const handleDateChange = (dateString: string) => {
-    // Try to parse various date formats
     let parsedDate: Date | null = null;
 
-    // Try different date formats
     const formats = [
-      /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/, // MM/DD/YYYY or M/D/YYYY
-      /^(\d{1,2})-(\d{1,2})-(\d{4})$/, // MM-DD-YYYY or M-D-YYYY
-      /^(\d{4})-(\d{1,2})-(\d{1,2})$/, // YYYY-MM-DD or YYYY-M-D
-      /^(\d{1,2})\.(\d{1,2})\.(\d{4})$/, // MM.DD.YYYY or M.D.YYYY
+      /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/,
+      /^(\d{1,2})-(\d{1,2})-(\d{4})$/,
+      /^(\d{4})-(\d{1,2})-(\d{1,2})$/,
+      /^(\d{1,2})\.(\d{1,2})\.(\d{4})$/,
     ];
 
     for (let i = 0; i < formats.length; i++) {
@@ -237,26 +458,21 @@ export default function ProfileScreen() {
         let day, month, year;
 
         if (i === 2) {
-          // YYYY-MM-DD format
+
           year = parseInt(match[1]);
-          month = parseInt(match[2]) - 1; // Month is 0-indexed
+          month = parseInt(match[2]) - 1;
           day = parseInt(match[3]);
         } else {
-          // MM/DD/YYYY, MM-DD-YYYY, MM.DD.YYYY formats
-          month = parseInt(match[1]) - 1; // Month is 0-indexed
+
+          month = parseInt(match[1]) - 1;
           day = parseInt(match[2]);
           year = parseInt(match[3]);
         }
+        
+        if (year >= 1900 && year <= new Date().getFullYear() && 
+            month >= 0 && month <= 11 && 
+            day >= 1 && day <= 31) {
 
-        // Validate date ranges
-        if (
-          year >= 1900 &&
-          year <= new Date().getFullYear() &&
-          month >= 0 &&
-          month <= 11 &&
-          day >= 1 &&
-          day <= 31
-        ) {
           parsedDate = new Date(year, month, day);
           break;
         }
@@ -266,30 +482,26 @@ export default function ProfileScreen() {
     if (parsedDate && !isNaN(parsedDate.getTime())) {
       setSelectedDate(parsedDate);
 
-      // Format date for display (MM/DD/YYYY)
-      const formattedDate = parsedDate.toLocaleDateString("en-US", {
-        month: "2-digit",
-        day: "2-digit",
-        year: "numeric",
+      const formattedDate = parsedDate.toLocaleDateString('en-US', {
+        month: '2-digit',
+        day: '2-digit',
+        year: 'numeric'
       });
-
-      // Update form data
+      
       updateFormData("dob", formattedDate);
 
-      // Store the timestamp for Firebase - CRITICAL FIX
       setDobTimestamp(firestore.Timestamp.fromDate(parsedDate));
 
       console.log("Date parsed successfully:", parsedDate);
       console.log("Formatted date:", formattedDate);
-      console.log(
-        "Firebase timestamp:",
-        firestore.Timestamp.fromDate(parsedDate)
-      );
 
-      return true; // Success
+      console.log("Firebase timestamp:", firestore.Timestamp.fromDate(parsedDate));
+      
+      return true;
+
     } else {
       console.log("Invalid date format entered:", dateString);
-      return false; // Failed to parse
+      return false;
     }
   };
 
@@ -297,15 +509,12 @@ export default function ProfileScreen() {
   const handleManualDateInput = (text: string) => {
     updateFormData("dob", text);
 
-    // Only try to parse if the user has entered a reasonable length string
+    
     if (text.length >= 8) {
-      // Minimum for MM/DD/YY format
       const success = handleDateChange(text);
       if (!success && text.length >= 10) {
-        // Show validation message only for complete entries that failed to parse
-        console.log(
-          "Please enter a valid date format (MM/DD/YYYY, MM-DD-YYYY, or YYYY-MM-DD)"
-        );
+        console.log("Please enter a valid date format (MM/DD/YYYY, MM-DD-YYYY, or YYYY-MM-DD)");
+
       }
     }
   };
@@ -317,10 +526,8 @@ export default function ProfileScreen() {
     try {
       let date;
       if (timestamp.toDate) {
-        // Firebase Timestamp
         date = timestamp.toDate();
       } else if (timestamp.seconds) {
-        // Firebase Timestamp object
         date = new Date(timestamp.seconds * 1000);
       } else if (timestamp instanceof Date) {
         date = timestamp;
@@ -358,9 +565,7 @@ export default function ProfileScreen() {
     return new Date();
   };
 
-  // -----------------------------
-  // IMAGE PICKER + BASE64 CONVERTER
-  // -----------------------------
+  // Image picker functions
   const imageToBase64 = async (imageUri: string) => {
     try {
       let base64Image = await FileSystem.readAsStringAsync(imageUri, {
@@ -403,25 +608,22 @@ export default function ProfileScreen() {
         const oldProfilePic = profileImageUrl;
         const userName = `${formData.fname} ${formData.lname}`.trim();
 
-        // Save to Firestore
         await firestore()
           .collection("users")
           .doc(user?.uid)
           .update({ profile_pic: base64Img });
 
-        // Create log for profile picture change - SAVES ACTUAL IMAGE STRINGS
         try {
           await createLog(
             user?.uid || "",
             userName || "Unknown User",
             "Update Profile Picture",
-            { profile_pic: oldProfilePic || "" }, // Save the actual old base64 string
-            { profile_pic: base64Img } // Save the actual new base64 string
+            { profile_pic: oldProfilePic || "" },
+            { profile_pic: base64Img }
           );
           console.log("Profile picture log created successfully");
         } catch (logError) {
           console.error("Failed to create profile picture log:", logError);
-          // Don't fail the whole operation if logging fails
         }
 
         setProfileImageUrl(base64Img);
@@ -454,7 +656,6 @@ export default function ProfileScreen() {
           let guardianPhone = "";
           let guardianName = "";
 
-          // If child has guardian_id, fetch guardian doc
           if (userData?.guardian_id) {
             try {
               const guardianDoc = await firestore()
@@ -465,11 +666,9 @@ export default function ProfileScreen() {
               if (guardianDoc.exists()) {
                 const guardianData = guardianDoc.data();
 
-                // Fix: Use the correct field names from Firebase
                 guardianPhone =
                   guardianData?.phone_number || guardianData?.phoneNumber || "";
 
-                // Fix: Check for both possible field name formats
                 const guardianFirstName =
                   guardianData?.first_name || guardianData?.fname || "";
                 const guardianLastName =
@@ -491,20 +690,22 @@ export default function ProfileScreen() {
             lname: userData?.last_name || userData?.lname || "",
             dob: formatTimestampToDate(userData?.date_of_birth),
             gender: userData?.gender || "",
-            pname: guardianName, // Guardian name
-            phoneNumber: guardianPhone, // Guardian phone
+            pname: guardianName,
+            phoneNumber: guardianPhone,
             studId: userData?.guardian_id || userData?.studId || "",
             email: userData?.email || "",
+            region_name: userData?.region_name || userData?.region || "",
+            province_name: userData?.province_name || userData?.province || "",
+            municipality_name: userData?.municipality_name || userData?.municipality || "",
+            barangay_name: userData?.barangay_name || userData?.barangay || "",
           };
 
-          // Set the DOB timestamp and selected date for picker
           const dobTimestamp = userData?.date_of_birth;
           if (dobTimestamp) {
-            setDobTimestamp(dobTimestamp); // Firestore timestamp directly
+            setDobTimestamp(dobTimestamp);
             setSelectedDate(timestampToDate(dobTimestamp));
           }
 
-          // Set profile image URL from Firebase
           const profilePicUrl =
             userData?.profile_pic ||
             userData?.profilePic ||
@@ -514,7 +715,6 @@ export default function ProfileScreen() {
           setFormData(profileData);
           setOriginalData(profileData);
 
-          // Fetch learner's section
           await fetchLearnerSection(user.uid);
 
           console.log("Fetched user + guardian data:", profileData);
@@ -536,13 +736,8 @@ export default function ProfileScreen() {
     };
 
     fetchUserData();
+    fetchAddressData();
   }, [user]);
-
-  // Add debugging useEffect
-  useEffect(() => {
-    console.log("Current dobTimestamp:", dobTimestamp);
-    console.log("Current formData.dob:", formData.dob);
-  }, [dobTimestamp, formData.dob]);
 
   const handleEdit = () => {
     setIsEditing(true);
@@ -550,10 +745,14 @@ export default function ProfileScreen() {
 
   const handleCancel = () => {
     setIsEditing(false);
-    setShowGenderDropdown(false); // Close dropdown if open
-    // Reset to original data
+    setShowGenderDropdown(false);
+    setShowRegionDropdown(false);
+    setShowProvinceDropdown(false);
+    setShowMunicipalityDropdown(false);
+    setShowBarangayDropdown(false);
+    
     setFormData(originalData);
-    // Reset DOB related states to original
+    
     if (originalData.dob) {
       const originalDate = new Date(originalData.dob);
       if (!isNaN(originalDate.getTime())) {
@@ -563,14 +762,12 @@ export default function ProfileScreen() {
     }
   };
 
-  // Update the handleSave function - CRITICAL FIX
   const handleSave = async () => {
     if (!user?.uid) {
       showNotification("User not found. Please try logging in again.", "error");
       return;
     }
 
-    // Validate that we have a proper timestamp for date of birth
     if (!dobTimestamp) {
       showNotification("Please select a valid date of birth.", "error");
       return;
@@ -579,7 +776,6 @@ export default function ProfileScreen() {
     try {
       setLoading(true);
 
-      // Prepare data for Firebase update
       const updateData = {
         first_name: formData.fname,
         fname: formData.fname,
@@ -587,38 +783,47 @@ export default function ProfileScreen() {
         mname: formData.mname,
         last_name: formData.lname,
         lname: formData.lname,
-        date_of_birth: dobTimestamp, // Make sure this is a Firestore timestamp
+        date_of_birth: dobTimestamp,
         gender: formData.gender,
         phoneNumber: formData.phoneNumber,
+        region_name: formData.region_name,
+        province_name: formData.province_name,
+        municipality_name: formData.municipality_name,
+        barangay_name: formData.barangay_name,
       };
 
       console.log("Updating user with data:", updateData);
       console.log("Date of birth timestamp:", dobTimestamp);
 
-      // Create before and after objects for logging
       const beforeData = {
         first_name: originalData.fname,
         middle_name: originalData.mname,
         last_name: originalData.lname,
-        date_of_birth: originalData.dob, // Keep as formatted string for logging
+        date_of_birth: originalData.dob,
         gender: originalData.gender,
+        region_name: originalData.region_name,
+        province_name: originalData.province_name,
+        municipality_name: originalData.municipality_name,
+        barangay_name: originalData.barangay_name,
       };
 
       const afterData = {
         first_name: formData.fname,
         middle_name: formData.mname,
         last_name: formData.lname,
-        date_of_birth: formData.dob, // Keep as formatted string for logging
+        date_of_birth: formData.dob,
         gender: formData.gender,
+        region_name: formData.region_name,
+        province_name: formData.province_name,
+        municipality_name: formData.municipality_name,
+        barangay_name: formData.barangay_name,
       };
 
       const userName = `${formData.fname} ${formData.lname}`.trim();
 
-      // Update the user document in Firestore
       await firestore().collection("users").doc(user.uid).update(updateData);
       console.log("Firebase update completed successfully");
 
-      // Create log entry for profile information change
       try {
         await createLog(
           user.uid,
@@ -630,13 +835,15 @@ export default function ProfileScreen() {
         console.log("Log entry created successfully");
       } catch (logError) {
         console.error("Failed to create log entry:", logError);
-        // Don't fail the whole operation if logging fails
       }
 
-      // Update original data to reflect the saved changes
       setOriginalData({ ...formData });
       setIsEditing(false);
       setShowGenderDropdown(false);
+      setShowRegionDropdown(false);
+      setShowProvinceDropdown(false);
+      setShowMunicipalityDropdown(false);
+      setShowBarangayDropdown(false);
       setShowDatePicker(false);
 
       showNotification("Profile updated successfully!", "success");
@@ -656,6 +863,11 @@ export default function ProfileScreen() {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+  // UPDATED: Simple page navigation function
+  const navigateToPage = (page: number) => {
+    setCurrentPage(page);
+  };
+
   useEffect(() => {
     const lockOrientation = async () => {
       try {
@@ -669,13 +881,19 @@ export default function ProfileScreen() {
     lockOrientation();
   }, []);
 
-  // Render gender dropdown item
-  const renderGenderItem = ({ item }) => (
+  // Render dropdown item
+  const renderDropdownItem = ({ item }) => (
     <TouchableOpacity
       style={styles.dropdownItem}
-      onPress={() => handleGenderSelect(item.value)}
+      onPress={() => {
+        if (item.onPress) {
+          item.onPress(item);
+        }
+      }}
     >
-      <Text style={styles.dropdownItemText}>{item.label}</Text>
+      <Text style={styles.dropdownItemText}>
+        {item.label || item.name || 'Unknown'}
+      </Text>
     </TouchableOpacity>
   );
 
@@ -692,114 +910,14 @@ export default function ProfileScreen() {
     );
   }
 
-  return (
-    <GestureHandlerRootView>
-      <ThemedView style={styles.container}>
-        {/* Custom Notification */}
-        {notification.visible && (
-          <View style={styles.notificationContainer}>
-            <Animated.View
-              style={[
-                styles.notificationBox,
-                {
-                  backgroundColor:
-                    notification.type === "success" ? "#4CAF50" : "#FF6B6B",
-                  transform: [{ translateY: slideAnim }],
-                },
-              ]}
-            >
-              <Text style={styles.notificationText}>
-                {notification.message}
-              </Text>
-            </Animated.View>
-          </View>
-        )}
-
-        {/* Gender Dropdown Modal */}
-        <Modal
-          visible={showGenderDropdown}
-          transparent={true}
-          animationType="fade"
-          onRequestClose={() => setShowGenderDropdown(false)}
-        >
-          <TouchableOpacity
-            style={styles.modalOverlay}
-            activeOpacity={1}
-            onPress={() => setShowGenderDropdown(false)}
-          >
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Select Gender</Text>
-              <FlatList
-                data={GENDER_OPTIONS}
-                keyExtractor={(item) => item.id.toString()}
-                renderItem={renderGenderItem}
-                showsVerticalScrollIndicator={false}
-              />
-              <TouchableOpacity
-                style={styles.modalCloseButton}
-                onPress={() => setShowGenderDropdown(false)}
-              >
-                <Text style={styles.modalCloseButtonText}>Cancel</Text>
-              </TouchableOpacity>
-            </View>
-          </TouchableOpacity>
-        </Modal>
-
-        {/* HEADER */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.push("/screens/learner")}>
-            <Image
-              source={require("@/assets/images/arrow-left.png")}
-              style={styles.image}
-            />
-          </TouchableOpacity>
-        </View>
-
-        {/* MAIN BODY */}
-        <View style={styles.body}>
-          <View style={styles.layer1}>
-            <View style={styles.ProfileContainer}>
-              <TouchableOpacity onPress={pickImage}>
-                <View style={styles.ProfileImageContainer}>
-                  <Image
-                    source={
-                      profileImageUrl
-                        ? { uri: profileImageUrl }
-                        : require("@/assets/images/defaultimg.jpg")
-                    }
-                    style={styles.ProfileImage}
-                    onError={(error) => {
-                      console.log("Error loading profile image:", error);
-                      setProfileImageUrl(null);
-                    }}
-                  />
-                </View>
-              </TouchableOpacity>
-
-              <View style={styles.ProfileTextContainer}>
-                {/* Email */}
-                <Text style={styles.ProfileText}>
-                  {formData?.email || "No email available"}
-                </Text>
-
-                {/* Section - UPDATED */}
-                <Text style={styles.ProfileSubText}>
-                  Section: {sectionName}
-                </Text>
-              </View>
-            </View>
-
-            <TouchableOpacity
-              style={[styles.ChangeProfileBtn]}
-              onPress={pickImage}
-            >
-              <Text style={styles.BtnText}>Upload New Photo</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.layer2}>
-            <Text style={styles.LayerTitle}>Parent Information</Text>
-
+  // UPDATED: Render current page content
+  const renderCurrentPage = () => {
+    switch (currentPage) {
+      case 0: // Parent Information
+        return (
+          <View style={styles.pageContent}>
+            <Text style={styles.pageTitle}>Parent Information</Text>
+            
             <View style={styles.ParentInformationContainer}>
               <View style={styles.ParentInformation}>
                 <Text style={styles.InputTitle}>Name</Text>
@@ -814,9 +932,12 @@ export default function ProfileScreen() {
               </View>
             </View>
           </View>
+        );
 
-          <View style={styles.layer3}>
-            <Text style={styles.LayerTitle}>Student Information</Text>
+      case 1: // Student Information
+        return (
+          <View style={styles.pageContent}>
+            <Text style={styles.pageTitle}>Student Information</Text>
 
             <View style={styles.StudentInformationContainer}>
               <View style={styles.StudentInformation}>
@@ -896,7 +1017,6 @@ export default function ProfileScreen() {
                 </Text>
                 {isEditing ? (
                   <View>
-                    {/* Manual text input */}
                     <TextInput
                       style={[styles.InputData, styles.InputDataEditing]}
                       value={formData.dob}
@@ -920,14 +1040,10 @@ export default function ProfileScreen() {
                 </Text>
                 {isEditing ? (
                   <TouchableOpacity
-                    style={[
-                      styles.InputData,
-                      styles.InputDataEditing,
-                      styles.genderDropdownButton,
-                    ]}
+                    style={[styles.InputData, styles.InputDataEditing, styles.dropdownButton]}
                     onPress={() => setShowGenderDropdown(true)}
                   >
-                    <Text style={styles.genderDropdownText}>
+                    <Text style={styles.dropdownButtonText}>
                       {formData.gender || "Select Gender"}
                     </Text>
                     <Text style={styles.dropdownArrow}>▼</Text>
@@ -938,6 +1054,406 @@ export default function ProfileScreen() {
                   </Text>
                 )}
               </View>
+            </View>
+          </View>
+        );
+
+      case 2: // Address Information
+        return (
+          <View style={styles.pageContent}>
+            <Text style={styles.pageTitle}>Address Information</Text>
+            <View style={styles.StudentInformationContainer}>
+              <View style={styles.StudentInformation}>
+                <Text
+                  style={[
+                    styles.InputTitle,
+                    isEditing && styles.InputTitleEditing,
+                  ]}
+                >
+                  Region
+                </Text>
+                {isEditing ? (
+                  <TouchableOpacity
+                    style={[styles.InputData, styles.InputDataEditing, styles.dropdownButton]}
+                    onPress={() => setShowRegionDropdown(true)}
+                  >
+                    <Text style={styles.dropdownButtonText}>
+                      {formData.region_name || "Select Region"}
+                    </Text>
+                    {addressLoading ? (
+                      <ActivityIndicator size="small" color="#9B72CF" />
+                    ) : (
+                      <Text style={styles.dropdownArrow}>▼</Text>
+                    )}
+                  </TouchableOpacity>
+                ) : (
+                  <Text style={styles.InputData}>
+                    {formData.region_name || "N/A"}
+                  </Text>
+                )}
+              </View>
+
+              <View style={styles.StudentInformation}>
+                <Text
+                  style={[
+                    styles.InputTitle,
+                    isEditing && styles.InputTitleEditing,
+                  ]}
+                >
+                  Province
+                </Text>
+                {isEditing ? (
+                  <TouchableOpacity
+                    style={[styles.InputData, styles.InputDataEditing, styles.dropdownButton]}
+                    onPress={() => setShowProvinceDropdown(true)}
+                    disabled={!formData.region_name}
+                  >
+                    <Text style={[
+                      styles.dropdownButtonText,
+                      !formData.region_name && styles.dropdownButtonTextDisabled
+                    ]}>
+                      {formData.province_name || (
+                        formData.region_name ? "Select Province" : "Select Region First"
+                      )}
+                    </Text>
+                    {addressLoading ? (
+                      <ActivityIndicator size="small" color="#9B72CF" />
+                    ) : (
+                      <Text style={styles.dropdownArrow}>▼</Text>
+                    )}
+                  </TouchableOpacity>
+                ) : (
+                  <Text style={styles.InputData}>
+                    {formData.province_name || "N/A"}
+                  </Text>
+                )}
+              </View>
+
+              <View style={styles.StudentInformation}>
+                <Text
+                  style={[
+                    styles.InputTitle,
+                    isEditing && styles.InputTitleEditing,
+                  ]}
+                >
+                  Municipality
+                </Text>
+                {isEditing ? (
+                  <TouchableOpacity
+                    style={[styles.InputData, styles.InputDataEditing, styles.dropdownButton]}
+                    onPress={() => setShowMunicipalityDropdown(true)}
+                    disabled={!formData.province_name}
+                  >
+                    <Text style={[
+                      styles.dropdownButtonText,
+                      !formData.province_name && styles.dropdownButtonTextDisabled
+                    ]}>
+                      {formData.municipality_name || (
+                        formData.province_name ? "Select Municipality" : "Select Province First"
+                      )}
+                    </Text>
+                    {addressLoading ? (
+                      <ActivityIndicator size="small" color="#9B72CF" />
+                    ) : (
+                      <Text style={styles.dropdownArrow}>▼</Text>
+                    )}
+                  </TouchableOpacity>
+                ) : (
+                  <Text style={styles.InputData}>
+                    {formData.municipality_name || "N/A"}
+                  </Text>
+                )}
+              </View>
+
+              <View style={styles.StudentInformation}>
+                <Text
+                  style={[
+                    styles.InputTitle,
+                    isEditing && styles.InputTitleEditing,
+                  ]}
+                >
+                  Barangay
+                </Text>
+                {isEditing ? (
+                  <TouchableOpacity
+                    style={[styles.InputData, styles.InputDataEditing, styles.dropdownButton]}
+                    onPress={() => setShowBarangayDropdown(true)}
+                    disabled={!formData.municipality_name}
+                  >
+                    <Text style={[
+                      styles.dropdownButtonText,
+                      !formData.municipality_name && styles.dropdownButtonTextDisabled
+                    ]}>
+                      {formData.barangay_name || (
+                        formData.municipality_name ? "Select Barangay" : "Select Municipality First"
+                      )}
+                    </Text>
+                    {addressLoading ? (
+                      <ActivityIndicator size="small" color="#9B72CF" />
+                    ) : (
+                      <Text style={styles.dropdownArrow}>▼</Text>
+                    )}
+                  </TouchableOpacity>
+                ) : (
+                  <Text style={styles.InputData}>
+                    {formData.barangay_name || "N/A"}
+                  </Text>
+                )}
+              </View>
+            </View>
+          </View>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <GestureHandlerRootView style={styles.container}>
+      <ThemedView style={styles.container}>
+        {/* Custom Notification */}
+        {notification.visible && (
+          <View style={styles.notificationContainer}>
+            <Animated.View
+              style={[
+                styles.notificationBox,
+                {
+                  backgroundColor:
+                    notification.type === "success" ? "#4CAF50" : "#FF6B6B",
+                  transform: [{ translateY: slideAnim }],
+                },
+              ]}
+            >
+              <Text style={styles.notificationText}>
+                {notification.message}
+              </Text>
+            </Animated.View>
+          </View>
+        )}
+
+        {/* Gender Dropdown Modal */}
+        <Modal
+          visible={showGenderDropdown}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowGenderDropdown(false)}
+        >
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => setShowGenderDropdown(false)}
+          >
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Select Gender</Text>
+              <FlatList
+                data={GENDER_OPTIONS.map(gender => ({
+                  ...gender,
+                  onPress: (item) => handleGenderSelect(item.value)
+                }))}
+                keyExtractor={(item) => item.id.toString()}
+                renderItem={renderDropdownItem}
+                showsVerticalScrollIndicator={false}
+              />
+              <TouchableOpacity
+                style={styles.modalCloseButton}
+                onPress={() => setShowGenderDropdown(false)}
+              >
+                <Text style={styles.modalCloseButtonText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </Modal>
+
+        {/* Region Dropdown Modal */}
+        <Modal
+          visible={showRegionDropdown}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowRegionDropdown(false)}
+        >
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => setShowRegionDropdown(false)}
+          >
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Select Region</Text>
+              <FlatList
+                data={regions.map(region => ({
+                  ...region,
+                  label: region.name,
+                  value: region.name,
+                  onPress: handleRegionSelect
+                }))}
+                keyExtractor={(item) => item.code}
+                renderItem={renderDropdownItem}
+                showsVerticalScrollIndicator={false}
+              />
+              <TouchableOpacity
+                style={styles.modalCloseButton}
+                onPress={() => setShowRegionDropdown(false)}
+              >
+                <Text style={styles.modalCloseButtonText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </Modal>
+
+        {/* Province Dropdown Modal */}
+        <Modal
+          visible={showProvinceDropdown}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowProvinceDropdown(false)}
+        >
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => setShowProvinceDropdown(false)}
+          >
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Select Province</Text>
+              <FlatList
+                data={provinces.map(province => ({
+                  ...province,
+                  label: province.name,
+                  value: province.name,
+                  onPress: handleProvinceSelect
+                }))}
+                keyExtractor={(item) => item.code}
+                renderItem={renderDropdownItem}
+                showsVerticalScrollIndicator={false}
+              />
+              <TouchableOpacity
+                style={styles.modalCloseButton}
+                onPress={() => setShowProvinceDropdown(false)}
+              >
+                <Text style={styles.modalCloseButtonText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </Modal>
+
+        {/* Municipality Dropdown Modal */}
+        <Modal
+          visible={showMunicipalityDropdown}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowMunicipalityDropdown(false)}
+        >
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => setShowMunicipalityDropdown(false)}
+          >
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Select Municipality</Text>
+              <FlatList
+                data={municipalities.map(municipality => ({
+                  ...municipality,
+                  label: municipality.name,
+                  value: municipality.name,
+                  onPress: handleMunicipalitySelect
+                }))}
+                keyExtractor={(item) => item.code}
+                renderItem={renderDropdownItem}
+                showsVerticalScrollIndicator={false}
+              />
+              <TouchableOpacity
+                style={styles.modalCloseButton}
+                onPress={() => setShowMunicipalityDropdown(false)}
+              >
+                <Text style={styles.modalCloseButtonText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </Modal>
+
+        {/* Barangay Dropdown Modal */}
+        <Modal
+          visible={showBarangayDropdown}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowBarangayDropdown(false)}
+        >
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => setShowBarangayDropdown(false)}
+          >
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Select Barangay</Text>
+              <FlatList
+                data={barangays.map(barangay => ({
+                  ...barangay,
+                  label: barangay.name,
+                  value: barangay.name,
+                  onPress: handleBarangaySelect
+                }))}
+                keyExtractor={(item) => item.code}
+                renderItem={renderDropdownItem}
+                showsVerticalScrollIndicator={false}
+              />
+              <TouchableOpacity
+                style={styles.modalCloseButton}
+                onPress={() => setShowBarangayDropdown(false)}
+              >
+                <Text style={styles.modalCloseButtonText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </Modal>
+
+        {/* HEADER */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.push("/screens/learner")}>
+            <Image
+              source={require("@/assets/images/arrow-left.png")}
+              style={styles.image}
+            />
+          </TouchableOpacity>
+        </View>
+
+        {/* FIXED PROFILE HEADER - LAYER 1 */}
+        <View style={styles.layer1}>
+          <View style={styles.ProfileContainer}>
+            <TouchableOpacity onPress={isEditing ? pickImage : undefined}>
+              <View style={styles.ProfileImageContainer}>
+                <Image
+                  source={
+                    profileImageUrl
+                      ? { uri: profileImageUrl }
+                      : require("@/assets/images/defaultimg.jpg")
+                  }
+                  style={styles.ProfileImage}
+                  onError={(error) => {
+                    console.log("Error loading profile image:", error);
+                    setProfileImageUrl(null);
+                  }}
+                />
+                {/* Edit overlay that shows only when editing */}
+                {isEditing && (
+                  <View style={styles.imageEditOverlay}>
+                    <View style={styles.imageEditIcon}>
+                      <Image
+                        source={require("@/assets/images/camera3.png")}
+                        style={styles.cameraIcon}
+                      />
+                    </View>
+                  </View>
+                )}
+              </View>
+            </TouchableOpacity>
+
+            <View style={styles.ProfileTextContainer}>
+              <Text style={styles.LayerTitle}>{formData.fname} {formData.mname} {formData.lname}</Text>
+              <Text style={styles.ProfileText}>
+                {formData?.email || "No email available"}
+              </Text>
+              <Text style={styles.ProfileSubText}>
+                Section: {sectionName}
+              </Text>
             </View>
           </View>
 
@@ -955,6 +1471,57 @@ export default function ProfileScreen() {
               </TouchableOpacity>
             </View>
           )}
+        </View>
+
+        {/* UPDATED: CONTENT AREA - No longer scrollable, shows current page */}
+        <View style={styles.contentArea}>
+          {renderCurrentPage()}
+        </View>
+
+        {/* PAGINATION INDICATOR */}
+        <View style={styles.paginationContainer}>
+          <TouchableOpacity 
+            style={[
+              styles.paginationDot, 
+              currentPage === 0 && styles.paginationDotActive
+            ]} 
+            onPress={() => navigateToPage(0)}
+          >
+            <Text style={[
+              styles.paginationText,
+              currentPage === 0 && styles.paginationTextActive
+            ]}>
+              Parent Info
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[
+              styles.paginationDot, 
+              currentPage === 1 && styles.paginationDotActive
+            ]} 
+            onPress={() => navigateToPage(1)}
+          >
+            <Text style={[
+              styles.paginationText,
+              currentPage === 1 && styles.paginationTextActive
+            ]}>
+              Student Info
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[
+              styles.paginationDot, 
+              currentPage === 2 && styles.paginationDotActive
+            ]} 
+            onPress={() => navigateToPage(2)}
+          >
+            <Text style={[
+              styles.paginationText,
+              currentPage === 2 && styles.paginationTextActive
+            ]}>
+              Address Info
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* FOOTER */}
@@ -1002,7 +1569,6 @@ export default function ProfileScreen() {
 
 const { width, height } = Dimensions.get("window");
 
-// Styles remain the same as your original code
 const styles = StyleSheet.create({
   image: {
     width: wp(3),
@@ -1012,6 +1578,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fafafa",
+  },
+  // UPDATED: Content area styles
+  contentArea: {
+    flex: 1,
+    paddingHorizontal: width * 0.04,
+    paddingVertical: height * 0.03,
   },
   loadingContainer: {
     justifyContent: "center",
@@ -1052,7 +1624,39 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontWeight: "600",
   },
-  // Gender dropdown styles
+  // Image edit overlay styles
+  imageEditOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(155, 114, 207, 0.8)',
+    width: width * 0.10,
+    borderRadius: (width * 0.10) / 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  imageEditIcon: {
+    width: width * 0.08,
+    height: width * 0.08,
+    borderRadius: width * 0.015,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cameraIcon: {
+    width: '80%',
+    height: '80%',
+    resizeMode: 'contain',
+  },
+  imageEditText: {
+    color: '#fafafa',
+    fontSize: RFValue(6),
+    fontFamily: 'Poppins',
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  // Dropdown styles
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
@@ -1064,7 +1668,7 @@ const styles = StyleSheet.create({
     borderRadius: width * 0.01,
     padding: width * 0.02,
     width: width * 0.3,
-    maxHeight: height * 1,
+    maxHeight: height * 0.6,
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
@@ -1078,7 +1682,7 @@ const styles = StyleSheet.create({
     fontSize: RFValue(12),
     fontWeight: "700",
     color: "#9B72CF",
-    marginBottom: height * 0.04,
+    marginBottom: height * 0.02,
     fontFamily: "Poppins",
     textAlign: "center",
   },
@@ -1090,13 +1694,13 @@ const styles = StyleSheet.create({
   },
   dropdownItemText: {
     fontSize: RFValue(8),
-    fontWeight: "600",
+    fontWeight: "500",
     fontFamily: "Poppins",
     color: "#434343",
     textAlign: "center",
   },
   modalCloseButton: {
-    marginTop: height * 0.03,
+    marginTop: height * 0.02,
     paddingVertical: height * 0.01,
     paddingHorizontal: width * 0.01,
   },
@@ -1106,35 +1710,26 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins",
     textAlign: "center",
   },
-  genderDropdownButton: {
+  dropdownButton: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
-  genderDropdownText: {
+  dropdownButtonText: {
     fontFamily: "Poppins",
     fontSize: RFValue(8),
     color: "#434343",
     fontWeight: "500",
     letterSpacing: 0.5,
+  },
+  dropdownButtonTextDisabled: {
+    color: "#999",
   },
   dropdownArrow: {
     fontSize: RFValue(6),
     color: "#434343",
   },
-  // Date picker styles
-  datePickerButton: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  datePickerText: {
-    fontFamily: "Poppins",
-    fontSize: RFValue(8),
-    color: "#434343",
-    fontWeight: "500",
-    letterSpacing: 0.5,
-  },
+
   header: {
     paddingHorizontal: width * 0.04,
     paddingVertical: height * 0.02,
@@ -1143,34 +1738,34 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     position: "relative",
   },
-  body: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
+  // FIXED LAYER 1 - PROFILE HEADER
   layer1: {
-    width: width * 0.8,
+    width: width * 0.9,
     borderBottomWidth: 1,
     borderColor: "rgba(67, 67, 67, 0.5)",
-    paddingHorizontal: width * 0.01,
-    paddingVertical: height * 0.02,
+    paddingHorizontal: width * 0.04,
+    paddingVertical: height * 0.03,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    backgroundColor: '#fafafa',
+    alignSelf: 'center',
+    marginHorizontal: 'auto',
   },
   ProfileContainer: {
     display: "flex",
     flexDirection: "row",
+    alignItems: "center",
   },
   ProfileImageContainer: {
     position: "relative",
   },
   ProfileImage: {
-    width: width * 0.08,
-    height: height * 0.15,
-    borderRadius: width * 0.01,
+    width: width * 0.10,
+    height: width * 0.10,
+    borderRadius: (width * 0.10) / 2,
     resizeMode: "cover",
-    marginRight: width * 0.01,
+    marginRight: width * 0.03,
   },
   ProfileTextContainer: {
     justifyContent: "center",
@@ -1192,40 +1787,86 @@ const styles = StyleSheet.create({
   },
   BtnText: {
     fontFamily: "Poppins",
-    fontSize: RFValue(6),
+    fontSize: RFValue(8),
     color: "#fafafa",
-    fontWeight: "500",
+    fontWeight: "600",
     letterSpacing: 0.5,
-  },
-  layer2: {
-    width: width * 0.8,
-    paddingHorizontal: width * 0.01,
-    paddingVertical: height * 0.02,
-    borderBottomWidth: 1,
-    borderColor: "rgba(67, 67, 67, 0.5)",
   },
   LayerTitle: {
     fontFamily: "Poppins",
-    fontSize: RFValue(8),
+    fontSize: RFValue(10),
     color: "#434343",
     fontWeight: "500",
     letterSpacing: 0.5,
-    textAlign: "center",
+    textAlign: "left",
+    marginBottom: height * 0.005,
   },
+  // PAGINATION STYLES
+  paginationContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingTop: height * 0.02,
+    paddingBottom: height * 0.04,
+    backgroundColor: '#f8f8f8',
+    borderTopWidth: 1,
+    borderColor: "rgba(67, 67, 67, 0.2)",
+    width: width * 0.9,
+    alignSelf: 'center',
+    marginHorizontal: 'auto',
+  },
+  paginationDot: {
+    paddingHorizontal: width * 0.03,
+    paddingVertical: height * 0.01,
+    marginHorizontal: width * 0.01,
+    borderRadius: width * 0.01,
+    backgroundColor: '#e0e0e0',
+  },
+  paginationDotActive: {
+    backgroundColor: "#9B72CF",
+  },
+  paginationText: {
+    fontFamily: "Poppins",
+    fontSize: RFValue(6),
+    color: "#666",
+    fontWeight: "500",
+  },
+  paginationTextActive: {
+    color: "#ffffff",
+    fontWeight: "600",
+  },
+  // PAGE STYLES
+  pageContent: {
+    flex: 1,
+    width: width * 0.9,
+    alignSelf: 'center',
+    marginHorizontal: 'auto',
+  },
+  pageTitle: {
+    fontFamily: "Poppins",
+    fontSize: RFValue(12),
+    color: "#434343",
+    fontWeight: "600",
+    letterSpacing: 0.5,
+    textAlign: "center",
+    marginBottom: height * 0.03,
+  },
+  // INFORMATION CONTAINERS
   ParentInformationContainer: {
     flexDirection: "row",
+    gap: width * 0.04,
   },
   ParentInformation: {
     flex: 1,
-    marginHorizontal: wp(1),
   },
   StudentInformationContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
+    gap: width * 0.03,
   },
   StudentInformation: {
     flex: 1,
-    marginHorizontal: wp(1),
+    marginBottom: height * 0.02,
   },
   InputTitle: {
     fontFamily: "Poppins",
@@ -1234,7 +1875,7 @@ const styles = StyleSheet.create({
     opacity: 0.7,
     fontWeight: "400",
     letterSpacing: 0.5,
-    textAlign: "center",
+    textAlign: "left",
     marginVertical: height * 0.005,
   },
   InputTitleEditing: {
@@ -1260,29 +1901,22 @@ const styles = StyleSheet.create({
     color: "#434343",
     opacity: 1,
     borderColor: "#434343",
-    backgroundColor: "#fafafa",
-  },
-  layer3: {
-    width: width * 0.8,
-    paddingHorizontal: width * 0.01,
-    paddingVertical: height * 0.02,
+    backgroundColor: "#ffffff",
   },
   EditBtn: {
     backgroundColor: "#9B72CF",
-    paddingVertical: height * 0.02,
+    paddingVertical: height * 0.015,
     paddingHorizontal: width * 0.04,
     borderRadius: width * 0.01,
-    marginTop: height * 0.01,
   },
   ButtonContainer: {
     flexDirection: "row",
     gap: width * 0.02,
-    marginTop: height * 0.01,
   },
   CancelBtn: {
     borderColor: "#9B72CF",
     borderWidth: 1,
-    paddingVertical: height * 0.02,
+    paddingVertical: height * 0.015,
     paddingHorizontal: width * 0.04,
     borderRadius: width * 0.01,
   },
@@ -1295,13 +1929,7 @@ const styles = StyleSheet.create({
   },
   SaveBtn: {
     backgroundColor: "#9B72CF",
-    paddingVertical: height * 0.02,
-    paddingHorizontal: width * 0.04,
-    borderRadius: width * 0.01,
-  },
-  ChangeProfileBtn: {
-    backgroundColor: "#9B72CF",
-    paddingVertical: height * 0.02,
+    paddingVertical: height * 0.015,
     paddingHorizontal: width * 0.04,
     borderRadius: width * 0.01,
   },

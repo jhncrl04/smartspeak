@@ -1,3 +1,4 @@
+import { showToast } from "@/components/ui/MyToast";
 import imageToBase64 from "@/helper/imageToBase64";
 import { useAuthStore } from "@/stores/userAuthStore";
 import {
@@ -36,6 +37,21 @@ export const addCard = async (cardInfo: cardProps) => {
   const category = await getCategoryWithId(cardInfo.category_id);
   if (!category) throw new Error("Category not found");
 
+  const cardExist = await cardCollection
+    .where("card_name", "==", cardInfo.name)
+    .where("category_id", "==", cardInfo.category_id)
+    .get();
+
+  if (cardExist.docs.length > 0) {
+    showToast(
+      "error",
+      "Card Already Exist",
+      `${cardInfo.name} already exist at ${category.category_name}`
+    );
+
+    return;
+  }
+
   const new_card: any = {
     card_name: cardInfo.name,
     category_name: category.category_name,
@@ -45,21 +61,34 @@ export const addCard = async (cardInfo: cardProps) => {
     image: base64Image,
     created_for: cardInfo.created_for ?? "all",
   };
+  try {
+    const cardRef = await cardCollection.add(new_card);
 
-  const cardRef = await cardCollection.add(new_card);
+    const logBody: CreateLogInput = {
+      action: "Create Card",
+      image: base64Image,
+      item_category: category.category_name,
+      item_id: cardRef.id,
+      item_name: cardInfo.name,
+      item_type: "Card",
+      timestamp: current_date,
+      created_for: cardInfo.created_for ?? "all",
+    };
 
-  const logBody: CreateLogInput = {
-    action: "Create Card",
-    image: base64Image,
-    item_category: category.category_name,
-    item_id: cardRef.id,
-    item_name: cardInfo.name,
-    item_type: "Card",
-    timestamp: current_date,
-    created_for: cardInfo.created_for ?? "all",
-  };
+    createLog(logBody);
 
-  createLog(logBody);
+    showToast(
+      "success",
+      "Card Created",
+      `${cardInfo.name} card created successfully`
+    );
+  } catch (error) {
+    showToast(
+      "error",
+      "Card Creation Failed",
+      `Failed to upload ${cardInfo.name} card.`
+    );
+  }
 };
 
 export const deleteCard = async (cardId: string) => {
@@ -489,6 +518,74 @@ export const getUnassignedCards = async (
   return [cards, categoryName];
 };
 
+export const listenToUnassignedCards = (
+  learnerId: string,
+  categoryId: string | string[],
+  callback: (cards: Card[], categoryName: string) => void
+): (() => void) => {
+  const uid = useAuthStore.getState().user?.uid;
+  const categoryCollection = firestore().collection("pecsCategories");
+
+  let query = cardCollection.where("created_by", "==", uid);
+
+  if (Array.isArray(categoryId)) {
+    query = query.where("category_id", "in", categoryId);
+  } else {
+    query = query.where("category_id", "==", categoryId);
+  }
+
+  const unsubscribe = query.onSnapshot(async (querySnapshot) => {
+    let categoryName = "";
+    let categoryData: any = null;
+
+    if (!Array.isArray(categoryId)) {
+      const categorySnapshot = await categoryCollection.doc(categoryId).get();
+      categoryData = categorySnapshot.data();
+      categoryName = categoryData?.category_name || "";
+    }
+
+    const cards = (
+      await Promise.all(
+        querySnapshot.docs.map(async (doc) => {
+          const card = doc.data();
+
+          card.id = doc.id;
+
+          let cardCategory = categoryData;
+          if (Array.isArray(categoryId)) {
+            const categorySnapshot = await categoryCollection
+              .doc(card.category_id)
+              .get();
+            cardCategory = categorySnapshot.data();
+          }
+
+          // console.log(
+          //   `Cards: {card_name: ${card.card_name}, created_for: ${card.created_for}}`
+          // );
+
+          if (
+            !card.assigned_to?.includes(learnerId) &&
+            (!card.created_for ||
+              card.created_for === "all" ||
+              card.created_for === learnerId)
+          ) {
+            return {
+              ...card,
+              background_color: cardCategory?.background_color || null,
+              category_title: cardCategory?.category_name || null,
+            } as Card;
+          }
+          return null;
+        })
+      )
+    ).filter(Boolean) as Card[];
+
+    callback(cards, categoryName);
+  });
+
+  return unsubscribe;
+};
+
 export const assignCard = async (cardId: string, learnerId?: string) => {
   try {
     await cardCollection
@@ -566,8 +663,6 @@ export const listenAssignedCard = (
         if (card.assigned_to?.includes(learnerId)) {
           const category = categoryMap[card.category_id];
 
-          console.log(category);
-
           cards.push({
             ...card,
             background_color: category?.background_color || null,
@@ -594,8 +689,6 @@ export const listenAssignedCardWithCategory = (
 
   const unsubscribeCategory = categoryRef.onSnapshot((categoryDoc) => {
     const categoryCache = categoryDoc.data();
-
-    console.log(categoryCache);
 
     // cleanup old card listener before attaching a new one
     if (unsubscribeCards) unsubscribeCards();

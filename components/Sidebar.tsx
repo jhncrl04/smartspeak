@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import MDIcon from "react-native-vector-icons/MaterialIcons";
 import Icon from "react-native-vector-icons/Octicons";
+import LoadingScreen from "./ui/LoadingScreen";
 
 type SidebarProps = {
   onNavigate: (screen: string) => void;
@@ -108,6 +109,8 @@ const Sidebar = ({ onNavigate, userRole }: SidebarProps) => {
   const [disableSidebar, setDisableSidebar] = useState(false);
 
   const pathname = usePathname();
+
+  const [isLoading, setIsLoading] = useState(false);
 
   return (
     <>
@@ -211,7 +214,13 @@ const Sidebar = ({ onNavigate, userRole }: SidebarProps) => {
               </View>
             </View>
 
-            <TouchableOpacity style={styles.menuItem} onPress={logoutHandler}>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                logoutHandler();
+                setIsLoading(true);
+              }}
+            >
               <View style={styles.iconContainer}>
                 <MDIcon
                   name={"logout"}
@@ -226,13 +235,13 @@ const Sidebar = ({ onNavigate, userRole }: SidebarProps) => {
           </View>
         </ScrollView>
       </View>
+      <LoadingScreen visible={isLoading} />
     </>
   );
 };
 
 const logoutHandler = () => {
   useAuthStore.getState().logout();
-  router.replace("/login");
 };
 
 const styles = StyleSheet.create({
