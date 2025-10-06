@@ -4,6 +4,7 @@ import PecsCard from "@/components/PecsCard";
 import Sidebar from "@/components/Sidebar";
 import AddPecsModal from "@/components/ui/AddPecsModal";
 import COLORS from "@/constants/Colors";
+import getCurrentUid from "@/helper/getCurrentUid";
 import { useCardsStore } from "@/stores/cardsStore";
 import { router } from "expo-router";
 import { useState } from "react";
@@ -14,9 +15,31 @@ const ManageCardsScreen = () => {
     router.push(screen as any);
   };
 
+  const [searchQuery, setSearchQuery] = useState("");
+
   const { cards, isLoading: cardsLoading, error: cardsError } = useCardsStore();
 
   const [activeModal, setActiveModal] = useState<"add" | null>(null);
+
+  const uid = getCurrentUid();
+
+  const mappedCards = cards.filter((card) => {
+    if (card.created_by === uid) return card;
+  });
+
+  const filteredCards = mappedCards.filter((card) => {
+    if (!searchQuery.trim()) return true;
+
+    // Filter by search query (case-insensitive)
+    const query = searchQuery.toLowerCase().trim();
+    const cardName = card.card_name.toLowerCase();
+
+    return cardName.includes(query);
+  });
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+  };
 
   return (
     <>
@@ -30,14 +53,14 @@ const ManageCardsScreen = () => {
           <View style={styles.mainContentContainer}>
             <PageHeader
               collectionToSearch="cards"
-              onSearch={() => {}}
-              query="card"
+              onSearch={(query) => handleSearch(query as string)}
+              query="local"
               pageTitle="Manage Cards"
               hasFilter={true}
               searchPlaceholder="Search Card"
             />
             <View style={styles.cardContainer}>
-              {cards.length === 0 ? (
+              {filteredCards.length === 0 ? (
                 <View
                   style={{
                     flex: 1,
@@ -58,7 +81,7 @@ const ManageCardsScreen = () => {
                   </Text>
                 </View>
               ) : (
-                cards.map((card, index) => (
+                filteredCards.map((card, index) => (
                   <PecsCard action="Delete" key={card.id} cardId={card.id} />
                 ))
               )}

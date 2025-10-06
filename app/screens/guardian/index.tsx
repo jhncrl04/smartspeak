@@ -3,25 +3,22 @@ import LearnerCard from "@/components/LearnerCard";
 import PageHeader from "@/components/PageHeader";
 import Sidebar from "@/components/Sidebar";
 import AddChildModal from "@/components/ui/AddChildModal";
-import { listenToChildren } from "@/services/userService";
+import { useAuthStore } from "@/stores/userAuthStore";
+import { useUsersStore } from "@/stores/userStore";
 import { router } from "expo-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 
 const ChildManagementScreen = () => {
-  const [children, setChildren] = useState<any[]>();
-
   const handleNavigation = (screen: string) => {
     router.push(screen as any);
   };
 
-  useEffect(() => {
-    const unsubscribe = listenToChildren((children) => {
-      setChildren(children);
-    });
+  const handledChild = useAuthStore.getState().user?.handledChildren;
 
-    return () => unsubscribe();
-  }, []);
+  const users = useUsersStore((state) => state.users);
+
+  const children = users.filter((user) => handledChild?.includes(user.id));
 
   const [activeModal, setActiveModal] = useState<"add-child" | null>(null);
 
@@ -49,10 +46,6 @@ const ChildManagementScreen = () => {
                   key={child.id}
                   learnerId={child.id}
                   cardType={"profile"}
-                  image={child.profile_pic ? child.profile_pic : null}
-                  name={child.first_name}
-                  age={12}
-                  gender={child.gender}
                 />
               ))}
             </View>

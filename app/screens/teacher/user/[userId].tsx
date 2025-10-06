@@ -8,11 +8,10 @@ import PreviousReportsModal from "@/components/ui/PreviousReportModal";
 import ProgressReportModal from "@/components/ui/ProgressReportModal";
 import COLORS from "@/constants/Colors";
 import { calculateAge } from "@/helper/calculateAge";
-import { listenAssignedCategories } from "@/services/categoryService";
-import { removeStudentToSection } from "@/services/sectionService";
-import { getStudentInfo, removeAsStudent } from "@/services/userService";
+import { useCategoriesStore } from "@/stores/categoriesStores";
+import { useUsersStore } from "@/stores/userStore";
 import { router, useLocalSearchParams } from "expo-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
 import Icon from "react-native-vector-icons/Octicons";
 
@@ -21,10 +20,23 @@ const LearnerProfile = () => {
     router.push(screen as any);
   };
 
+  const { users } = useUsersStore();
+  const { categories } = useCategoriesStore();
+
   const { userId, sectionId } = useLocalSearchParams();
 
-  const [userInfo, setUserInfo] = useState<any>(null);
-  const [categories, setCategories] = useState<any[]>();
+  const userInfo = users.find((user) => {
+    if (user.id === userId) return user;
+  });
+
+  const mappedCategories = categories.filter((category) => {
+    if (
+      category.assigned_to?.includes(userId as string) ||
+      category.created_by_role === "ADMIN"
+    )
+      return category;
+  });
+
   const [activeModal, setActiveModal] = useState<
     "assign_category" | "remove_learner" | null
   >(null);
@@ -32,50 +44,21 @@ const LearnerProfile = () => {
   const [isPreviousReportsModalActive, setIsPreviousReportsModalActive] =
     useState(false);
 
-  useEffect(() => {
-    if (!userId) return;
-    const fetchUserInfo = async () => {
-      try {
-        const data = await getStudentInfo(userId as string);
-        setUserInfo(data);
-      } catch (err) {
-        console.error("Error fetching student info: ", err);
-      }
-    };
-    fetchUserInfo();
-  }, [userId]);
-
-  useEffect(() => {
-    if (!userId) return;
-    const unsubscribe = listenAssignedCategories(userId as string, (cats) => {
-      setCategories(cats);
-    });
-    return () => unsubscribe();
-  }, [userId]);
-
   const age = calculateAge(userInfo?.date_of_birth);
 
-  const handleRemoveLearner = async (learnerId: string, sectionId: string) => {
-    await removeAsStudent(learnerId);
-    await removeStudentToSection(learnerId, sectionId);
-  };
+  // const handleRemoveLearner = async (learnerId: string, sectionId: string) => {
+  //   await removeAsStudent(learnerId);
+  //   await removeStudentToSection(learnerId, sectionId);
+  // };
 
   return (
     <>
       <SafeAreaView style={styles.container}>
         <Sidebar userRole="teacher" onNavigate={handleNavigation} />
 
-        {/* Mobile Header
-        
-        <View style={styles.mobileHeader}>
-          <TouchableOpacity style={styles.backButton} onPress={router.back}>
-            <Icon name="arrow-left" size={24} color={COLORS.black} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Student Profile</Text>
-          <View />
-        </View> */}
-
         <ScrollView
+          decelerationRate="fast" // slows down the momentum
+          scrollEventThrottle={16}
           style={styles.scrollContainer}
           showsVerticalScrollIndicator={false}
           bounces={false}
@@ -92,7 +75,7 @@ const LearnerProfile = () => {
               />
             </View>
             <LearnerProfileHeader
-              profile={userInfo?.profile_pic}
+              profile={userInfo?.profile_pic!}
               name={`${userInfo?.first_name} ${userInfo?.last_name}`}
               age={age}
               screen="teacher"
@@ -106,13 +89,13 @@ const LearnerProfile = () => {
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Assigned Categories</Text>
               <Text style={styles.sectionSubtitle}>
-                {categories?.length || 0} categories assigned
+                {mappedCategories?.length || 0} categories assigned
               </Text>
             </View>
 
             {/* Categories Grid */}
             <View style={styles.categoriesGrid}>
-              {categories && categories.length <= 0 ? (
+              {mappedCategories && mappedCategories.length <= 0 ? (
                 <View style={styles.emptyState}>
                   <Icon name="inbox" size={48} color={COLORS.gray} />
                   <Text style={styles.emptyStateTitle}>
@@ -123,22 +106,17 @@ const LearnerProfile = () => {
                   </Text> */}
                 </View>
               ) : (
-                categories?.map((category, index) => (
+                mappedCategories?.map((category, index) => (
                   <Board
                     key={index}
-                    boardName={category.category_name}
-                    boardBackground={category.background_color}
                     categoryId={category.id}
-                    image={category.image}
-                    creatorId={category.created_by}
-                    creatorName={category.creatorName}
-                    actionHandler={() => {
+                    routerHandler={() => {
                       router.push({
                         pathname: "/screens/teacher/user/category/[categoryId]",
                         params: {
-                          categoryId: category.id,
-                          userId: userId as string,
-                          creatorId: category.created_by,
+                          userId: userId,
+                          categoryId: category!.id,
+                          creatorId: category!.created_by,
                         },
                       });
                     }}
@@ -161,8 +139,8 @@ const LearnerProfile = () => {
         <PreviousReportsModal
           visible={isPreviousReportsModalActive}
           onClose={() => setIsPreviousReportsModalActive(false)}
-          studentId={userId as string}
-          studentName={`${userInfo?.first_name} ${userInfo?.last_name}`}
+          learnerId={userId as string}
+          learnerName={`${userInfo?.first_name} ${userInfo?.last_name}`}
         />
 
         <AssignCategoryModal
@@ -175,8 +153,6 @@ const LearnerProfile = () => {
           page="learnerProfile"
           actions={{
             assign_category: () => setActiveModal("assign_category"),
-            remove_learner: () =>
-              handleRemoveLearner(userId as string, sectionId as string),
           }}
         />
       </SafeAreaView>

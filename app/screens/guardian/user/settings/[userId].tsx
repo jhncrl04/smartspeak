@@ -28,6 +28,7 @@ import {
 import Constants from "expo-constants";
 
 import { showToast } from "@/components/ui/MyToast";
+import { censorEmail } from "@/helper/censorEmail";
 import { getUserInfo } from "@/services/userApi/Authentication";
 import { User } from "@/types/user";
 import Icon from "react-native-vector-icons/Octicons";
@@ -394,7 +395,7 @@ const ChildSettings = () => {
                       source={
                         formData.profile_pic
                           ? { uri: formData.profile_pic }
-                          : require("@/assets/images/creeper.png")
+                          : require("@/assets/images/default.jpg")
                       }
                       style={styles.profile}
                     />
@@ -446,7 +447,7 @@ const ChildSettings = () => {
                   <TextInput
                     style={[styles.textInput, styles.disabledText]}
                     placeholder="Email address"
-                    value={formData.email}
+                    value={censorEmail(formData.email)}
                     editable={false}
                   />
                 </TextFieldWrapper>

@@ -4,18 +4,17 @@ import LearnerProfileHeader from "@/components/LeanerProfileHeader";
 import PecsCard from "@/components/PecsCard";
 import Sidebar from "@/components/Sidebar";
 import AssignCardModal from "@/components/ui/AssignCardModal";
+import { showToast } from "@/components/ui/MyToast";
 import PreviousReportsModal from "@/components/ui/PreviousReportModal";
 import COLORS from "@/constants/Colors";
 import { calculateAge } from "@/helper/calculateAge";
 import getCurrentUid from "@/helper/getCurrentUid";
-import {
-  getAssignedCards,
-  listenAssignedCardWithCategory,
-} from "@/services/cardsService";
 import { unassignCategory } from "@/services/categoryService";
-import { getStudentInfo } from "@/services/userService";
+import { useCardsStore } from "@/stores/cardsStore";
+import { useCategoriesStore } from "@/stores/categoriesStores";
+import { useUsersStore } from "@/stores/userStore";
 import { router, useLocalSearchParams } from "expo-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
 import Icon from "react-native-vector-icons/Octicons";
 
@@ -24,59 +23,35 @@ const LearnerProfileCategory = () => {
     router.push(screen as any);
   };
 
+  const { users } = useUsersStore();
+  const { cards } = useCardsStore();
+  const { categories } = useCategoriesStore();
+
   const { userId, categoryId, creatorId } = useLocalSearchParams();
 
-  const [userInfo, setUserInfo] = useState<any>(null);
+  const userInfo = users.find((user) => {
+    if (user.id === userId) return user;
+  });
 
-  useEffect(() => {
-    if (!userId) return; // guard against undefined
-    const fetchUserInfo = async () => {
-      try {
-        const data = await getStudentInfo(userId as string);
-        setUserInfo(data);
-      } catch (err) {
-        console.error("Error fetching student info: ", err);
-      }
-    };
+  const activeCategory = categories.find((category) => {
+    if (category.id === categoryId) return category;
+  });
 
-    fetchUserInfo();
-  }, [userId]);
-  const [cards, setCards] = useState<any[]>([]);
-  const [categoryName, setCategoryName] = useState<string>("");
-
-  useEffect(() => {
-    if (!userId || !categoryId) return;
-
-    // fetch category name once
-    const fetchCategoryName = async () => {
-      try {
-        const [, name] = await getAssignedCards(
-          userId as string,
-          categoryId as string
-        );
-        setCategoryName(name);
-      } catch (err) {
-        console.error("Error fetching category name: ", err);
-      }
-    };
-
-    fetchCategoryName();
-
-    // subscribe to assigned cards
-    const unsubscribe = listenAssignedCardWithCategory(
-      userId as string,
-      categoryId as string,
-      (cards) => {
-        setCards(cards);
-      }
-    );
-
-    return () => unsubscribe();
-  }, [userId, categoryId]);
+  const filteredCards = cards.filter((card) => {
+    if (
+      (card.created_by === "ADMIN" &&
+        card.category_name === activeCategory?.category_name) ||
+      (card.assigned_to?.includes(userId) &&
+        card.category_id === (categoryId as string))
+    )
+      return card;
+  });
 
   const uid = getCurrentUid();
 
   const [activeModal, setActiveModal] = useState<"assign-card" | null>(null);
+
+  const [isReportModalActive, setIsReportModalActive] = useState(false);
 
   const handleUnassignCategory = async (
     categoryId: string,
@@ -84,10 +59,14 @@ const LearnerProfileCategory = () => {
   ) => {
     const result: any = await unassignCategory(categoryId, learnerId);
 
+    showToast(
+      "success",
+      "Unassign Category",
+      `${activeCategory?.category_name} has been unassigned`
+    );
+
     if (result.success) router.back();
   };
-
-  const [isReportModalActive, setIsReportModalActive] = useState(false);
 
   return (
     <>
@@ -108,7 +87,7 @@ const LearnerProfileCategory = () => {
               />
             </View>
             <LearnerProfileHeader
-              profile={userInfo?.profile_pic}
+              profile={userInfo?.profile_pic!}
               name={`${userInfo?.first_name} ${userInfo?.last_name}`}
               age={calculateAge(userInfo?.date_of_birth)}
               buttonHandler={() => {
@@ -125,9 +104,14 @@ const LearnerProfileCategory = () => {
           </View>
           <View style={styles.categoriesSection}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>{categoryName} cards</Text>
+              <Text style={styles.sectionTitle}>
+                {activeCategory?.category_name} cards
+              </Text>
               <Text style={styles.sectionSubtitle}>
-                {`${cards?.length || 0} ${categoryName}`} cards assigned
+                {`${filteredCards?.length || 0} ${
+                  activeCategory?.category_name
+                }`}{" "}
+                cards assigned
               </Text>
             </View>
           </View>
@@ -139,7 +123,7 @@ const LearnerProfileCategory = () => {
             </View>
           )}
           <View style={styles.categoriesGrid}>
-            {cards && cards.length <= 0 ? (
+            {filteredCards && filteredCards.length <= 0 ? (
               <View style={styles.emptyState}>
                 <Icon name="inbox" size={48} color={COLORS.gray} />
                 <Text style={styles.emptyStateTitle}>
@@ -147,18 +131,12 @@ const LearnerProfileCategory = () => {
                 </Text>
               </View>
             ) : (
-              cards?.map((card, index) => (
+              filteredCards?.map((card, index) => (
                 <PecsCard
                   action="Unassign"
                   learnerId={userId as string}
                   cardId={card.id}
-                  cardCategory={categoryName}
-                  cardName={card.card_name}
-                  categoryColor={card.background_color}
-                  image={card.image}
-                  key={index}
-                  isDisabled={uid !== card.created_by}
-                  creatorId={card.created_by}
+                  key={card.id}
                 />
               ))
             )}
@@ -181,8 +159,8 @@ const LearnerProfileCategory = () => {
       <PreviousReportsModal
         visible={isReportModalActive}
         onClose={() => setIsReportModalActive(false)}
-        studentId={userId as string}
-        studentName={`${userInfo?.first_name} ${userInfo?.last_name}`}
+        learnerId={userId as string}
+        learnerName={`${userInfo?.first_name} ${userInfo?.last_name}`}
       />
       <AssignCardModal
         visible={activeModal === "assign-card"}

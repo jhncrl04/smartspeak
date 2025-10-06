@@ -49,11 +49,14 @@ export const addCategory = async (categoryInfo: categoryProps) => {
     return;
   }
 
+  const user = useAuthStore.getState().user;
+
   const newCategory = {
     category_name: categoryInfo.name,
     background_color: categoryInfo.color,
     created_at: currentDate,
     created_by: uid,
+    creator_name: user?.fname,
     image: base64Image,
     is_assignable: categoryInfo.isAssignable,
     assigned_to: categoryInfo.isAssignable

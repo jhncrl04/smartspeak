@@ -17,8 +17,8 @@ import ColorPicker, { Panel5 } from "reanimated-color-picker";
 import PrimaryButton from "../PrimaryButton";
 
 import { addCategory } from "@/services/categoryService";
-import { getChild, getStudents } from "@/services/userService";
 import { useAuthStore } from "@/stores/userAuthStore";
+import { useUsersStore } from "@/stores/userStore";
 import * as ImagePicker from "expo-image-picker";
 import { runOnJS } from "react-native-reanimated";
 import TextFieldWrapper from "../TextfieldWrapper";
@@ -38,12 +38,12 @@ type modalProps = {
 
 const user = useAuthStore.getState().user;
 
-const AddCategoryModal = ({ visible, onClose, learners }: modalProps) => {
+const AddCategoryModal = ({ visible, onClose }: modalProps) => {
+  const { users: students } = useUsersStore();
+
   const [categoryName, setCategoryName] = useState("");
   const [selectedColor, setSelectedColor] = useState("#fff");
   const [isAssignable, setIsAssignable] = useState(true);
-  const [selectedLearner, setSelectedLearner] = useState<string>("");
-  const [showLearnerDropdown, setShowLearnerDropdown] = useState(false);
 
   const onSelectColor = ({ hex }: any) => {
     "worklet";
@@ -73,17 +73,26 @@ const AddCategoryModal = ({ visible, onClose, learners }: modalProps) => {
     }
   };
 
+  const mappedStudents = students
+    .filter((student) => user?.handledChildren?.includes(student.id))
+    .map((student) => ({
+      label: `${student.first_name} ${student.last_name}`,
+      value: student.id,
+    }));
+
+  const [selectedLearner, setSelectedLearner] = useState<string>("");
+
+  useEffect(() => {
+    if (mappedStudents.length > 0 && !selectedLearner) {
+      setSelectedLearner(mappedStudents[0].value);
+    }
+  }, [mappedStudents]);
+
   const handleAssignabilityChange = (assignable: boolean) => {
     setIsAssignable(assignable);
-    if (assignable) {
-      setSelectedLearner("");
-      setShowLearnerDropdown(false);
+    if (assignable && mappedStudents.length > 0) {
+      setSelectedLearner(mappedStudents[0].value);
     }
-  };
-
-  const handleLearnerSelection = (learner: Learner) => {
-    setSelectedLearner("");
-    setShowLearnerDropdown(false);
   };
 
   useEffect(() => {
@@ -92,34 +101,11 @@ const AddCategoryModal = ({ visible, onClose, learners }: modalProps) => {
       setCategoryName("");
       setSelectedColor("#fff");
       setIsAssignable(true);
-      setSelectedLearner("");
-      setShowLearnerDropdown(false);
+      setSelectedLearner(
+        mappedStudents.length > 0 ? mappedStudents[0].value : ""
+      );
     }
   }, [visible]);
-
-  const [students, setStudents] = useState<{ label: string; value: string }[]>([
-    { label: "", value: "" },
-  ]);
-
-  useEffect(() => {
-    const fetchStudents = async () => {
-      const students =
-        user?.role.toLowerCase() === "teacher"
-          ? await getStudents()
-          : await getChild();
-
-      const studentItems = students.map((student) => {
-        return {
-          label: `${student.first_name} ${student.last_name}`,
-          value: student.id,
-        };
-      });
-
-      setStudents(studentItems);
-    };
-
-    fetchStudents();
-  }, []);
 
   const canSubmit =
     categoryName !== "" && (isAssignable || selectedLearner !== null);
@@ -234,7 +220,7 @@ const AddCategoryModal = ({ visible, onClose, learners }: modalProps) => {
             {!isAssignable && (
               <TextFieldWrapper label="Select Learner">
                 <MyDropdown
-                  dropdownItems={students}
+                  dropdownItems={mappedStudents}
                   onChange={(value) => {
                     setSelectedLearner(value as string);
                   }}

@@ -32,6 +32,7 @@ const ManageLearnersScreen = () => {
   const [activeModal, setActiveModal] = useState<
     "add" | "edit" | "move" | null
   >(null);
+  const [searchQuery, setSearchQuery] = useState<string>("");
 
   const {
     sections,
@@ -89,9 +90,30 @@ const ManageLearnersScreen = () => {
   const filteredStudents: string[] =
     sections.find((s) => s.id === activeSection)?.students || [];
 
+  // Filter students by section and search query
   const mappedStudents = learners.filter((learner) => {
-    if (filteredStudents.includes(learner.id)) return learner;
+    // First check if student is in the active section
+    if (!filteredStudents.includes(learner.id)) return false;
+
+    // If no search query, show all students in section
+    if (!searchQuery.trim()) return true;
+
+    // Filter by search query (case-insensitive)
+    const query = searchQuery.toLowerCase().trim();
+    const firstName = learner.first_name.toLowerCase();
+    const lastName = learner.last_name.toLowerCase();
+    const fullName = `${firstName} ${lastName}`;
+
+    return (
+      firstName.includes(query) ||
+      lastName.includes(query) ||
+      fullName.includes(query)
+    );
   });
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+  };
 
   return (
     <>
@@ -107,9 +129,11 @@ const ManageLearnersScreen = () => {
               pageTitle="Manage Learners"
               hasFilter={false}
               searchPlaceholder="Search Learner"
-              onSearch={(results) => {}}
-              collectionToSearch="users"
-              query="myStudent"
+              onSearch={(query) => {
+                handleSearch(query as string);
+              }}
+              collectionToSearch="cards"
+              query="local"
             />
             {/* Tabs */}
             <View

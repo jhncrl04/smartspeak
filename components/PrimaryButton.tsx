@@ -24,7 +24,7 @@ const PrimaryButton = (props: buttonDetail) => {
     buttonText: {
       fontSize: 14,
       fontFamily: "Poppins",
-      fontWeight: "700",
+      fontWeight: "500",
       color: props.disabled ? COLORS.semiWhite : COLORS.pureWhite, // lighter text
     },
   });

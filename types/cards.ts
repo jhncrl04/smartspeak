@@ -20,6 +20,6 @@ export type CardsStore = {
   unsubscribe: (() => void) | null;
 
   // Actions
-  startListener: (userId: string) => void;
+  startListener: (userId: string, learnerId: string[]) => void;
   stopListener: () => void;
 };

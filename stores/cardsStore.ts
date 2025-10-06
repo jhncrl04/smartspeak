@@ -32,31 +32,137 @@ export const useCardsStore = create<CardsStore>((set, get) => ({
   error: null,
   unsubscribe: null,
 
-  startListener: (userId: string) => {
+  startListener: (userId: string, learnerIds?: string[]) => {
     // Stop existing listener if any
     get().stopListener();
 
     set({ isLoading: true, error: null });
 
-    // Query based on user role
-    const cardsQuery = CARD_COLLECTION.where("created_by", "==", userId);
+    const cardsMap = new Map<string, Card>();
+    const unsubscribers: (() => void)[] = [];
 
-    const unsubscribe = cardsQuery.onSnapshot(
+    const updateCards = () => {
+      const cards = Array.from(cardsMap.values());
+      set({ cards, isLoading: false, error: null });
+    };
+
+    const userUnsubscribe = CARD_COLLECTION.where(
+      "created_by",
+      "==",
+      userId
+    ).onSnapshot(
       (snapshot) => {
-        const cards = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as Card[];
+        snapshot.docChanges().forEach((change) => {
+          const card = {
+            id: change.doc.id,
+            ...change.doc.data(),
+          } as Card;
 
-        set({ cards, isLoading: false, error: null });
+          if (change.type === "added" || change.type === "modified") {
+            if (learnerIds && learnerIds.length > 0) {
+              const assignedTo = card.assigned_to || [];
+
+              const hasMatchingLearner = learnerIds.some((learnerId) =>
+                assignedTo.includes(learnerId)
+              );
+
+              if (hasMatchingLearner) {
+                cardsMap.set(change.doc.id, card);
+              } else {
+                cardsMap.delete(change.doc.id);
+              }
+            } else {
+              cardsMap.set(change.doc.id, card);
+            }
+          } else if (change.type === "removed") {
+            cardsMap.delete(change.doc.id);
+          }
+        });
+
+        updateCards();
       },
       (error) => {
         console.error("Cards listener error:", error);
         set({ error: error.message, isLoading: false });
       }
     );
+    unsubscribers.push(userUnsubscribe);
 
-    set({ unsubscribe });
+    // This gets categories from OTHER teachers/guardians
+    if (learnerIds && learnerIds.length > 0) {
+      // Split into batches of 10 if needed (array-contains-any limit)
+      const batchSize = 10;
+      for (let i = 0; i < learnerIds.length; i += batchSize) {
+        const batch = learnerIds.slice(i, i + batchSize);
+
+        const assignedUnsubscribe = CARD_COLLECTION.where(
+          "assigned_to",
+          "array-contains-any",
+          batch
+        ).onSnapshot(
+          (snapshot) => {
+            snapshot.docChanges().forEach((change) => {
+              const card = {
+                id: change.doc.id,
+                ...change.doc.data(),
+              } as Card;
+
+              if (change.type === "added" || change.type === "modified") {
+                cardsMap.set(change.doc.id, card);
+              } else if (change.type === "removed") {
+                cardsMap.delete(change.doc.id);
+              }
+            });
+            updateCards();
+          },
+          (error) => {
+            console.error("Assigned cards listener error:", error);
+            set({ error: error.message, isLoading: false });
+          }
+        );
+        unsubscribers.push(assignedUnsubscribe);
+      }
+    }
+
+    // Apply same learner filter
+    const adminUnsubscribe = CARD_COLLECTION.where(
+      "created_by",
+      "==",
+      "ADMIN"
+    ).onSnapshot(
+      (snapshot) => {
+        snapshot.docChanges().forEach((change) => {
+          const card = {
+            id: change.doc.id,
+            ...change.doc.data(),
+          } as Card;
+
+          if (change.type === "added" || change.type === "modified") {
+            // Client-side filter for learners
+            if (learnerIds && learnerIds.length > 0) {
+              cardsMap.set(change.doc.id, card);
+            } else {
+              cardsMap.set(change.doc.id, card);
+            }
+          } else if (change.type === "removed") {
+            cardsMap.delete(change.doc.id);
+          }
+        });
+        updateCards();
+      },
+      (error) => {
+        console.error("Admin cards listener error:", error);
+        set({ error: error.message, isLoading: false });
+      }
+    );
+    unsubscribers.push(adminUnsubscribe);
+
+    // Combined unsubscribe function
+    const combinedUnsubscribe = () => {
+      unsubscribers.forEach((unsub) => unsub());
+    };
+
+    set({ unsubscribe: combinedUnsubscribe });
   },
 
   stopListener: () => {

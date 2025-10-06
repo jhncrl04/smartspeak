@@ -26,6 +26,7 @@ import * as ImagePicker from "expo-image-picker";
 
 import MyDropdown from "@/components/ui/MyDropdown";
 import { showToast } from "@/components/ui/MyToast";
+import { censorEmail } from "@/helper/censorEmail";
 import {
   cleanupCompressedImage,
   compressImageToSize,
@@ -378,10 +379,6 @@ const SettingScreen = () => {
       .catch((err) => console.error("Error fetching cities:", err));
   }, [selectedProvince]);
 
-  console.log(
-    `${pscgApi}/provinces/${selectedProvinceLabel}/cities-municipalities/${selectedCityLabel}/barangays/`
-  );
-
   // Barangays
   useEffect(() => {
     if (!selectedCity || !selectedProvinceLabel || !selectedCityLabel) return;
@@ -427,7 +424,7 @@ const SettingScreen = () => {
                       source={
                         image
                           ? { uri: image }
-                          : require("../../assets/images/creeper.png")
+                          : require("@/assets/images/default.jpg")
                       }
                       style={styles.profile}
                     />
@@ -490,7 +487,7 @@ const SettingScreen = () => {
                   <TextInput
                     style={[styles.textInput, styles.disabledText]}
                     placeholder="Email address"
-                    value={email}
+                    value={censorEmail(email)}
                     onChangeText={setEmail}
                     editable={false}
                   />

@@ -217,6 +217,8 @@ const AddPecsModal = ({ visible, onClose, categoryId }: AddPecsModalProps) => {
     };
   });
 
+  console.log(categoryDropdownItems);
+
   // Show card type selection only when category is assignable (gives user freedom to choose)
   const showCardTypeSelection =
     selectedCategoryData && selectedCategoryData.is_assignable !== false;

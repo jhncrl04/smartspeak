@@ -1,6 +1,7 @@
 import COLORS from "@/constants/Colors";
-import { listenToUnassignedCategories } from "@/services/categoryService";
-import { useEffect, useState } from "react";
+import getCurrentUid from "@/helper/getCurrentUid";
+import { useCategoriesStore } from "@/stores/categoriesStores";
+import { useState } from "react";
 import {
   Alert,
   Modal,
@@ -22,34 +23,32 @@ type Props = {
 };
 
 const AssignCategoryModal = ({ visible, onClose, learnerId }: Props) => {
-  const [results, setResults] = useState<any[]>([]);
-  const [filteredResults, setFilteredResults] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  useEffect(() => {
-    const unsubscribe = listenToUnassignedCategories(
-      learnerId as string,
-      (categories) => {
-        setResults(categories);
-        setFilteredResults(categories);
-      }
-    );
+  const categories = useCategoriesStore((state) => state.categories);
 
-    return () => unsubscribe();
-  }, []);
+  const uid = getCurrentUid();
+
+  const mappedCategories = categories.filter((category) => {
+    if (
+      category.created_by === uid &&
+      !category.assigned_to?.includes(learnerId!)
+    )
+      return category;
+  });
+
+  const filterCategories = mappedCategories.filter((category) => {
+    if (!searchQuery.trim()) return true;
+
+    // Filter by search query (case-insensitive)
+    const query = searchQuery.toLowerCase().trim();
+    const categoryName = category.category_name.toLowerCase();
+
+    return categoryName.includes(query);
+  });
 
   const handleSearch = (query: string) => {
-    const filtered: any[] = results.filter((result) => {
-      const category_name = result.category_name;
-
-      if (category_name.startsWith(query)) return category_name;
-    });
-
-    if (query.trim() === "") {
-      setFilteredResults(results);
-      return;
-    }
-
-    setFilteredResults(filtered);
+    setSearchQuery(query);
   };
 
   return (
@@ -96,7 +95,7 @@ const AssignCategoryModal = ({ visible, onClose, learnerId }: Props) => {
 
             {/* Categories List */}
             <View style={styles.categoryContainer}>
-              {filteredResults?.map((result, index) => (
+              {filterCategories?.map((result, index) => (
                 <AssignCategoryPreview
                   categoryName={result.category_name}
                   categoryImage={result?.image}

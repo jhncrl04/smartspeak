@@ -23,9 +23,17 @@ const PecsCard = ({ learnerId, action, cardId }: CardProps) => {
   const card = useCardsStore((state) =>
     state.cards.find((c) => c.id === cardId)
   );
-  const category = useCategoriesStore((state) =>
-    state.categories.find((c) => c.id === card?.category_id)
-  );
+  const { categories } = useCategoriesStore();
+
+  const category = categories.find((category) => {
+    if (
+      card?.created_by === "ADMIN" &&
+      card.category_name === category.category_name
+    )
+      return category;
+
+    if (category.id === card?.category_id) return category;
+  });
 
   const styles = StyleSheet.create({
     lockIconContainer: {

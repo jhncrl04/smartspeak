@@ -1,6 +1,7 @@
 import COLORS from "@/constants/Colors";
 import { useResponsiveCardSize } from "@/helper/setCardWidth";
 import { useAuthStore } from "@/stores/userAuthStore";
+import { useUsersStore } from "@/stores/userStore";
 import { Entypo } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
@@ -9,28 +10,29 @@ type cardType = "profile" | "add card";
 
 type profile = {
   cardType: cardType;
-  name: string;
-  age: number | null;
-  gender: string | undefined;
   learnerId: string;
-  image: string | null;
   onSection?: string;
 };
 
-const LearnerCard = (props: profile) => {
+const LearnerCard = ({ cardType, learnerId, onSection }: profile) => {
   const { cardWidth, cardHeight } = useResponsiveCardSize();
 
   const user = useAuthStore((state) => state.user);
+
+  const users = useUsersStore((state) => state.users);
+
+  const learner = users.find((user) => user.id === learnerId);
 
   const styles = StyleSheet.create({
     cards: {
       height: cardHeight,
       width: cardWidth,
-      backgroundColor: COLORS.cardBg,
+
+      backgroundColor: COLORS.pureWhite,
 
       alignItems: "center",
 
-      borderRadius: 5,
+      borderRadius: 10,
       elevation: 5,
       shadowColor: COLORS.black,
       shadowOffset: { width: 10, height: 10 },
@@ -43,7 +45,7 @@ const LearnerCard = (props: profile) => {
       width: cardWidth,
       aspectRatio: 1,
 
-      backgroundColor: COLORS.shadow,
+      padding: 4,
 
       justifyContent: "center",
       alignItems: "center",
@@ -51,6 +53,9 @@ const LearnerCard = (props: profile) => {
     cardImage: {
       width: "100%",
       height: "100%",
+
+      borderRadius: 8,
+
       color: COLORS.black,
       fontSize: 40,
     },
@@ -70,11 +75,8 @@ const LearnerCard = (props: profile) => {
     cardInfoContainer: {
       flex: 1,
       width: "100%",
-      backgroundColor: COLORS.white,
       justifyContent: "center",
       alignItems: "center",
-
-      gap: 5,
 
       paddingVertical: 5,
       paddingHorizontal: 10,
@@ -94,14 +96,24 @@ const LearnerCard = (props: profile) => {
     profileInfo: {
       flex: 1,
 
-      fontSize: 14,
-      color: COLORS.black,
+      fontSize: 12,
+      fontFamily: "Poppins",
+
+      color: COLORS.gray,
 
       textAlign: "left",
     },
+    profileName: {
+      fontSize: 15,
+      lineHeight: 18,
+
+      fontWeight: 500,
+
+      color: COLORS.black,
+    },
   });
 
-  return props.cardType === "profile" ? (
+  return cardType === "profile" ? (
     <TouchableOpacity
       style={styles.cards}
       onPress={() => {
@@ -111,8 +123,8 @@ const LearnerCard = (props: profile) => {
               ? `/screens/guardian/user/[userId]`
               : "/screens/teacher/user/[userId]",
           params: {
-            userId: props.learnerId,
-            sectionId: props.onSection,
+            userId: learnerId,
+            sectionId: onSection,
           },
         });
       }}
@@ -120,32 +132,30 @@ const LearnerCard = (props: profile) => {
       <View style={styles.cardImageContainer}>
         <Image
           source={
-            props.image
-              ? { uri: props.image }
-              : require("../assets/images/creeper.png")
+            learner?.profile_pic
+              ? { uri: learner?.profile_pic }
+              : require("@/assets/images/default.jpg")
           }
           style={styles.cardImage}
         />
       </View>
       <View style={styles.cardInfoContainer}>
         <View style={styles.labelContainer}>
-          <Text style={styles.cardLabels}>Name</Text>
           <Text
             numberOfLines={1}
             ellipsizeMode="tail"
-            style={styles.profileInfo}
+            style={[styles.profileInfo, styles.profileName]}
           >
-            {props.name}
+            {`${learner?.first_name} ${learner?.last_name}`}
           </Text>
         </View>
         <View style={styles.labelContainer}>
-          <Text style={styles.cardLabels}>Gender</Text>
           <Text
             numberOfLines={1}
             ellipsizeMode="tail"
             style={styles.profileInfo}
           >
-            {props.gender ? props.gender : "n/a"}
+            {learner?.gender ?? "n/a"}
           </Text>
         </View>
       </View>

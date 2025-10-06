@@ -53,8 +53,8 @@ const RootLayout = () => {
 
     if (user?.uid && user?.role) {
       // Start all listeners when user logs in
-      startCardsListener(user.uid);
-      startCategoriesListener(user.uid);
+      startCardsListener(user.uid, user.handledChildren!);
+      startCategoriesListener(user.uid, user.handledChildren!);
       startUsersListener(user.uid, user.role.toLowerCase());
       startSectionsListner(user.uid);
       startGradeLevelsListener();

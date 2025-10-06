@@ -151,7 +151,9 @@ const Sidebar = ({ onNavigate, userRole }: SidebarProps) => {
                         fontWeight: "500",
                         fontSize: 16,
                       }}
-                    >{`${user?.fname}`}</Text>
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
+                    >{`${user?.fname} ${user?.lname}`}</Text>
                   </TouchableOpacity>
                 )}
                 <Icon

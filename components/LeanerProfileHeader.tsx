@@ -23,7 +23,7 @@ const LearnerProfileHeader = (props: profileProps) => {
             source={
               props.profile
                 ? { uri: props.profile }
-                : require("../assets/images/creeper.png")
+                : require("@/assets/images/default.jpg")
             }
           />
         </View>

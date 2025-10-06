@@ -4,8 +4,8 @@ import PecsCard from "@/components/PecsCard";
 import Sidebar from "@/components/Sidebar";
 import AddPecsModal from "@/components/ui/AddPecsModal";
 import COLORS from "@/constants/Colors";
+import getCurrentUid from "@/helper/getCurrentUid";
 import { useCardsStore } from "@/stores/cardsStore";
-import { useCategoriesStore } from "@/stores/categoriesStores";
 import { router } from "expo-router";
 import { useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
@@ -15,38 +15,36 @@ const ManageCardsScreen = () => {
     router.push(screen as any);
   };
 
-  const { cards, isLoading: cardsLoading } = useCardsStore();
-  const { categories, isLoading: categoriesLoading } = useCategoriesStore();
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const mappedCards = cards.map((card) => {
-    const category = categories.find((category) => {
-      if (category.id === card.category_id) return category;
-    });
+  const { cards, isLoading: cardsLoading, error: cardsError } = useCardsStore();
 
-    const cardDetails = {
-      cardInfo: { ...card },
-      categoryInfo: { ...category },
-    };
+  const [activeModal, setActiveModal] = useState<"add" | null>(null);
 
-    return { cardDetails };
+  const uid = getCurrentUid();
+
+  const mappedCards = cards.filter((card) => {
+    if (card.created_by === uid) return card;
   });
 
-  // const [cards, setCards] = useState<any[]>([]);
+  const filteredCards = mappedCards.filter((card) => {
+    if (!searchQuery.trim()) return true;
 
-  // useEffect(() => {
-  //   const unsubscribe = listenToCards((cards) => {
-  //     setCards(cards); // update your state
-  //   });
+    // Filter by search query (case-insensitive)
+    const query = searchQuery.toLowerCase().trim();
+    const cardName = card.card_name.toLowerCase();
 
-  //   return () => unsubscribe(); // clean up listener on unmount
-  // }, []);
+    return cardName.includes(query);
+  });
 
-  const [activeModal, setActiveModal] = useState<"add-card" | null>(null);
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+  };
 
   return (
     <>
       <AddPecsModal
-        visible={activeModal === "add-card"}
+        visible={activeModal === "add"}
         onClose={() => setActiveModal(null)}
       />
       <View style={styles.container}>
@@ -54,7 +52,9 @@ const ManageCardsScreen = () => {
         <View style={styles.mainContentContainer}>
           <PageHeader
             collectionToSearch="cards"
-            onSearch={() => {}}
+            onSearch={(query) => {
+              handleSearch(query as string);
+            }}
             query="card"
             pageTitle="Manage Cards"
             hasFilter={true}
@@ -83,21 +83,8 @@ const ManageCardsScreen = () => {
                   </Text>
                 </View>
               ) : (
-                mappedCards.map((card, index) => (
-                  <PecsCard
-                    action="Delete"
-                    key={index}
-                    cardName={card.cardDetails.cardInfo.card_name}
-                    cardCategory={
-                      card.cardDetails.categoryInfo.category_name as string
-                    }
-                    categoryColor={
-                      card.cardDetails.categoryInfo.background_color as string
-                    }
-                    image={card.cardDetails.cardInfo.image}
-                    cardId={card.cardDetails.cardInfo.id}
-                    creatorId={card.cardDetails.cardInfo.created_by}
-                  />
+                filteredCards.map((card, index) => (
+                  <PecsCard action="Delete" key={index} cardId={card.id} />
                 ))
               )}
             </View>
@@ -105,7 +92,7 @@ const ManageCardsScreen = () => {
         </View>
         <FabMenu
           page="manageCards"
-          actions={{ add: () => setActiveModal("add-card") }}
+          actions={{ add: () => setActiveModal("add") }}
         />
       </View>
     </>
