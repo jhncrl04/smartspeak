@@ -1,12 +1,14 @@
 import COLORS from "@/constants/Colors";
 import { SignupFormProvider } from "@/context/signupContext";
 import { setAppToFullscreen } from "@/helper/setAppToFullscreen";
+import { setupNotificationListeners } from "@/services/notificationService";
 import { useCardsStore } from "@/stores/cardsStore";
 import { useCategoriesStore } from "@/stores/categoriesStores";
 import {
   useGradeLevelsStore,
   useSectionsStore,
 } from "@/stores/gradeSectionsStore";
+import { useNotifsStore } from "@/stores/notificationsStore";
 import { useAuthStore } from "@/stores/userAuthStore";
 import { useUsersStore } from "@/stores/userStore";
 import { useFonts } from "expo-font";
@@ -14,33 +16,46 @@ import { Stack } from "expo-router";
 import * as ScreenOrientation from "expo-screen-orientation";
 import { StatusBar } from "expo-status-bar";
 import { View } from "moti";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { StyleSheet, Text } from "react-native";
 import { setCustomText } from "react-native-global-props";
 import Toast, { BaseToast, ErrorToast } from "react-native-toast-message";
+
+import * as Notifications from "expo-notifications";
 
 // SplashScreen.preventAutoHideAsync();
 
 const RootLayout = () => {
   const user = useAuthStore((state) => state.user);
+
+  const notificationListener = useRef<any>("");
+  const responseListener = useRef<any>("");
+
   const startCardsListener = useCardsStore((state) => state.startListener);
   const stopCardsListener = useCardsStore((state) => state.stopListener);
+
   const startCategoriesListener = useCategoriesStore(
     (state) => state.startListener
   );
   const stopCategoriesListener = useCategoriesStore(
     (state) => state.stopListener
   );
+
   const startUsersListener = useUsersStore((state) => state.startListener);
   const stopUsersListener = useUsersStore((state) => state.stopListener);
+
   const startSectionsListner = useSectionsStore((state) => state.startListener);
   const stopSectionsListener = useSectionsStore((state) => state.stopListener);
+
   const startGradeLevelsListener = useGradeLevelsStore(
     (state) => state.startListener
   );
   const stopGradeLevelsListener = useGradeLevelsStore(
     (state) => state.stopListener
   );
+
+  const startNotifListener = useNotifsStore((state) => state.startListener);
+  const stopNotifListener = useNotifsStore((state) => state.stopListener);
 
   useEffect(() => {
     ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
@@ -52,21 +67,33 @@ const RootLayout = () => {
     const role = user.role.toLowerCase();
 
     if (user?.uid && user?.role) {
+      const { notificationListener: nListener, responseListener: rListener } =
+        setupNotificationListeners();
+      notificationListener.current = nListener;
+      responseListener.current = rListener;
+
       // Start all listeners when user logs in
       startCardsListener(user.uid, user.handledChildren!);
       startCategoriesListener(user.uid, user.handledChildren!);
       startUsersListener(user.uid, user.role.toLowerCase());
       startSectionsListner(user.uid);
       startGradeLevelsListener();
+      startNotifListener(user.uid);
     }
 
     // Cleanup: stop all listeners when component unmounts or user logs out
     return () => {
+      Notifications.removeNotificationSubscription(
+        notificationListener.current
+      );
+      Notifications.removeNotificationSubscription(responseListener.current);
+
       stopCardsListener();
       stopCategoriesListener();
       stopUsersListener();
       stopSectionsListener();
       stopGradeLevelsListener();
+      stopNotifListener();
     };
   }, [user?.uid]);
 

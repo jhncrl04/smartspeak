@@ -41,7 +41,7 @@ export function useResponsiveCardSize() {
   }
 
   // ✅ Clamp cardWidth between MIN and MAX
-  // cardWidth = Math.min(Math.max(cardWidth, MIN_CARD_WIDTH), MAX_CARD_WIDTH);
+  cardWidth = Math.min(Math.max(cardWidth, MIN_CARD_WIDTH), MAX_CARD_WIDTH);
 
   const cardHeight = cardWidth * 1.4;
 

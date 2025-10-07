@@ -39,6 +39,12 @@ const ScreenLayout = () => {
             title: "Settings",
           }}
         />
+        <Stack.Screen
+          name="notifications"
+          options={{
+            title: "Notifications",
+          }}
+        />
         <Stack.Screen name="learner" />
         <Stack.Screen name="+not-found" />
       </Stack>

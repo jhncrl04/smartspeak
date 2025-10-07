@@ -51,6 +51,11 @@ const Sidebar = ({ onNavigate, userRole }: SidebarProps) => {
       screen: "/screens/teacher/manageBoards",
     },
     {
+      icon: "bell",
+      label: "Notifications",
+      screen: "/screens/notifications",
+    },
+    {
       icon: "comment",
       label: "Messages",
       screen: "/screens/messages",
@@ -77,6 +82,11 @@ const Sidebar = ({ onNavigate, userRole }: SidebarProps) => {
       icon: "copy",
       label: "Categories",
       screen: "/screens/guardian/manageBoards",
+    },
+    {
+      icon: "bell",
+      label: "Notifications",
+      screen: "/screens/notifications",
     },
     {
       icon: "comment",
@@ -121,7 +131,12 @@ const Sidebar = ({ onNavigate, userRole }: SidebarProps) => {
         ]}
       >
         <ScrollView showsVerticalScrollIndicator={false}>
-          <View style={{ paddingVertical: 16 }}>
+          <View
+            style={{
+              paddingVertical: 16,
+              justifyContent: "space-between",
+            }}
+          >
             <View style={{ gap: 0 }}>
               {/* Expand/Collapse Button */}
               <View style={styles.toggleButton}>
