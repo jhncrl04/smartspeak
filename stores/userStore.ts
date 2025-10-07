@@ -1,5 +1,7 @@
 import { User, UsersStore } from "@/types/user";
-import firestore from "@react-native-firebase/firestore";
+import firestore, {
+  FirebaseFirestoreTypes,
+} from "@react-native-firebase/firestore";
 import { create } from "zustand";
 
 const USER_COLLECTION = firestore().collection("users");
@@ -13,28 +15,49 @@ export const useUsersStore = create<UsersStore>((set, get) => ({
 
   startListener: (userId: string, role: string) => {
     get().stopListener();
-
     set({ isLoading: true, error: null });
 
-    let unsubscribe;
+    let unsubscribe: (() => void) | undefined;
 
     if (role === "guardian") {
-      const usersQuery = USER_COLLECTION.where("guardian_id", "==", userId);
+      // ✅ Combine two listeners (since Firestore React Native doesn't support OR queries)
+      const usersMap = new Map<string, User>();
 
-      unsubscribe = usersQuery.onSnapshot(
-        (snapshot) => {
-          const users = snapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          })) as User[];
+      const handleSnapshot = (
+        snapshot: FirebaseFirestoreTypes.QuerySnapshot
+      ) => {
+        snapshot.docs.forEach((doc) => {
+          usersMap.set(doc.id, { id: doc.id, ...doc.data() } as User);
+        });
 
-          set({ users, isLoading: false, error: null });
-        },
-        (error) => {
-          console.error("Users listener error:", error);
-          set({ error: error.message, isLoading: false });
-        }
-      );
+        // Merge users and update store
+        const mergedUsers = Array.from(usersMap.values());
+        set({ users: mergedUsers, isLoading: false, error: null });
+      };
+
+      const unsub1 = USER_COLLECTION.where(
+        "guardian_id",
+        "==",
+        userId
+      ).onSnapshot(handleSnapshot, (error) => {
+        console.error("Guardian listener (guardian_id) error:", error);
+        set({ error: error.message, isLoading: false });
+      });
+
+      const unsub2 = USER_COLLECTION.where(
+        "guardians",
+        "array-contains",
+        userId
+      ).onSnapshot(handleSnapshot, (error) => {
+        console.error("Guardian listener (guardians array) error:", error);
+        set({ error: error.message, isLoading: false });
+      });
+
+      // Store a single cleanup function that unsubscribes both
+      unsubscribe = () => {
+        unsub1();
+        unsub2();
+      };
     } else if (role === "teacher") {
       const sectionsQuery = SECTION_COLLECTION.where(
         "teachers",
@@ -45,7 +68,6 @@ export const useUsersStore = create<UsersStore>((set, get) => ({
       unsubscribe = sectionsQuery.onSnapshot(
         async (snapshot) => {
           try {
-            // Get all unique student IDs from all sections
             const studentIds = new Set<string>();
 
             snapshot.docs.forEach((doc) => {
@@ -57,12 +79,11 @@ export const useUsersStore = create<UsersStore>((set, get) => ({
               }
             });
 
-            // Fetch user details for all students
             if (studentIds.size > 0) {
               const studentIdsArray = Array.from(studentIds);
               const batches = [];
 
-              // Firestore 'in' queries are limited to 10 items, batch them
+              // Firestore 'in' queries limited to 10 items → batch them
               for (let i = 0; i < studentIdsArray.length; i += 10) {
                 const batch = studentIdsArray.slice(i, i + 10);
                 batches.push(
@@ -84,7 +105,6 @@ export const useUsersStore = create<UsersStore>((set, get) => ({
 
               set({ users, isLoading: false, error: null });
             } else {
-              // No students found in any section
               set({ users: [], isLoading: false, error: null });
             }
           } catch (error: any) {

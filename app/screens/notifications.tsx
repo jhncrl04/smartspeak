@@ -1,6 +1,7 @@
 import Sidebar from "@/components/Sidebar";
 import { formatDate, toDate } from "@/helper/formatDate";
 import { markAsRead } from "@/services/notificationService";
+import { respondToGuardianChangeRequest } from "@/services/userService";
 import { useNotifsStore } from "@/stores/notificationsStore";
 import { useAuthStore } from "@/stores/userAuthStore";
 import { useUsersStore } from "@/stores/userStore";
@@ -8,12 +9,14 @@ import { router } from "expo-router";
 import { useState } from "react";
 import {
   Image,
+  Modal,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import Icon from "react-native-vector-icons/Octicons";
 
 const COLORS = {
   primary: "#6366f1",
@@ -36,50 +39,106 @@ const NotificationsScreen = () => {
   };
 
   const [filter, setFilter] = useState("all");
+  const [selectedNotification, setSelectedNotification] = useState<any>(null);
+  const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
 
   const notifications = useNotifsStore((state) => state.notifications);
   const users = useUsersStore((state) => state.users);
   const senderProfiles = useNotifsStore((state) => state.senderProfiles);
   const user = useAuthStore((state) => state.user);
 
-  const getNotificationIcon = () => {
+  const getNotificationIcon = (type?: string) => {
     const icons = {
       assignment: "📝",
       message: "💬",
       reminder: "⏰",
       achievement: "🏆",
       system: "⚙️",
+      "Create Card": "🎴",
+      "Delete Card": "🗑️",
+      "Create Category": "📁",
+      "Delete Category": "🗂️",
     };
-    return "🔔";
+    return icons[type as keyof typeof icons] || "🔔";
   };
 
-  const getNotificationColor = () => {
+  const getNotificationColor = (type?: string) => {
     const colors = {
       assignment: COLORS.info,
       message: COLORS.success,
       reminder: COLORS.warning,
       achievement: COLORS.accent,
       system: COLORS.gray,
+      "Create Card": COLORS.success,
+      "Delete Card": COLORS.error,
+      "Create Category": COLORS.info,
+      "Delete Category": COLORS.warning,
     };
-    return COLORS.primary;
+    return colors[type as keyof typeof colors] || COLORS.primary;
   };
 
   const markAllAsRead = () => {
-    // setNotifications((prev) => prev.map((notif) => ({ ...notif, read: true })));
     filteredNotifications.forEach((notif) => {
       markAsRead(notif.id);
     });
   };
 
   const deleteNotification = (id: string) => {
-    // setNotifications((prev) => prev.filter((notif) => notif.id !== id));
+    // Implement delete functionality
+  };
+
+  const handleNotificationClick = async (notification: any) => {
+    // Mark as read
+    if (!notification.read) {
+      await markAsRead(notification.id);
+    }
+
+    // Open detail modal
+    setSelectedNotification(notification);
+    setIsDetailModalVisible(true);
+  };
+
+  const closeDetailModal = () => {
+    setIsDetailModalVisible(false);
+    setSelectedNotification(null);
+  };
+
+  const getDetailedNotificationContent = (notification: any) => {
+    const actions: Record<string, any> = {
+      "Create Card": {
+        icon: "🎴",
+        color: COLORS.success,
+        description: `A new flashcard "${notification.itemName}" has been created for ${notification.receiverInfo?.fname} ${notification.receiverInfo?.lname}. This card is now available in their learning materials.`,
+      },
+      "Delete Card": {
+        icon: "🗑️",
+        color: COLORS.error,
+        description: `The flashcard "${notification.itemName}" has been removed from ${notification.receiverInfo?.fname} ${notification.receiverInfo?.lname}'s learning materials.`,
+      },
+      "Create Category": {
+        icon: "📁",
+        color: COLORS.info,
+        description: `A new category "${notification.itemName}" has been created to organize ${notification.receiverInfo?.fname} ${notification.receiverInfo?.lname}'s learning materials.`,
+      },
+      "Delete Category": {
+        icon: "🗂️",
+        color: COLORS.warning,
+        description: `The category "${notification.itemName}" has been removed from ${notification.receiverInfo?.fname} ${notification.receiverInfo?.lname}'s learning materials.`,
+      },
+    };
+
+    return (
+      actions[notification.action] || {
+        icon: "🔔",
+        color: COLORS.primary,
+        description: notification.notifMessage,
+      }
+    );
   };
 
   const filteredNotifications = notifications
     .map((notif) => {
-      // First check local users store, then check fetched sender profiles
       const senderInfo = notif.senderId ? senderProfiles[notif.senderId] : null;
-      // const receiverInfo = users.find((user) => user.id === notif.createdFor);
       const receiverInfo = user;
 
       const notifTitle = `${senderInfo.first_name} ${
@@ -117,9 +176,8 @@ const NotificationsScreen = () => {
             notif.itemName
           }" category for ${receiverInfo?.fname} ${receiverInfo?.lname}`;
           break;
-
         default:
-          notifMessage = "";
+          notifMessage = notif.message;
           break;
       }
 
@@ -129,12 +187,20 @@ const NotificationsScreen = () => {
         notifMessage: notifMessage,
         senderProfile:
           senderInfo?.profile_picture || senderInfo?.profile_pic || null,
-        senderName: senderInfo?.first_name || notif.userName || "Unknown",
+        senderName: `${senderInfo?.first_name || "Unknown"} ${
+          senderInfo?.last_name || ""
+        }`.trim(),
+        senderRole: senderInfo?.role || "User",
+        senderInfo: {
+          firstName: senderInfo?.first_name,
+          lastName: senderInfo?.last_name,
+          id: notif.senderId,
+        },
+        learnerId: notif.learnerId!,
         receiverInfo,
       };
     })
     .filter((notif) => {
-      // Apply filter after mapping
       if (filter === "unread") return !notif.read;
       if (filter === "read") return notif.read;
       return true;
@@ -194,7 +260,6 @@ const NotificationsScreen = () => {
           </View>
 
           {/* Notifications List */}
-
           {filteredNotifications.length === 0 ? (
             <View style={styles.emptyState}>
               <Text style={styles.emptyIcon}>🔔</Text>
@@ -213,7 +278,7 @@ const NotificationsScreen = () => {
                   styles.notificationCard,
                   !notification.read && styles.notificationCardUnread,
                 ]}
-                onPress={() => markAsRead(notification.id)}
+                onPress={() => handleNotificationClick(notification)}
               >
                 <View style={styles.notificationContent}>
                   {/* Avatar or Icon */}
@@ -221,7 +286,8 @@ const NotificationsScreen = () => {
                     style={[
                       styles.avatarContainer,
                       {
-                        backgroundColor: getNotificationColor() + "20",
+                        backgroundColor:
+                          getNotificationColor(notification.action) + "20",
                       },
                     ]}
                   >
@@ -232,7 +298,7 @@ const NotificationsScreen = () => {
                       />
                     ) : (
                       <Text style={styles.iconEmoji}>
-                        {getNotificationIcon()}
+                        {getNotificationIcon(notification.action)}
                       </Text>
                     )}
                   </View>
@@ -257,7 +323,10 @@ const NotificationsScreen = () => {
                 {/* Actions */}
                 <TouchableOpacity
                   style={styles.deleteButton}
-                  onPress={() => deleteNotification(notification.id)}
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    deleteNotification(notification.id);
+                  }}
                 >
                   <Text style={styles.deleteIcon}>×</Text>
                 </TouchableOpacity>
@@ -265,6 +334,205 @@ const NotificationsScreen = () => {
             ))
           )}
         </ScrollView>
+
+        {/* Notification Detail Modal */}
+        <Modal
+          visible={isDetailModalVisible}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={closeDetailModal}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              {selectedNotification && (
+                <>
+                  {/* Modal Header */}
+                  <View style={styles.modalHeader}>
+                    <Text style={styles.modalTitle}>Notification Details</Text>
+                    <TouchableOpacity
+                      onPress={closeDetailModal}
+                      style={styles.closeButton}
+                    >
+                      <Icon name="x" size={24} color={COLORS.gray} />
+                    </TouchableOpacity>
+                  </View>
+
+                  <ScrollView
+                    style={styles.modalBody}
+                    showsVerticalScrollIndicator={false}
+                  >
+                    {/* Sender Info */}
+                    <View style={styles.senderSection}>
+                      <View style={styles.senderHeader}>
+                        <View
+                          style={[
+                            styles.modalAvatarContainer,
+                            {
+                              backgroundColor:
+                                getNotificationColor(
+                                  selectedNotification.action
+                                ) + "20",
+                            },
+                          ]}
+                        >
+                          {selectedNotification.senderProfile ? (
+                            <Image
+                              source={{
+                                uri: selectedNotification.senderProfile,
+                              }}
+                              style={styles.modalAvatar}
+                            />
+                          ) : (
+                            <Text style={styles.modalIconEmoji}>
+                              {getNotificationIcon(selectedNotification.action)}
+                            </Text>
+                          )}
+                        </View>
+                        <View style={styles.senderInfo}>
+                          <Text style={styles.senderName}>
+                            {selectedNotification.senderName}
+                          </Text>
+                          <Text style={styles.senderRole}>
+                            {selectedNotification.senderRole.toUpperCase()}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+
+                    {/* Action Badge */}
+                    <View style={styles.actionBadgeContainer}>
+                      <View
+                        style={[
+                          styles.actionBadge,
+                          {
+                            backgroundColor:
+                              getNotificationColor(
+                                selectedNotification.action
+                              ) + "15",
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.actionBadgeText,
+                            {
+                              color: getNotificationColor(
+                                selectedNotification.action
+                              ),
+                            },
+                          ]}
+                        >
+                          {selectedNotification.action}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Main Message */}
+                    {/* <View style={styles.messageSection}>
+                      <Text style={styles.messageLabel}>Message</Text>
+                      <Text style={styles.messageText}>
+                        {selectedNotification.notifMessage}
+                      </Text>
+                    </View> */}
+
+                    {/* Detailed Description */}
+                    {selectedNotification.action && (
+                      <View style={styles.descriptionSection}>
+                        <Text style={styles.descriptionLabel}>Details</Text>
+                        <Text style={styles.descriptionText}>
+                          {
+                            getDetailedNotificationContent(selectedNotification)
+                              .description
+                          }
+                        </Text>
+                      </View>
+                    )}
+
+                    {/* Item Name */}
+                    {selectedNotification.itemName && (
+                      <View style={styles.itemSection}>
+                        <Text style={styles.itemLabel}>Item Name</Text>
+                        <View style={styles.itemCard}>
+                          <Text style={styles.itemName}>
+                            {selectedNotification.itemName}
+                          </Text>
+                        </View>
+                      </View>
+                    )}
+
+                    {/* Timestamp */}
+                    <View style={styles.timestampSection}>
+                      <Icon
+                        name="clock"
+                        size={16}
+                        color={COLORS.gray}
+                        style={{ marginRight: 8 }}
+                      />
+                      <Text style={styles.timestampText}>
+                        {formatDate(
+                          toDate(selectedNotification.notificationDate)
+                        )}
+                      </Text>
+                    </View>
+
+                    {/* Action Buttons */}
+                    {selectedNotification.action ===
+                    "Child Guardian Request" ? (
+                      <View style={styles.actionButtonsContainer}>
+                        <TouchableOpacity
+                          style={styles.primaryActionButton}
+                          onPress={() => {
+                            respondToGuardianChangeRequest(
+                              "accept",
+                              selectedNotification
+                            );
+                          }}
+                        >
+                          <Text style={styles.primaryActionText}>Accept</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.secondaryActionButton}
+                          onPress={(e) => {
+                            e.stopPropagation();
+
+                            respondToGuardianChangeRequest(
+                              "decline",
+                              selectedNotification
+                            );
+                          }}
+                        >
+                          <Text style={styles.secondaryActionText}>
+                            Decline
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    ) : (
+                      <View style={styles.actionButtonsContainer}>
+                        <TouchableOpacity
+                          style={styles.primaryActionButton}
+                          onPress={closeDetailModal}
+                        >
+                          <Text style={styles.primaryActionText}>Close</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.secondaryActionButton}
+                          onPress={(e) => {
+                            e.stopPropagation();
+                            deleteNotification(selectedNotification.id);
+                            closeDetailModal();
+                          }}
+                        >
+                          <Icon name="trash" size={16} color={COLORS.error} />
+                          <Text style={styles.secondaryActionText}>Delete</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                  </ScrollView>
+                </>
+              )}
+            </View>
+          </View>
+        </Modal>
       </View>
     </View>
   );
@@ -432,6 +700,200 @@ const styles = StyleSheet.create({
   emptySubtext: {
     fontSize: 14,
     color: COLORS.gray,
+  },
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: COLORS.white,
+    borderRadius: 16,
+    width: "100%",
+    maxWidth: 600,
+    maxHeight: "90%",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.lightGray,
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: COLORS.black,
+  },
+  closeButton: {
+    padding: 4,
+  },
+  modalBody: {
+    height: "auto",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+  },
+  senderSection: {
+    marginBottom: 10,
+  },
+  senderHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  modalAvatarContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalAvatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+  },
+  modalIconEmoji: {
+    fontSize: 30,
+  },
+  senderInfo: {
+    flex: 1,
+  },
+  senderName: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: COLORS.black,
+    marginBottom: 2,
+  },
+  senderRole: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: COLORS.accent,
+    letterSpacing: 0.5,
+  },
+  actionBadgeContainer: {
+    marginBottom: 20,
+  },
+  actionBadge: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  actionBadgeText: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  messageSection: {
+    marginBottom: 20,
+  },
+  messageLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: COLORS.gray,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: 8,
+  },
+  messageText: {
+    fontSize: 16,
+    color: COLORS.black,
+    lineHeight: 24,
+  },
+  descriptionSection: {
+    marginBottom: 20,
+    padding: 16,
+    backgroundColor: COLORS.cardBg,
+    borderRadius: 12,
+  },
+  descriptionLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: COLORS.gray,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: 8,
+  },
+  descriptionText: {
+    fontSize: 14,
+    color: COLORS.gray,
+    lineHeight: 22,
+  },
+  itemSection: {
+    marginBottom: 20,
+  },
+  itemLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: COLORS.gray,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: 8,
+  },
+  itemCard: {
+    padding: 12,
+    backgroundColor: COLORS.accent + "10",
+    borderRadius: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: COLORS.accent,
+  },
+  itemName: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: COLORS.black,
+  },
+  timestampSection: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.lightGray,
+  },
+  timestampText: {
+    fontSize: 14,
+    color: COLORS.gray,
+  },
+  actionButtonsContainer: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  primaryActionButton: {
+    flex: 1,
+    backgroundColor: COLORS.accent,
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  primaryActionText: {
+    color: COLORS.white,
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  secondaryActionButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.error,
+  },
+  secondaryActionText: {
+    color: COLORS.error,
+    fontSize: 16,
+    fontWeight: "600",
   },
 });
 

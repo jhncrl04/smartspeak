@@ -11,6 +11,7 @@ export type Notification = {
   notificationSubject: string;
   read: boolean;
 
+  learnerId?: string;
   userName?: string; // maps to "user_name"
   userType?: string; // maps to "user_type"
   itemType?: string; // maps to "item_type" (e.g., "Card")

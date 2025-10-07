@@ -304,6 +304,7 @@ export const updateUserPassword = async (
 };
 
 import { useAuthStore } from "@/stores/userAuthStore";
+import { useUsersStore } from "@/stores/userStore";
 import { getUserInfo } from "./userApi/Authentication";
 
 export const setLoginState = (
@@ -400,5 +401,145 @@ export const updateUserInfo = async (
     console.error("Error updating user info: ", err);
 
     return { success: false, error: err as string };
+  }
+};
+
+export const requestGuardianChange = async (
+  childId: string,
+  newGuardianEmail: string,
+  currentGuardianId: string
+) => {
+  try {
+    const currentUser = useAuthStore.getState().user;
+    const child = useUsersStore.getState().users.find((u) => u.id === childId);
+
+    // 🔍 Find guardian by email
+    const guardianQuery = await userCollection
+      .where("email", "==", newGuardianEmail.toLowerCase())
+      .limit(1)
+      .get();
+
+    if (guardianQuery.empty) {
+      return {
+        success: false,
+        error: "No user found with that email.",
+      };
+    }
+
+    const newGuardianDoc = guardianQuery.docs[0];
+    const newGuardian = newGuardianDoc.data();
+
+    if (!newGuardian || newGuardian.role?.toLowerCase() !== "guardian") {
+      return {
+        success: false,
+        error: "The provided user is not a guardian.",
+      };
+    }
+
+    // ✅ Build notification object safely
+    const notif = {
+      action: "Child Guardian Request",
+      message: `${currentUser?.fname ?? "Someone"} ${
+        currentUser?.lname ?? ""
+      } wants to set you as ${child?.first_name ?? "their child"} ${
+        child?.last_name ?? ""
+      }'s guardian`,
+      sender_id: currentUser?.uid ?? null,
+      sender_info: {
+        first_name: currentUser?.fname ?? "",
+        last_name: currentUser?.lname ?? "",
+        id: currentUser?.uid ?? "",
+      },
+      receiver_id: newGuardianDoc.id,
+      created_for: newGuardianDoc.id,
+      receiver_info: {
+        first_name: newGuardian?.first_name ?? "",
+        last_name: newGuardian?.last_name ?? "",
+        id: newGuardianDoc.id,
+      },
+      learner_id: childId,
+      timestamp: firestore.Timestamp.fromDate(new Date()),
+      read: false,
+    };
+
+    await firestore().collection("userNotifications").add(notif);
+
+    return { success: true };
+  } catch (error) {
+    console.error("Guardian change request error:", error);
+    return { success: false, error: "Network or server error occurred." };
+  }
+};
+
+export const respondToGuardianChangeRequest = async (
+  response: string,
+  notification: any
+) => {
+  try {
+    const child = await getStudentInfo(notification.learnerId);
+    const currentUser = useAuthStore.getState().user;
+
+    const senderInfo = {
+      first_name: currentUser?.fname,
+      last_name: currentUser?.lname,
+      id: currentUser?.uid,
+    };
+    const receiverInfo = {
+      first_name: notification.senderInfo?.firstName,
+      last_name: notification.senderInfo?.lastName,
+      id: notification.senderId,
+    };
+
+    if (response === "accept") {
+      userCollection
+        .doc(notification.learnerId)
+        .update({ guardian_id: currentUser?.uid });
+      userCollection
+        .doc(currentUser?.uid)
+        .update({ children: arrayUnion(notification.learnerId) });
+      userCollection
+        .doc(notification.senderId)
+        .update({ children: arrayRemove(notification.learnerId) });
+
+      const notif = {
+        action: "Child Guardian Request Accepted",
+        message: `${receiverInfo.first_name} ${receiverInfo.last_name} accepted your request to set ${child?.first_name} ${child?.last_name} as his/her child`,
+        sender_id: currentUser?.uid,
+        sender_info: senderInfo,
+        receiver_id: notification.senderId,
+        created_for: notification.senderId,
+        receiver_info: receiverInfo,
+        learner_id: notification.learnerId,
+        timestamp: firestore.Timestamp.fromDate(new Date()),
+        read: false,
+      };
+
+      console.log(notif);
+
+      await firestore().collection("userNotifications").add(notif);
+
+      firestore().collection("userNotifications").doc(notification.id).delete();
+    } else if (response === "decline") {
+      const notif = {
+        action: "Child Guardian Request Declined",
+        message: `${receiverInfo.first_name} ${receiverInfo.last_name} declined your request to set ${child?.first_name} ${child?.last_name} as his/her child`,
+        sender_id: currentUser?.uid,
+        sender_info: senderInfo,
+        receiver_id: notification.senderId,
+        created_for: notification.senderId,
+        receiver_info: receiverInfo,
+        learner_id: notification.learnerId,
+        timestamp: firestore.Timestamp.fromDate(new Date()),
+        read: false,
+      };
+
+      console.log(notif);
+
+      await firestore().collection("userNotifications").add(notif);
+
+      firestore().collection("userNotifications").doc(notification.id).delete();
+    }
+  } catch (error) {
+    console.error(error);
   }
 };

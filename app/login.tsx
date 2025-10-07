@@ -4,7 +4,6 @@ import TextFieldWrapper from "@/components/TextfieldWrapper";
 import LoadingScreen from "@/components/ui/LoadingScreen";
 import { showToast } from "@/components/ui/MyToast";
 import COLORS from "@/constants/Colors";
-import { registerPushNotifications } from "@/services/notificationService";
 import { loginAuth } from "@/services/userApi/Authentication";
 import { checkVerification, setLoginState } from "@/services/userService";
 import auth from "@react-native-firebase/auth";
@@ -87,7 +86,7 @@ const LoginScreen = () => {
 
           setLoginState(firebaseUser, userDoc);
 
-          await registerPushNotifications(userDoc.uid);
+          // await registerPushNotifications(userDoc.uid);
           router.replace(`/screens/${role.toLowerCase()}` as any);
         } else {
           console.log("User document missing or role not found.");

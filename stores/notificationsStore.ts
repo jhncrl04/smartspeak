@@ -34,13 +34,14 @@ export const useNotifsStore = create<NotificationsStore>((set, get) => ({
               action: data.action,
               createdFor: data.created_for,
               message: data.message,
-              senderId: data.user_id,
+              senderId: data.user_id || data.sender_id,
               notificationType: data.notification_type,
               notificationDate: data.timestamp,
               notificationSubject: data.item_name,
               read: data.read,
 
               // Optional fields
+              learnerId: data.learner_id,
               userName: data.user_name,
               userType: data.user_type,
               itemType: data.item_type,
