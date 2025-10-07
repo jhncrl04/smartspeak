@@ -1922,7 +1922,7 @@ const styles = StyleSheet.create({
   },
   cancelBtnText: {
     fontFamily: "Poppins",
-    fontSize: RFValue(6),
+    fontSize: RFValue(8),
     color: "#9B72CF",
     fontWeight: "500",
     letterSpacing: 0.5,

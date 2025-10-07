@@ -654,14 +654,14 @@ const styles = StyleSheet.create({
   },
   BtnText: {
     fontFamily: "Poppins",
-    fontSize: RFValue(6),
+    fontSize: RFValue(8),
     color: "#fafafa",
     fontWeight: "500",
     letterSpacing: 0.5,
   },
   cancelBtnText: {
     fontFamily: "Poppins",
-    fontSize: RFValue(6),
+    fontSize: RFValue(8),
     color: "#9B72CF",
     fontWeight: "500",
     letterSpacing: 0.5,
