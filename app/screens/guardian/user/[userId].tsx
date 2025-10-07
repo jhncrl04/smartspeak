@@ -1,3 +1,4 @@
+import ActionLink from "@/components/ActionLink";
 import Board from "@/components/Board";
 import FabMenu from "@/components/FabMenu";
 import LearnerProfileHeader from "@/components/LeanerProfileHeader";
@@ -6,10 +7,10 @@ import AssignCategoryModal from "@/components/ui/AssignCategoryModal";
 import PreviousReportsModal from "@/components/ui/PreviousReportModal";
 import COLORS from "@/constants/Colors";
 import { calculateAge } from "@/helper/calculateAge";
-import { listenAssignedCategories } from "@/services/categoryService";
-import { getStudentInfo } from "@/services/userService";
+import { useCategoriesStore } from "@/stores/categoriesStores";
+import { useUsersStore } from "@/stores/userStore";
 import { router, useLocalSearchParams } from "expo-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import Icon from "react-native-vector-icons/Octicons";
@@ -19,46 +20,32 @@ const LearnerProfile = () => {
     router.push(screen as any);
   };
 
+  const { users } = useUsersStore();
+  const { categories } = useCategoriesStore();
+
   const { userId } = useLocalSearchParams();
 
-  const [userInfo, setUserInfo] = useState<any>(null);
+  const userInfo = users.find((user) => {
+    if (user.id === userId) return user;
+  });
 
-  useEffect(() => {
-    if (!userId) return; // guard against undefined
-    const fetchUserInfo = async () => {
-      try {
-        const data = await getStudentInfo(userId as string);
-        setUserInfo(data);
-      } catch (err) {
-        console.error("Error fetching student info: ", err);
-      }
-    };
-
-    fetchUserInfo();
-  }, [userId]);
-
-  const [categories, setCategories] = useState<any[]>();
-
-  // get assign categories on students
-  useEffect(() => {
-    if (!userId) return;
-
-    // subscribe to changes
-    const unsubscribe = listenAssignedCategories(userId as string, (cats) => {
-      setCategories(cats);
-    });
-
-    // cleanup on unmount
-    return () => unsubscribe();
-  }, [userId]);
-
-  const age = calculateAge(userInfo?.date_of_birth);
+  const mappedCategories = categories.filter((category) => {
+    if (
+      category.assigned_to?.includes(userId as string) ||
+      category.created_by_role === "ADMIN"
+    )
+      return category;
+  });
 
   const [activeModal, setActiveModal] = useState<
     "assign_category" | "remove_learner" | null
   >(null);
 
   const [isReportModalActive, setIsReportModalActive] = useState(false);
+  const [isPreviousReportsModalActive, setIsPreviousReportsModalActive] =
+    useState(false);
+
+  const age = calculateAge(userInfo?.date_of_birth);
 
   return (
     <>
@@ -70,10 +57,19 @@ const LearnerProfile = () => {
           bounces={false}
         >
           <View style={styles.profileSection}>
+            <View style={{ paddingTop: 10 }}>
+              <ActionLink
+                text="Back"
+                icon={
+                  <Icon name="arrow-left" size={22} color={COLORS.accent} />
+                }
+                clickHandler={router.back}
+              />
+            </View>
             <LearnerProfileHeader
-              profile={userInfo?.profile_pic}
+              profile={userInfo?.profile_pic!}
               name={`${userInfo?.first_name} ${userInfo?.last_name}`}
-              age={calculateAge(userInfo?.date_of_birth)}
+              age={age}
               buttonHandler={() => {
                 router.push({
                   pathname: "/screens/guardian/user/settings/[userId]",
@@ -92,12 +88,12 @@ const LearnerProfile = () => {
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Assigned Categories</Text>
               <Text style={styles.sectionSubtitle}>
-                {categories?.length || 0} categories assigned
+                {mappedCategories?.length || 0} categories assigned
               </Text>
             </View>
 
             <View style={styles.categoriesGrid}>
-              {categories && categories.length <= 0 ? (
+              {mappedCategories && mappedCategories.length <= 0 ? (
                 <View style={styles.emptyState}>
                   <Icon name="inbox" size={48} color={COLORS.gray} />
                   <Text style={styles.emptyStateTitle}>
@@ -108,15 +104,11 @@ const LearnerProfile = () => {
                   </Text> */}
                 </View>
               ) : (
-                categories?.map((category, index) => (
+                mappedCategories?.map((category, index) => (
                   <Board
-                    boardName={category.category_name}
-                    boardBackground={category.background_color}
                     categoryId={category.id}
-                    image={category.image}
-                    creatorId={category.created_by}
-                    creatorName={category.creatorName}
-                    actionHandler={() => {
+                    key={category.id}
+                    routerHandler={() => {
                       router.push({
                         pathname:
                           "/screens/guardian/user/category/[categoryId]",
@@ -127,7 +119,6 @@ const LearnerProfile = () => {
                         },
                       });
                     }}
-                    key={index}
                   />
                 ))
               )}
@@ -144,8 +135,8 @@ const LearnerProfile = () => {
       <PreviousReportsModal
         visible={isReportModalActive}
         onClose={() => setIsReportModalActive(false)}
-        studentId={userId as string}
-        studentName={`${userInfo?.first_name} ${userInfo?.last_name}`}
+        learnerId={userId as string}
+        learnerName={`${userInfo?.first_name} ${userInfo?.last_name}`}
       />
 
       <FabMenu

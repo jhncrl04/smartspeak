@@ -20,6 +20,7 @@ interface AuthState {
     profile: string;
     role: string;
     uid: string | undefined;
+    handledChildren: string[] | undefined;
   };
   login: (user: AuthState["user"]) => void;
   updateUser: (updatedData: Partial<NonNullable<AuthState["user"]>>) => void;

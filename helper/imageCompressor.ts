@@ -12,6 +12,7 @@ export const IMAGE_COMPRESSION_CONFIG = {
 
 export interface ImageValidationResult {
   isValid: boolean;
+  invalidSize?: boolean;
   error?: string;
   fileSize?: number;
   fileExtension?: string;
@@ -58,6 +59,7 @@ export const validateImage = async (
     ) {
       return {
         isValid: false,
+        invalidSize: true,
         error: `Image size (${Math.round(
           fileInfo.size / 1024
         )}KB) exceeds maximum allowed size of ${

@@ -8,5 +8,12 @@ export const showToast = (
   msg: string,
   position: "top" | "bottom" = "top"
 ) => {
-  Toast.show({ type: msgType, text1: title, text2: msg, position: position });
+  Toast.show({
+    type: msgType,
+    text1: title,
+    text2: msg,
+    position: position,
+    topOffset: 20,
+    swipeable: true,
+  });
 };

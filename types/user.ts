@@ -28,3 +28,13 @@ export type User = {
   barangay: string | null;
   barangay_name: string | null;
 };
+
+export type UsersStore = {
+  users: User[];
+  isLoading: boolean;
+  error: string | null;
+  unsubscribe: (() => void) | null;
+
+  startListener: (userId: string, role: string) => void;
+  stopListener: () => void;
+};

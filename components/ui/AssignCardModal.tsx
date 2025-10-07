@@ -1,6 +1,8 @@
 import COLORS from "@/constants/Colors";
-import { listenToUnassignedCards } from "@/services/cardsService";
-import { useEffect, useState } from "react";
+import getCurrentUid from "@/helper/getCurrentUid";
+import { useCardsStore } from "@/stores/cardsStore";
+import { useCategoriesStore } from "@/stores/categoriesStores";
+import { useState } from "react";
 import {
   Alert,
   Modal,
@@ -28,38 +30,38 @@ const AssignCardModal = ({
   learnerId,
   categoryId,
 }: Props) => {
-  const [results, setResults] = useState<any[]>([]);
-  const [filteredResults, setFilteredResults] = useState<any[]>([]);
-  const [categoryName, setCategoryName] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
 
-  useEffect(() => {
-    // Start listening
-    const unsubscribe = listenToUnassignedCards(
-      learnerId as string,
-      categoryId as string,
-      (cards, categoryName) => {
-        setResults(cards);
-        setFilteredResults(cards);
-        setCategoryName(categoryName);
-      }
-    );
+  const cards = useCardsStore((state) => state.cards);
+  const categories = useCategoriesStore((state) => state.categories);
 
-    return () => unsubscribe();
-  }, []);
+  const uid = getCurrentUid();
+
+  const mappedCards = cards.filter((card) => {
+    if (
+      card.created_by === uid &&
+      card.category_id === categoryId &&
+      !card.assigned_to?.includes(learnerId)
+    )
+      return card;
+  });
+
+  const filteredCards = mappedCards.filter((card) => {
+    if (!searchQuery.trim()) return true;
+
+    // Filter by search query (case-insensitive)
+    const query = searchQuery.toLowerCase().trim();
+    const cardName = card.card_name.toLowerCase();
+
+    return cardName.includes(query);
+  });
+
+  const activeCategory = categories.find(
+    (category) => category.id === categoryId
+  );
 
   const handleSearch = (query: string) => {
-    const filtered: any[] = results.filter((result) => {
-      const card_name = result.card_name;
-
-      if (card_name.startsWith(query)) return card_name;
-    });
-
-    if (query.trim() === "") {
-      setFilteredResults(results);
-      return;
-    }
-
-    setFilteredResults(filtered);
+    setSearchQuery(query);
   };
 
   return (
@@ -96,8 +98,8 @@ const AssignCardModal = ({
             <View style={styles.searchContainer}>
               <MySearchBar
                 collectionToSearch="cards"
-                onSearch={(results) => {
-                  handleSearch(results as string);
+                onSearch={(query) => {
+                  handleSearch(query as string);
                 }}
                 placeholder="Search Cards"
                 query="local"
@@ -106,15 +108,15 @@ const AssignCardModal = ({
 
             {/* Cards List */}
             <View style={styles.cardContainer}>
-              {filteredResults?.map((result, index) => (
+              {filteredCards?.map((result, index) => (
                 <AssignCardPreview
                   learnerId={learnerId as string}
                   cardId={result.id}
                   cardName={result.card_name}
-                  cardCategory={categoryName}
-                  categoryColor={result.background_color}
+                  cardCategory={activeCategory?.category_name!}
+                  categoryColor={activeCategory?.background_color!}
                   image={result.image}
-                  key={index}
+                  key={result.id}
                 />
               ))}
             </View>

@@ -4,9 +4,10 @@ import PecsCard from "@/components/PecsCard";
 import Sidebar from "@/components/Sidebar";
 import AddPecsModal from "@/components/ui/AddPecsModal";
 import COLORS from "@/constants/Colors";
-import { listenToCards } from "@/services/cardsService";
+import getCurrentUid from "@/helper/getCurrentUid";
+import { useCardsStore } from "@/stores/cardsStore";
 import { router } from "expo-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 
 const ManageCardsScreen = () => {
@@ -14,22 +15,36 @@ const ManageCardsScreen = () => {
     router.push(screen as any);
   };
 
-  const [cards, setCards] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  useEffect(() => {
-    const unsubscribe = listenToCards((cards) => {
-      setCards(cards); // update your state
-    });
+  const { cards, isLoading: cardsLoading, error: cardsError } = useCardsStore();
 
-    return () => unsubscribe(); // clean up listener on unmount
-  }, []);
+  const [activeModal, setActiveModal] = useState<"add" | null>(null);
 
-  const [activeModal, setActiveModal] = useState<"add-card" | null>(null);
+  const uid = getCurrentUid();
+
+  const mappedCards = cards.filter((card) => {
+    if (card.created_by === uid) return card;
+  });
+
+  const filteredCards = mappedCards.filter((card) => {
+    if (!searchQuery.trim()) return true;
+
+    // Filter by search query (case-insensitive)
+    const query = searchQuery.toLowerCase().trim();
+    const cardName = card.card_name.toLowerCase();
+
+    return cardName.includes(query);
+  });
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+  };
 
   return (
     <>
       <AddPecsModal
-        visible={activeModal === "add-card"}
+        visible={activeModal === "add"}
         onClose={() => setActiveModal(null)}
       />
       <View style={styles.container}>
@@ -37,7 +52,9 @@ const ManageCardsScreen = () => {
         <View style={styles.mainContentContainer}>
           <PageHeader
             collectionToSearch="cards"
-            onSearch={() => {}}
+            onSearch={(query) => {
+              handleSearch(query as string);
+            }}
             query="card"
             pageTitle="Manage Cards"
             hasFilter={true}
@@ -66,17 +83,8 @@ const ManageCardsScreen = () => {
                   </Text>
                 </View>
               ) : (
-                cards.map((card, index) => (
-                  <PecsCard
-                    action="Delete"
-                    key={index}
-                    cardName={card.card_name}
-                    cardCategory={card.category_title}
-                    categoryColor={card.background_color}
-                    image={card.image}
-                    cardId={card.id}
-                    creatorId={card.created_by}
-                  />
+                filteredCards.map((card, index) => (
+                  <PecsCard action="Delete" key={index} cardId={card.id} />
                 ))
               )}
             </View>
@@ -84,7 +92,7 @@ const ManageCardsScreen = () => {
         </View>
         <FabMenu
           page="manageCards"
-          actions={{ add: () => setActiveModal("add-card") }}
+          actions={{ add: () => setActiveModal("add") }}
         />
       </View>
     </>

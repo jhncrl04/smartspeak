@@ -7,11 +7,12 @@ import AddPecsModal from "@/components/ui/AddPecsModal";
 import EditCategoryModal from "@/components/ui/EditCategoryModal";
 import COLORS from "@/constants/Colors";
 import getCurrentUid from "@/helper/getCurrentUid";
-import { listenCardsWithCategoryEnhanced } from "@/services/cardsService";
-import { getCategoryWithId } from "@/services/categoryService";
+import { useCardsStore } from "@/stores/cardsStore";
+import { useCategoriesStore } from "@/stores/categoriesStores";
+import { useUsersStore } from "@/stores/userStore";
 import { router } from "expo-router";
 import { useLocalSearchParams } from "expo-router/build/hooks";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { ActivityIndicator } from "react-native-paper";
 
@@ -20,46 +21,33 @@ const ManageThisCategoryScreen = () => {
     router.push(screen as any);
   };
 
+  const { users } = useUsersStore();
+  const { cards } = useCardsStore();
+  const { categories } = useCategoriesStore();
+
   const { categoryId, creatorId } = useLocalSearchParams();
 
-  const [cards, setCards] = useState<any[]>([]);
-  const [categoryName, setCategoryName] = useState<string | null>(null);
+  const uid = getCurrentUid();
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | undefined>("");
 
-  useEffect(() => {
-    if (!categoryId) return;
+  const activeCategory = categories.find((category) => {
+    if (category.id === categoryId) return category;
+  });
 
-    const unsubscribe = listenCardsWithCategoryEnhanced(
-      categoryId as string,
-      (cards, categoryName, loading, error) => {
-        setCards(cards);
-        setCategoryName(categoryName);
-        setLoading(loading);
-        setError(error);
-      }
-    );
-
-    return () => {
-      if (unsubscribe) unsubscribe();
-    };
-  }, [categoryId]);
-
-  useEffect(() => {
-    const fetchCategoryDetails = async () => {
-      const category = await getCategoryWithId(categoryId as string);
-
-      setCategoryName(category?.category_name);
-    };
-
-    fetchCategoryDetails();
-  }, []);
+  const filteredCards = cards.filter((card) => {
+    if (
+      (card.created_by === "ADMIN" &&
+        card.category_name === activeCategory?.category_name) ||
+      card.category_id === (categoryId as string)
+    )
+      return card;
+  });
 
   const [activeModal, setActiveModal] = useState<
     "add-card" | "edit-category" | null
   >(null);
-
-  const uid = getCurrentUid();
 
   return (
     <>
@@ -93,7 +81,7 @@ const ManageThisCategoryScreen = () => {
                 collectionToSearch="cards"
                 onSearch={() => {}}
                 query="card"
-                pageTitle={`${categoryName} Cards`}
+                pageTitle={`${activeCategory?.category_name} Cards`}
                 hasFilter={true}
                 searchPlaceholder="Search Card"
               />
@@ -146,18 +134,8 @@ const ManageThisCategoryScreen = () => {
                   </Text>
                 </View>
               ) : (
-                cards.map((card, index) => (
-                  <PecsCard
-                    action="Delete"
-                    cardId={card.id}
-                    key={index}
-                    cardName={card.card_name}
-                    cardCategory={card.category_title}
-                    categoryColor={card.background_color}
-                    image={card.image}
-                    isDisabled={uid !== card.created_by}
-                    creatorId={card.created_by}
-                  />
+                filteredCards.map((card, index) => (
+                  <PecsCard action="Delete" cardId={card.id} key={card.id} />
                 ))
               )}
             </View>

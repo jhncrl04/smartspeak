@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import MDIcon from "react-native-vector-icons/MaterialIcons";
 import Icon from "react-native-vector-icons/Octicons";
+import LoadingScreen from "./ui/LoadingScreen";
 
 type SidebarProps = {
   onNavigate: (screen: string) => void;
@@ -109,6 +110,8 @@ const Sidebar = ({ onNavigate, userRole }: SidebarProps) => {
 
   const pathname = usePathname();
 
+  const [isLoading, setIsLoading] = useState(false);
+
   return (
     <>
       <View
@@ -138,7 +141,7 @@ const Sidebar = ({ onNavigate, userRole }: SidebarProps) => {
                       source={
                         user?.profile
                           ? { uri: user.profile }
-                          : require("../assets/images/creeper.png")
+                          : require("@/assets/images/default.jpg")
                       }
                       style={styles.profile}
                     />
@@ -148,7 +151,9 @@ const Sidebar = ({ onNavigate, userRole }: SidebarProps) => {
                         fontWeight: "500",
                         fontSize: 16,
                       }}
-                    >{`${user?.fname}`}</Text>
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
+                    >{`${user?.fname} ${user?.lname}`}</Text>
                   </TouchableOpacity>
                 )}
                 <Icon
@@ -211,7 +216,13 @@ const Sidebar = ({ onNavigate, userRole }: SidebarProps) => {
               </View>
             </View>
 
-            <TouchableOpacity style={styles.menuItem} onPress={logoutHandler}>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => {
+                logoutHandler();
+                setIsLoading(true);
+              }}
+            >
               <View style={styles.iconContainer}>
                 <MDIcon
                   name={"logout"}
@@ -226,13 +237,13 @@ const Sidebar = ({ onNavigate, userRole }: SidebarProps) => {
           </View>
         </ScrollView>
       </View>
+      <LoadingScreen visible={isLoading} />
     </>
   );
 };
 
 const logoutHandler = () => {
   useAuthStore.getState().logout();
-  router.replace("/login");
 };
 
 const styles = StyleSheet.create({
@@ -242,6 +253,9 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     borderRightWidth: 1,
     borderRightColor: COLORS.shadow,
+
+    borderTopRightRadius: 20,
+    borderBottomRightRadius: 20,
   },
   profile: {
     width: 36,

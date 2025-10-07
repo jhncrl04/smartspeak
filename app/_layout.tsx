@@ -1,8 +1,16 @@
 import COLORS from "@/constants/Colors";
 import { SignupFormProvider } from "@/context/signupContext";
 import { setAppToFullscreen } from "@/helper/setAppToFullscreen";
+import { useCardsStore } from "@/stores/cardsStore";
+import { useCategoriesStore } from "@/stores/categoriesStores";
+import {
+  useGradeLevelsStore,
+  useSectionsStore,
+} from "@/stores/gradeSectionsStore";
+import { useAuthStore } from "@/stores/userAuthStore";
+import { useUsersStore } from "@/stores/userStore";
 import { useFonts } from "expo-font";
-import { Stack, usePathname } from "expo-router";
+import { Stack } from "expo-router";
 import * as ScreenOrientation from "expo-screen-orientation";
 import { StatusBar } from "expo-status-bar";
 import { View } from "moti";
@@ -14,13 +22,53 @@ import Toast, { BaseToast, ErrorToast } from "react-native-toast-message";
 // SplashScreen.preventAutoHideAsync();
 
 const RootLayout = () => {
-  const pathname = usePathname();
+  const user = useAuthStore((state) => state.user);
+  const startCardsListener = useCardsStore((state) => state.startListener);
+  const stopCardsListener = useCardsStore((state) => state.stopListener);
+  const startCategoriesListener = useCategoriesStore(
+    (state) => state.startListener
+  );
+  const stopCategoriesListener = useCategoriesStore(
+    (state) => state.stopListener
+  );
+  const startUsersListener = useUsersStore((state) => state.startListener);
+  const stopUsersListener = useUsersStore((state) => state.stopListener);
+  const startSectionsListner = useSectionsStore((state) => state.startListener);
+  const stopSectionsListener = useSectionsStore((state) => state.stopListener);
+  const startGradeLevelsListener = useGradeLevelsStore(
+    (state) => state.startListener
+  );
+  const stopGradeLevelsListener = useGradeLevelsStore(
+    (state) => state.stopListener
+  );
 
   useEffect(() => {
     ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
 
     setAppToFullscreen();
-  }, [pathname]);
+
+    if (!user?.uid || !user?.role) return;
+
+    const role = user.role.toLowerCase();
+
+    if (user?.uid && user?.role) {
+      // Start all listeners when user logs in
+      startCardsListener(user.uid, user.handledChildren!);
+      startCategoriesListener(user.uid, user.handledChildren!);
+      startUsersListener(user.uid, user.role.toLowerCase());
+      startSectionsListner(user.uid);
+      startGradeLevelsListener();
+    }
+
+    // Cleanup: stop all listeners when component unmounts or user logs out
+    return () => {
+      stopCardsListener();
+      stopCategoriesListener();
+      stopUsersListener();
+      stopSectionsListener();
+      stopGradeLevelsListener();
+    };
+  }, [user?.uid]);
 
   // setting default font, working on web but not on android
   const [fontsLoaded] = useFonts({
@@ -41,7 +89,9 @@ const RootLayout = () => {
   });
 
   const styles = StyleSheet.create({
-    headerContainer: {},
+    headerContainer: {
+      alignItems: "center",
+    },
     title: {
       color: COLORS.accent,
       fontFamily: "Poppins",
@@ -163,21 +213,28 @@ const toastConfig = {
     <BaseToast
       {...props}
       style={{
-        borderLeftColor: COLORS.successBg,
-        backgroundColor: COLORS.pureWhite,
+        borderLeftColor: COLORS.successText,
+        backgroundColor: COLORS.black,
+        paddingVertical: 5,
+        paddingHorizontal: 0,
+
+        width: "40%",
+        height: "auto",
       }}
       contentContainerStyle={{ paddingHorizontal: 15 }}
       text1Style={{
         fontSize: 16,
         fontFamily: "Poppins",
         fontWeight: "600",
-        color: COLORS.accent,
+        color: COLORS.successText,
       }}
       text2Style={{
         fontSize: 14,
         fontFamily: "Poppins",
         fontWeight: "500",
+        color: COLORS.white,
       }}
+      text2NumberOfLines={2}
     />
   ),
 
@@ -185,20 +242,27 @@ const toastConfig = {
     <ErrorToast
       {...props}
       style={{
-        borderLeftColor: COLORS.errorBg,
-        backgroundColor: COLORS.pureWhite,
+        borderLeftColor: COLORS.errorText,
+        backgroundColor: COLORS.black,
+        paddingVertical: 5,
+        paddingHorizontal: 0,
+
+        width: "40%",
+        height: "auto",
       }}
       text1Style={{
         fontSize: 16,
         fontFamily: "Poppins",
         fontWeight: "600",
-        color: COLORS.accent,
+        color: COLORS.errorText,
       }}
       text2Style={{
         fontSize: 14,
         fontFamily: "Poppins",
         fontWeight: "500",
+        color: COLORS.white,
       }}
+      text2NumberOfLines={2}
     />
   ),
 };

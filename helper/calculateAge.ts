@@ -4,7 +4,7 @@ import { FirebaseFirestoreTypes } from "@react-native-firebase/firestore";
  * Calculate age from a Firestore Timestamp or JS Date
  */
 export const calculateAge = (
-  dob: FirebaseFirestoreTypes.Timestamp | Date | null
+  dob: FirebaseFirestoreTypes.Timestamp | Date | null | undefined
 ): number | null => {
   try {
     if (!dob) return null;

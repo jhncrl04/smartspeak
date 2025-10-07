@@ -4,6 +4,7 @@ export type Section = {
   id: string;
   name: string;
   grade_id: string;
+  students: [];
 };
 
 export type GradeLevel = {
@@ -17,4 +18,24 @@ export type GradeAndSection = {
   gradeId: string | undefined;
   gradeName: string | undefined;
   learners: Learner[];
+};
+
+export type SectionsStore = {
+  sections: Section[];
+  isLoading: boolean;
+  error: string | null;
+  unsubscribe: (() => void) | null;
+
+  startListener: (userId: string) => void;
+  stopListener: () => void;
+};
+
+export type GradeLevelsStore = {
+  gradeLevels: GradeLevel[];
+  isLoading: boolean;
+  error: string | null;
+  unsubscribe: (() => void) | null;
+
+  startListener: () => void;
+  stopListener: () => void;
 };

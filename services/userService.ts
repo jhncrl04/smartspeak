@@ -315,6 +315,13 @@ export const setLoginState = (
 ) => {
   const login = useAuthStore.getState().login;
 
+  const children: string[] =
+    userDoc.role.toLowerCase() === "teacher"
+      ? userDoc.students
+      : userDoc.children;
+
+  console.log(children);
+
   login({
     fname: userDoc.first_name,
     lname: userDoc.last_name,
@@ -331,6 +338,7 @@ export const setLoginState = (
     profile: userDoc.profile_pic as string,
     role: userDoc.role,
     uid: firebaseUser?.uid,
+    handledChildren: children,
   });
 };
 
@@ -369,21 +377,23 @@ export const removeAsStudent = async (learnerId: string) => {
   }
 };
 
-export const updateUserInfo = async (user: {
-  user_id: string;
-  first_name: string;
-  last_name: string;
-  region: string | null;
-  region_name: string | null;
-  province: string | null;
-  province_name: string | null;
-  municipality: string | null;
-  municipality_name: string | null;
-  barangay: string | null;
-  barangay_name: string | null;
-}) => {
+export const updateUserInfo = async (
+  user_id: string,
+  user: {
+    first_name: string;
+    last_name: string;
+    region: string | null;
+    region_name: string | null;
+    province: string | null;
+    province_name: string | null;
+    municipality: string | null;
+    municipality_name: string | null;
+    barangay: string | null;
+    barangay_name: string | null;
+  }
+) => {
   try {
-    await userCollection.doc(user.user_id).update(user);
+    await userCollection.doc(user_id).update(user);
 
     return { success: true };
   } catch (err) {

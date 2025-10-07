@@ -2,11 +2,13 @@ import LearnerCard from "@/components/LearnerCard";
 import PageHeader from "@/components/PageHeader";
 import SectionTabs from "@/components/SectionTabs";
 import Sidebar from "@/components/Sidebar";
-import AddLearnerModal from "@/components/ui/AddLearnerModal";
 import COLORS from "@/constants/Colors";
 import { calculateAge } from "@/helper/calculateAge";
-import { getSectionsWithStudents } from "@/services/sectionService";
-import { GradeAndSection } from "@/types/gradeSection";
+import {
+  useGradeLevelsStore,
+  useSectionsStore,
+} from "@/stores/gradeSectionsStore";
+import { useUsersStore } from "@/stores/userStore";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -23,31 +25,51 @@ const ManageLearnersScreen = () => {
   };
 
   const [loading, setLoading] = useState(true);
-  const [sections, setSections] = useState<GradeAndSection[]>([]);
+  // const [sections, setSections] = useState<GradeAndSection[]>([]);
   const [activeSection, setActiveSection] = useState<string | undefined>(
     undefined
   );
   const [activeModal, setActiveModal] = useState<
     "add" | "edit" | "move" | null
   >(null);
+  const [searchQuery, setSearchQuery] = useState<string>("");
+
+  const {
+    sections,
+    isLoading: sectionLoading,
+    error: sectionError,
+  } = useSectionsStore();
+
+  const {
+    gradeLevels,
+    isLoading: gradeLevelLoading,
+    error: gradeLevelError,
+  } = useGradeLevelsStore();
+
+  const {
+    users: learners,
+    isLoading: learnersLoading,
+    error: learnersError,
+  } = useUsersStore();
+
+  const mappedSection = sections
+    .map((section) => {
+      const gradeLevel = gradeLevels.find((gl) => gl.id === section.grade_id);
+
+      return {
+        gradeLevelInfo: gradeLevel,
+        sectionInfo: section,
+      };
+    })
+    .filter((item) => item.gradeLevelInfo);
 
   useEffect(() => {
-    const fetch = async () => {
-      try {
-        const data = await getSectionsWithStudents();
-        setSections(data);
+    if (mappedSection.length > 0 && !activeSection) {
+      setActiveSection(mappedSection[0].sectionInfo.id);
+    }
+  }, [mappedSection, activeSection]);
 
-        if (data.length > 0) setActiveSection(data[0].sectionId);
-      } catch (err) {
-        console.error("Error fetching sections:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetch();
-  }, []);
-
-  if (loading) {
+  if (sectionLoading || gradeLevelLoading) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <ActivityIndicator size="large" />
@@ -55,15 +77,50 @@ const ManageLearnersScreen = () => {
     );
   }
 
-  const filteredStudents =
-    sections.find((s) => s.sectionId === activeSection)?.learners || [];
+  if (sectionError || gradeLevelError) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <Text style={{ color: "red" }}>
+          Error loading data: {sectionError || gradeLevelError}
+        </Text>
+      </View>
+    );
+  }
+
+  const filteredStudents: string[] =
+    sections.find((s) => s.id === activeSection)?.students || [];
+
+  // Filter students by section and search query
+  const mappedStudents = learners.filter((learner) => {
+    // First check if student is in the active section
+    if (!filteredStudents.includes(learner.id)) return false;
+
+    // If no search query, show all students in section
+    if (!searchQuery.trim()) return true;
+
+    // Filter by search query (case-insensitive)
+    const query = searchQuery.toLowerCase().trim();
+    const firstName = learner.first_name.toLowerCase();
+    const lastName = learner.last_name.toLowerCase();
+    const fullName = `${firstName} ${lastName}`;
+
+    return (
+      firstName.includes(query) ||
+      lastName.includes(query) ||
+      fullName.includes(query)
+    );
+  });
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+  };
 
   return (
     <>
-      <AddLearnerModal
+      {/* <AddLearnerModal
         onClose={() => setActiveModal(null)}
         visible={activeModal === "add"}
-      />
+      /> */}
       <View style={styles.container}>
         <Sidebar userRole="teacher" onNavigate={handleNavigation} />
         <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
@@ -72,9 +129,11 @@ const ManageLearnersScreen = () => {
               pageTitle="Manage Learners"
               hasFilter={false}
               searchPlaceholder="Search Learner"
-              onSearch={(results) => {}}
-              collectionToSearch="users"
-              query="myStudent"
+              onSearch={(query) => {
+                handleSearch(query as string);
+              }}
+              collectionToSearch="cards"
+              query="local"
             />
             {/* Tabs */}
             <View
@@ -92,12 +151,12 @@ const ManageLearnersScreen = () => {
                 showsHorizontalScrollIndicator={false}
               >
                 <View style={styles.tabsContainer}>
-                  {sections.map((s) => (
+                  {mappedSection.map((s) => (
                     <SectionTabs
-                      key={s.sectionId}
-                      active={s.sectionId === activeSection}
-                      label={`${s.gradeName} - ${s.sectionName}`}
-                      onPress={() => setActiveSection(s.sectionId)}
+                      key={s.sectionInfo.id}
+                      active={s.sectionInfo.id === activeSection}
+                      label={`${s.gradeLevelInfo?.name} - ${s.sectionInfo.name}`}
+                      onPress={() => setActiveSection(s.sectionInfo.id)}
                     />
                   ))}
 
@@ -114,8 +173,8 @@ const ManageLearnersScreen = () => {
 
             {/* Students */}
             <View style={styles.cardContainer}>
-              {filteredStudents.length > 0 ? (
-                filteredStudents.map((student) => (
+              {mappedStudents.length > 0 ? (
+                mappedStudents.map((student) => (
                   <LearnerCard
                     key={student.id}
                     cardType="profile"

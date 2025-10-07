@@ -1,88 +1,68 @@
-import { Card, CardsStore } from "@/types/cards";
+import { CategoriesStore, Category } from "@/types/categories";
 import firestore from "@react-native-firebase/firestore";
 import { create } from "zustand";
-import { useAuthStore } from "./userAuthStore";
 
-const CARD_COLLECTION = firestore().collection("cards");
+const CATEGORY_COLLECTION = firestore().collection("pecsCategories");
 
-export const listenToCards = (onCardsUpdate: (cards: Card[]) => void) => {
-  const uid = useAuthStore.getState().user?.uid;
-
-  const cardQuery = CARD_COLLECTION.where("created_by", "==", uid);
-
-  const unsubscribe = cardQuery.onSnapshot(async (querySnapshot) => {
-    const cards = await Promise.all(
-      querySnapshot.docs.map(async (doc) => {
-        const card = doc.data();
-        card.id = doc.id;
-
-        return card as Card;
-      })
-    );
-
-    onCardsUpdate(cards);
-  });
-
-  return unsubscribe; // Call this when you want to stop listening
-};
-
-export const useCardsStore = create<CardsStore>((set, get) => ({
-  cards: [],
+export const useCategoriesStore = create<CategoriesStore>((set, get) => ({
+  categories: [],
   isLoading: true,
   error: null,
   unsubscribe: null,
 
   startListener: (userId: string, learnerIds?: string[]) => {
-    // Stop existing listener if any
     get().stopListener();
 
     set({ isLoading: true, error: null });
 
-    const cardsMap = new Map<string, Card>();
+    const categoriesMap = new Map<string, Category>();
     const unsubscribers: (() => void)[] = [];
 
-    const updateCards = () => {
-      const cards = Array.from(cardsMap.values());
-      set({ cards, isLoading: false, error: null });
+    const updateCategories = () => {
+      const categories = Array.from(categoriesMap.values());
+      set({ categories, isLoading: false, error: null });
     };
 
-    const userUnsubscribe = CARD_COLLECTION.where(
+    // Filter assigned_to in client-side if learnerIds provided
+    const userUnsubscribe = CATEGORY_COLLECTION.where(
       "created_by",
       "==",
       userId
     ).onSnapshot(
       (snapshot) => {
         snapshot.docChanges().forEach((change) => {
-          const card = {
+          const categoryData = {
             id: change.doc.id,
             ...change.doc.data(),
-          } as Card;
+          } as Category;
 
           if (change.type === "added" || change.type === "modified") {
+            // Client-side filter: check if any learner is in assigned_to
             if (learnerIds && learnerIds.length > 0) {
-              const assignedTo = card.assigned_to || [];
-
+              const assignedTo = categoryData.assigned_to || [];
               const hasMatchingLearner = learnerIds.some((learnerId) =>
                 assignedTo.includes(learnerId)
               );
 
+              // Only add if it matches at least one learner
               if (hasMatchingLearner) {
-                cardsMap.set(change.doc.id, card);
+                categoriesMap.set(change.doc.id, categoryData);
               } else {
-                cardsMap.delete(change.doc.id);
+                // Remove if it no longer matches
+                categoriesMap.delete(change.doc.id);
               }
             } else {
-              cardsMap.set(change.doc.id, card);
+              // No learner filter, add all user's categories
+              categoriesMap.set(change.doc.id, categoryData);
             }
           } else if (change.type === "removed") {
-            cardsMap.delete(change.doc.id);
+            categoriesMap.delete(change.doc.id);
           }
         });
-
-        updateCards();
+        updateCategories();
       },
       (error) => {
-        console.error("Cards listener error:", error);
+        console.error("User categories listener error:", error);
         set({ error: error.message, isLoading: false });
       }
     );
@@ -95,28 +75,28 @@ export const useCardsStore = create<CardsStore>((set, get) => ({
       for (let i = 0; i < learnerIds.length; i += batchSize) {
         const batch = learnerIds.slice(i, i + batchSize);
 
-        const assignedUnsubscribe = CARD_COLLECTION.where(
+        const assignedUnsubscribe = CATEGORY_COLLECTION.where(
           "assigned_to",
           "array-contains-any",
           batch
         ).onSnapshot(
           (snapshot) => {
             snapshot.docChanges().forEach((change) => {
-              const card = {
+              const categoryData = {
                 id: change.doc.id,
                 ...change.doc.data(),
-              } as Card;
+              } as Category;
 
               if (change.type === "added" || change.type === "modified") {
-                cardsMap.set(change.doc.id, card);
+                categoriesMap.set(change.doc.id, categoryData);
               } else if (change.type === "removed") {
-                cardsMap.delete(change.doc.id);
+                categoriesMap.delete(change.doc.id);
               }
             });
-            updateCards();
+            updateCategories();
           },
           (error) => {
-            console.error("Assigned cards listener error:", error);
+            console.error("Assigned categories listener error:", error);
             set({ error: error.message, isLoading: false });
           }
         );
@@ -125,33 +105,33 @@ export const useCardsStore = create<CardsStore>((set, get) => ({
     }
 
     // Apply same learner filter
-    const adminUnsubscribe = CARD_COLLECTION.where(
-      "created_by",
+    const adminUnsubscribe = CATEGORY_COLLECTION.where(
+      "created_by_role",
       "==",
       "ADMIN"
     ).onSnapshot(
       (snapshot) => {
         snapshot.docChanges().forEach((change) => {
-          const card = {
+          const categoryData = {
             id: change.doc.id,
             ...change.doc.data(),
-          } as Card;
+          } as Category;
 
           if (change.type === "added" || change.type === "modified") {
             // Client-side filter for learners
             if (learnerIds && learnerIds.length > 0) {
-              cardsMap.set(change.doc.id, card);
+              categoriesMap.set(change.doc.id, categoryData);
             } else {
-              cardsMap.set(change.doc.id, card);
+              categoriesMap.set(change.doc.id, categoryData);
             }
           } else if (change.type === "removed") {
-            cardsMap.delete(change.doc.id);
+            categoriesMap.delete(change.doc.id);
           }
         });
-        updateCards();
+        updateCategories();
       },
       (error) => {
-        console.error("Admin cards listener error:", error);
+        console.error("Admin categories listener error:", error);
         set({ error: error.message, isLoading: false });
       }
     );

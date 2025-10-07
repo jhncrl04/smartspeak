@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState } from "react";
 
-type FormDataType = {
+export type FormDataType = {
   role: string;
   first_name: string;
   last_name: string;

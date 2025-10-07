@@ -16,19 +16,17 @@ import MyDropdown from "./MyDropdown";
 
 import * as ImagePicker from "expo-image-picker";
 
+import getCurrentUid from "@/helper/getCurrentUid";
 import {
   cleanupCompressedImage,
   compressImageToSize,
   validateImage,
 } from "@/helper/imageCompressor";
 import imageToBase64 from "@/helper/imageToBase64";
-import {
-  deleteCard,
-  getCardInfoWithId,
-  unassignCard,
-  updateCard,
-} from "@/services/cardsService";
-import { getCategories } from "@/services/categoryService";
+import { deleteCard, unassignCard, updateCard } from "@/services/cardsService";
+import { useCardsStore } from "@/stores/cardsStore";
+import { useCategoriesStore } from "@/stores/categoriesStores";
+import { useUsersStore } from "@/stores/userStore";
 import { useEffect, useState } from "react";
 import SecondaryButton from "../SecondaryButton";
 import TextFieldWrapper from "../TextfieldWrapper";
@@ -41,7 +39,6 @@ type Props = {
   cardId: string;
   learnerId: string;
   action: string;
-  isDisabled?: boolean;
 };
 
 const ViewCardModal = ({
@@ -50,11 +47,29 @@ const ViewCardModal = ({
   cardId,
   learnerId,
   action,
-  isDisabled,
 }: Props) => {
-  // image upload functionalities
+  const { categories } = useCategoriesStore();
+  const card = useCardsStore((state) =>
+    state.cards.find((c) => c.id === cardId)
+  );
+  const { users } = useUsersStore();
+  const selectedCategory = categories.find((c) => c.id === card?.category_id);
+
+  // Local state for editing
+  const [cardName, setCardName] = useState("");
   const [image, setImage] = useState("");
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  const disableEdit = card?.created_by !== getCurrentUid();
+
+  // Initialize state when modal opens or card changes
+  useEffect(() => {
+    if (visible && card) {
+      setCardName(card.card_name || "");
+      setImage(card.image || "");
+    }
+  }, [visible, card]);
 
   const showImagePickerOptions = () => {
     Alert.alert("Select Photo", "Choose how you want to add a photo", [
@@ -65,198 +80,174 @@ const ViewCardModal = ({
   };
 
   const pickImage = async (useCamera: boolean = false) => {
-    let permissionResult;
+    try {
+      let permissionResult;
 
-    if (useCamera) {
-      // Camera permission
-      permissionResult = await ImagePicker.requestCameraPermissionsAsync();
-    } else {
-      // Gallery permission
-      permissionResult =
-        await ImagePicker.requestMediaLibraryPermissionsAsync();
-    }
+      if (useCamera) {
+        // Camera permission
+        permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+      } else {
+        // Gallery permission
+        permissionResult =
+          await ImagePicker.requestMediaLibraryPermissionsAsync();
+      }
 
-    if (permissionResult.status !== "granted") {
-      Alert.alert(
-        "Permission Denied",
-        `Sorry, ${
-          useCamera ? "camera" : "media library"
-        } permission is needed to upload.`
-      );
-      return;
-    }
+      if (permissionResult.status !== "granted") {
+        showToast(
+          "error",
+          "Permission Denied",
+          `Sorry, ${
+            useCamera ? "camera" : "media library"
+          } permission is needed to upload.`
+        );
+        return;
+      }
 
-    // Open camera or gallery
-    const result = useCamera
-      ? await ImagePicker.launchCameraAsync({
-          allowsEditing: true,
-          quality: 0.9, // Slightly reduce initial quality
-        })
-      : await ImagePicker.launchImageLibraryAsync({
-          allowsEditing: true,
-          quality: 0.9, // Slightly reduce initial quality
-          mediaTypes: ImagePicker.MediaTypeOptions.Images, // Only images
-        });
+      // Open camera or gallery
+      const result = useCamera
+        ? await ImagePicker.launchCameraAsync({
+            allowsEditing: true,
+            quality: 0.9, // Slightly reduce initial quality
+          })
+        : await ImagePicker.launchImageLibraryAsync({
+            allowsEditing: true,
+            quality: 0.9, // Slightly reduce initial quality
+            mediaTypes: ImagePicker.MediaTypeOptions.Images, // Only images
+          });
 
-    if (!result.canceled) {
+      if (result.canceled) return;
+
       const uri = result.assets[0].uri;
       setError("");
 
-      // 1. Only validate file type (not size - we'll compress it)
+      // Validate file type
       const validate = await validateImage(uri);
       if (!validate.isValid && validate.error?.includes("Invalid image type")) {
-        Alert.alert("Invalid Image", validate.error);
+        showToast("error", "Invalid Image", validate.error);
         return;
       }
 
-      // 2. Always compress the image (handles oversized images automatically)
-      const compression = await compressImageToSize(uri);
-      if (!compression.success) {
-        Alert.alert(
-          "Compression Failed",
-          compression.error || "Failed to process image"
-        );
-        return;
-      }
+      // Check if compression is needed
+      if (validate.invalidSize) {
+        Alert.alert("Image size is too big", "Do you want to compress it?", [
+          {
+            text: "Compress",
+            onPress: async () => {
+              const compression = await compressImageToSize(uri);
+              if (!compression.success) {
+                showToast(
+                  "error",
+                  "Compression Failed",
+                  compression.error || "Failed to process image"
+                );
+                return;
+              }
 
-      // Skip base64 size validation - compressImageToSize already handles this
+              if (compression.originalSize && compression.compressedSize) {
+                const savings = (
+                  ((compression.originalSize - compression.compressedSize) /
+                    compression.originalSize) *
+                  100
+                ).toFixed(1);
+                console.log(
+                  `Image compressed: ${Math.round(
+                    compression.originalSize / 1024
+                  )}KB → ${Math.round(
+                    compression.compressedSize / 1024
+                  )}KB (${savings}% reduction)`
+                );
+              }
 
-      // 3. Log compression stats (optional)
-      if (compression.originalSize && compression.compressedSize) {
-        const savings = (
-          ((compression.originalSize - compression.compressedSize) /
-            compression.originalSize) *
-          100
-        ).toFixed(1);
-        console.log(
-          `Image compressed: ${Math.round(
-            compression.originalSize / 1024
-          )}KB → ${Math.round(
-            compression.compressedSize / 1024
-          )}KB (${savings}% reduction)`
-        );
-      }
+              const base64Image = await imageToBase64(compression.base64!);
+              if (base64Image) {
+                setImage(base64Image);
+              }
 
-      // 4. Upload the compressed base64 image
-      const uploadedBase64 = await imageToBase64(compression.base64!);
-
-      if (uploadedBase64) {
-        setImage(uploadedBase64);
-        // Alert.alert("Success", "Profile picture updated!");
+              if (compression.compressedUri) {
+                await cleanupCompressedImage(compression.compressedUri);
+              }
+            },
+          },
+          {
+            text: "Select another image",
+            style: "cancel",
+          },
+        ]);
       } else {
-        Alert.alert("Upload Failed", "Please try again.");
+        // Image size is fine, convert directly
+        const base64Image = await imageToBase64(uri);
+        if (base64Image) {
+          setImage(base64Image);
+        }
       }
-
-      // 5. Cleanup temporary file
-      if (compression.compressedUri) {
-        await cleanupCompressedImage(compression.compressedUri);
-      }
+    } catch (err) {
+      console.error("Image picker error:", err);
+      showToast("error", "Upload Failed", "Something went wrong.");
     }
   };
 
-  const [cardName, setCardName] = useState("");
-  const [categories, setCategories] = useState<any[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string>("");
-  const [card, setCard] = useState<any>(null);
+  const dropdownItems = categories.map((category) => {
+    if (category.is_assignable === false) {
+      const assignedUser = users.find((u) => u.id === category.created_for);
+      const userName = assignedUser
+        ? `${assignedUser.first_name} ${assignedUser.last_name}`.trim()
+        : "Unknown";
 
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const data = await getCategories();
-        setCategories(data);
-      } catch (err) {
-        console.error("Error fetching categories: ", err);
-      }
-    };
-    fetchCategories();
-  }, []);
-
-  useEffect(() => {
-    const fetchCardInfo = async () => {
-      try {
-        const cardData = await getCardInfoWithId(cardId);
-        if (cardData) {
-          setCard(cardData);
-          setCardName(cardData.card_name || "");
-          setImage(cardData.image || "");
-          setSelectedCategory(cardData.category_id || "");
-        }
-      } catch (err) {
-        console.error("Error fetching card info with id: ", err);
-      }
-    };
-
-    if (cardId && visible) {
-      fetchCardInfo();
+      return {
+        label: `${category.category_name} (${userName} use only)`,
+        value: category.id,
+      };
     }
-  }, [cardId, visible]);
 
-  const dropdownItems = categories.map((category) => ({
-    label:
-      category.is_assignable === false
-        ? `${category.category_name} (${category.assigned_to_name} use only)`
-        : category.category_name,
-    value: category.id,
-  }));
+    return {
+      label: category.category_name,
+      value: category.id,
+    };
+  });
 
-  const handleAction = (cardId: string, action: string) => {
+  const handleAction = async (cardId: string, action: string) => {
     setIsLoading(true);
 
-    if (action === "Unassign") {
-      unassignCard(learnerId, cardId)
-        .then(() => {
+    try {
+      if (action === "Unassign") {
+        await unassignCard(learnerId, cardId);
+        showToast(
+          "success",
+          "Card Unassigned",
+          `${card?.card_name} has been unassigned.`
+        );
+      } else if (action === "Delete") {
+        await deleteCard(cardId);
+        showToast(
+          "success",
+          "Card Deleted",
+          `${card?.card_name} has been deleted.`
+        );
+      } else if (action === "Update") {
+        if (cardName.trim() === "") {
+          showToast("error", "Error", "Please enter a card name.");
           setIsLoading(false);
+          return;
+        }
 
-          showToast(
-            "success",
-            "Card Unassigned",
-            `${cardName} Card has been unassigned.`
-          );
-        })
-        .catch((err) => {
-          showToast("error", "Card unassign failed", `${err}`);
-        });
-    } else if (action === "Delete") {
-      deleteCard(cardId)
-        .then(() => {
-          setIsLoading(false);
-
-          showToast(
-            "success",
-            "Card Deleted",
-            `${cardName} Card has been deleted.`
-          );
-        })
-        .catch((err) => {
-          showToast("error", "Card deletion failed", `${err}`);
-        });
-    } else if (action === "Update") {
-      if (cardName.trim() === "") {
-        showToast("success", "Error", `Please enter a card name.`);
-
-        return;
+        // Pass category_id if you need to update it too
+        await updateCard(cardId, cardName, image);
+        showToast("success", "Card Updated", `${cardName} has been updated.`);
       }
-      updateCard(cardId, cardName, image)
-        .then(() => {
-          setIsLoading(false);
 
-          showToast(
-            "success",
-            "Card Updated",
-            `${cardName} Card has been updated.`
-          );
-        })
-        .catch((err) => {
-          showToast("error", "Updating card failed", `${err}`);
-        });
+      onClose();
+    } catch (err) {
+      showToast("error", "Action Failed", `${err}`);
+    } finally {
+      setIsLoading(false);
     }
-
-    onClose();
   };
 
-  const canUpdate = cardName.trim() !== "";
+  const canUpdate =
+    cardName.trim() !== "" &&
+    (cardName !== card?.card_name || image !== card?.image);
 
-  const [isLoading, setIsLoading] = useState(false);
+  if (!card) return null;
 
   return (
     <>
@@ -288,14 +279,14 @@ const ViewCardModal = ({
               <TouchableOpacity
                 style={styles.imageContainer}
                 onPress={showImagePickerOptions}
-                disabled={isDisabled}
+                disabled={disableEdit}
               >
                 {image !== "" ? (
                   <Image source={{ uri: image }} style={styles.imagePreview} />
                 ) : (
                   <Icon name="image" size={50} color={COLORS.gray} />
                 )}
-                {!isDisabled && image !== "" && (
+                {!disableEdit && image !== "" && (
                   <View style={styles.imageOverlay}>
                     <Icon name="pencil" size={16} color={COLORS.white} />
                   </View>
@@ -308,8 +299,8 @@ const ViewCardModal = ({
                   value={cardName}
                   onChangeText={setCardName}
                   placeholder="Card Name"
-                  style={[styles.input, isDisabled && styles.inputDisabled]}
-                  editable={!isDisabled}
+                  style={[styles.input, disableEdit && styles.inputDisabled]}
+                  editable={!disableEdit}
                 />
               </TextFieldWrapper>
 
@@ -319,8 +310,8 @@ const ViewCardModal = ({
                   isDisabled={true}
                   dropdownItems={dropdownItems}
                   placeholder="Select Category"
-                  value={selectedCategory}
-                  onChange={(val) => setSelectedCategory(val)}
+                  value={selectedCategory?.id!}
+                  onChange={(val) => console.log(val)}
                 />
               </TextFieldWrapper>
 
@@ -329,12 +320,12 @@ const ViewCardModal = ({
                 <PrimaryButton
                   title="Update"
                   clickHandler={() => handleAction(cardId, "Update")}
-                  disabled={isDisabled || !canUpdate}
+                  disabled={disableEdit || !canUpdate}
                 />
                 <SecondaryButton
                   title={action}
                   clickHandler={() => handleAction(cardId, action)}
-                  disabled={isDisabled}
+                  disabled={disableEdit}
                 />
               </View>
             </ScrollView>

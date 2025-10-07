@@ -1,32 +1,108 @@
 import PrimaryButton from "@/components/PrimaryButton";
 import TextFieldWrapper from "@/components/TextfieldWrapper";
+import { showToast } from "@/components/ui/MyToast";
 import COLORS from "@/constants/Colors";
-import { useSignupForm } from "@/context/signupContext";
+import { FormDataType, useSignupForm } from "@/context/signupContext";
 import { registerAdultUser } from "@/services/userApi/Registration";
 import { router } from "expo-router";
 import { useState } from "react";
 import {
-  Alert,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
+  TouchableOpacity,
   View,
 } from "react-native";
 
-type userDataType = {
-  role: string;
-  first_name: string;
-  last_name: string;
-  phone_number: string;
-  email: string;
-  password: string;
-  creation_date: Date;
-};
+import Icon from "react-native-vector-icons/Octicons";
+
+import validator from "validator";
+import zxcvbn from "zxcvbn";
+
+type userDataType = FormDataType;
 
 const SignUpCredentialScreens = () => {
   const { formData, setFormData } = useSignupForm();
   const [confirmPass, setConfirmPass] = useState("Johncarlo1");
+
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+
+  const [passwordStrength, setPasswordStrength] = useState<number>(0);
+  const [passwordMsg, setPasswordMsg] = useState("");
+
+  const validatePasswordStrength = (password: string) => {
+    const { score, feedback } = zxcvbn(password);
+
+    setPasswordStrength(score);
+
+    console.log(score);
+
+    switch (score) {
+      case 0:
+        setPasswordMsg("Password required");
+      case 1:
+        setPasswordMsg(
+          feedback.warning !== ""
+            ? `${feedback.warning}.\nPassword is too weak.`
+            : `Password is too weak.`
+        );
+        break;
+      case 2:
+        setPasswordMsg(
+          feedback.warning !== ""
+            ? `${feedback.warning}.\nPassword is good.`
+            : "Password is good"
+        );
+      case 3:
+        setPasswordMsg("Password is good");
+      default:
+        break;
+    }
+  };
+
+  const [isLoading, setIsLoading] = useState(false);
+
+  const finishRegistration = async (
+    email: string,
+    password: string,
+    confirmPassword: string,
+    userData: userDataType
+  ) => {
+    if (
+      !email ||
+      email.trim().length === 0 ||
+      !password ||
+      password.trim().length === 0 ||
+      !confirmPassword ||
+      confirmPassword.trim().length === 0
+    ) {
+      showToast("error", "Missing input", "Please fill all the inputs");
+
+      return;
+    }
+
+    if (!validator.isEmail(email)) {
+      showToast("error", "Invalid Email", "Please check your email");
+
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      showToast("error", "Password Error", "Password don't match");
+      return;
+    }
+
+    setIsLoading(true);
+    const isRegisterSuccess = await registerAdultUser(userData);
+
+    if (isRegisterSuccess) {
+      router.push("/accountVerification");
+
+      console.log("register successfully");
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -50,42 +126,160 @@ const SignUpCredentialScreens = () => {
               value={formData.email}
             />
           </TextFieldWrapper>
+
+          <Text
+            style={{
+              fontSize: 16,
+              fontFamily: "Poppins",
+              fontWeight: 500,
+              color: COLORS.black,
+            }}
+          >
+            Password should at least have 8 characters *
+          </Text>
           <TextFieldWrapper label="Password">
-            <TextInput
-              style={styles.textbox}
-              placeholder=""
-              secureTextEntry={true}
-              onChangeText={(userPassword) => {
-                setFormData({ ...formData, password: userPassword });
-              }}
-              value={formData.password}
-            />
+            <View
+              style={[
+                styles.textbox,
+                {
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+
+                  paddingHorizontal: 0,
+                  paddingVertical: 0,
+                },
+              ]}
+            >
+              <TextInput
+                style={[
+                  styles.textbox,
+                  {
+                    flex: 1,
+                    borderWidth: 0,
+                  },
+                ]}
+                placeholder=""
+                secureTextEntry={!showPassword}
+                onChangeText={(userPassword) => {
+                  validatePasswordStrength(userPassword);
+                  setFormData({ ...formData, password: userPassword });
+                }}
+                value={formData.password}
+              />
+              <TouchableOpacity
+                style={{
+                  paddingHorizontal: 20,
+                  paddingVertical: 8,
+                }}
+                onPress={() => setShowPassword(!showPassword)}
+              >
+                <Icon name={showPassword ? "eye-closed" : "eye"} size={20} />
+              </TouchableOpacity>
+            </View>
           </TextFieldWrapper>
-          <TextFieldWrapper label="Confirm Password">
-            <TextInput
-              style={styles.textbox}
-              placeholder=""
-              secureTextEntry={true}
-              onChangeText={(confirmPassword) => {
-                setConfirmPass(confirmPassword);
+          <View>
+            <Text
+              style={{
+                fontSize: 14,
+                fontFamily: "Poppins",
+                fontWeight: 500,
+                color:
+                  passwordStrength <= 1 ? COLORS.errorText : COLORS.successText,
+                height: passwordMsg === "" ? 0 : "auto",
               }}
-              value={confirmPass}
+            >
+              {passwordMsg}
+            </Text>
+          </View>
+          <View style={styles.passwordStrengthContainer}>
+            <View
+              style={{
+                flex: 1,
+                borderRadius: 5,
+                backgroundColor:
+                  passwordStrength >= 1 ? COLORS.errorText : COLORS.lightGray,
+              }}
             />
+            <View
+              style={{
+                flex: 1,
+                borderRadius: 5,
+                backgroundColor:
+                  passwordStrength >= 2 ? COLORS.warningBg : COLORS.lightGray,
+              }}
+            />
+            <View
+              style={{
+                flex: 1,
+                borderRadius: 5,
+                backgroundColor:
+                  passwordStrength >= 3 ? COLORS.successText : COLORS.lightGray,
+              }}
+            />
+          </View>
+          <TextFieldWrapper label="Confirm Password">
+            <View
+              style={[
+                styles.textbox,
+                {
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+
+                  paddingHorizontal: 0,
+                  paddingVertical: 0,
+                },
+              ]}
+            >
+              <TextInput
+                style={[
+                  styles.textbox,
+                  {
+                    flex: 1,
+                    borderWidth: 0,
+                  },
+                ]}
+                placeholder=""
+                secureTextEntry={!showPassword}
+                onChangeText={(confirmPassword) => {
+                  setConfirmPass(confirmPassword);
+                }}
+                value={confirmPass}
+              />
+              <TouchableOpacity
+                style={{
+                  paddingHorizontal: 20,
+                  paddingVertical: 8,
+                }}
+                onPress={() => setShowPassword(!showPassword)}
+              >
+                <Icon name={showPassword ? "eye-closed" : "eye"} size={20} />
+              </TouchableOpacity>
+            </View>
           </TextFieldWrapper>
         </View>
 
         <View>
           <PrimaryButton
             title="Sign Up"
-            clickHandler={() =>
-              // finishRegistration(
-              //   formData.email,
-              //   formData.password,
-              //   confirmPass,
-              //   formData
-              // )
-              router.push("/accountVerification")
-            }
+            clickHandler={() => {
+              if (passwordStrength > 2) {
+                showToast(
+                  "error",
+                  "Password is too weak",
+                  "Please use a stronger password"
+                );
+
+                return;
+              }
+              finishRegistration(
+                formData.email,
+                formData.password,
+                confirmPass,
+                formData
+              );
+            }}
           />
         </View>
       </ScrollView>
@@ -93,48 +287,20 @@ const SignUpCredentialScreens = () => {
   );
 };
 
-const finishRegistration = async (
-  email: string,
-  password: string,
-  confirmPassword: string,
-  userData: userDataType
-) => {
-  if (
-    !email ||
-    email.trim().length === 0 ||
-    !password ||
-    password.trim().length === 0 ||
-    !confirmPassword ||
-    confirmPassword.trim().length === 0
-  ) {
-    console.log("====================================");
-    console.log("a textfield is empty");
-    console.log("====================================");
-    return;
-  }
-
-  if (password !== confirmPassword) {
-    console.log("====================================");
-    console.log("password don't match");
-    console.log("====================================");
-    return;
-  }
-
-  const isRegisterSuccess = await registerAdultUser(userData);
-  if (isRegisterSuccess) {
-    console.log("====================================");
-    console.log("register successfully");
-    console.log("====================================");
-
-    Alert.alert("Registration Successful");
-  }
-};
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
 
     backgroundColor: COLORS.white,
+  },
+  passwordStrengthContainer: {
+    gap: 5,
+    overflow: "hidden",
+
+    borderRadius: 10,
+    flex: 1,
+    flexDirection: "row",
+    height: 10,
   },
   scrollContent: {
     paddingHorizontal: "5%",
@@ -175,14 +341,16 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     flex: 1,
-    gap: 0,
+    gap: 5,
   },
   textbox: {
+    backgroundColor: COLORS.pureWhite,
+
     borderColor: COLORS.gray,
     borderWidth: 1,
     borderRadius: 5,
 
-    paddingVertical: 5,
+    paddingVertical: 8,
     paddingHorizontal: 15,
 
     fontSize: 18,

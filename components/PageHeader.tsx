@@ -3,13 +3,19 @@ import { StyleSheet, Text, View } from "react-native";
 import MySearchBar from "./mySearchBar";
 
 type collectionType = "users" | "cards" | "pecsCategories";
-type queryType = "newLearner" | "myStudent" | "card" | "category";
+type queryType =
+  | "newLearner"
+  | "myStudent"
+  | "card"
+  | "category"
+  | "assignCategory"
+  | "local";
 
 type pageProps = {
   pageTitle: string;
   searchPlaceholder: string;
   hasFilter: boolean;
-  onSearch: (results: any[]) => void;
+  onSearch: (results: any[] | string) => void;
   collectionToSearch: collectionType;
   query: queryType;
 };

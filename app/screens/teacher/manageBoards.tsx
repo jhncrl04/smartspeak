@@ -3,10 +3,11 @@ import FabMenu from "@/components/FabMenu";
 import PageHeader from "@/components/PageHeader";
 import Sidebar from "@/components/Sidebar";
 import AddCategoryModal from "@/components/ui/AddCategoryModal";
-import { listenCategories } from "@/services/categoryService";
+import getCurrentUid from "@/helper/getCurrentUid";
+import { useCategoriesStore } from "@/stores/categoriesStores";
 import { router } from "expo-router";
 import { ScrollView } from "moti";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { StyleSheet, View } from "react-native";
 
 const ManageBoardsScreen = () => {
@@ -14,17 +15,30 @@ const ManageBoardsScreen = () => {
     router.push(screen as any);
   };
 
-  const [categories, setCategories] = useState<any[]>([]);
+  const { categories } = useCategoriesStore();
 
-  useEffect(() => {
-    const unsubscribe = listenCategories((categories) => {
-      setCategories(categories);
-    });
-
-    return () => unsubscribe();
-  }, []);
-
+  const [searchQuery, setSearchQuery] = useState("");
   const [activeModal, setActiveModal] = useState<"add" | null>(null);
+
+  const uid = getCurrentUid();
+
+  const mappedCateories = categories.filter((category) => {
+    return category.created_by === uid || category.created_by_role === "ADMIN";
+  });
+
+  const filteredCategories = mappedCateories.filter((category) => {
+    if (!searchQuery.trim()) return true;
+
+    // Filter by search query (case-insensitive)
+    const query = searchQuery.toLowerCase().trim();
+    const categoryName = category.category_name.toLowerCase();
+
+    return categoryName.includes(query);
+  });
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+  };
 
   return (
     <>
@@ -38,25 +52,20 @@ const ManageBoardsScreen = () => {
           <View style={styles.mainContentContainer}>
             <PageHeader
               pageTitle="Manage Categories"
-              hasFilter={true}
+              hasFilter={false}
               searchPlaceholder="Search Category"
               collectionToSearch="pecsCategories"
               onSearch={(val) => {
-                console.log(val);
+                handleSearch(val as string);
               }}
-              query="category"
+              query="local"
             />
             <View style={styles.boardContainer}>
-              {categories.map((category, index) => (
+              {filteredCategories.map((category, index) => (
                 <Board
-                  key={index}
+                  key={category.id}
                   categoryId={category.id}
-                  image={category.image}
-                  boardName={category.category_name}
-                  boardBackground={category.background_color}
-                  creatorName={category.creatorName}
-                  creatorId={category.created_by}
-                  actionHandler={() => {
+                  routerHandler={() => {
                     router.push({
                       pathname: "/screens/teacher/category/[categoryId]",
                       params: {
