@@ -41,6 +41,9 @@ const AssignCardModal = ({
     if (
       card.created_by === uid &&
       card.category_id === categoryId &&
+      (!card.created_for ||
+        card.created_for === learnerId ||
+        card.created_for === "all") &&
       !card.assigned_to?.includes(learnerId)
     )
       return card;

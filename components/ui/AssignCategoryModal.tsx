@@ -32,7 +32,10 @@ const AssignCategoryModal = ({ visible, onClose, learnerId }: Props) => {
   const mappedCategories = categories.filter((category) => {
     if (
       category.created_by === uid &&
-      !category.assigned_to?.includes(learnerId!)
+      !category.assigned_to?.includes(learnerId!) &&
+      (!category.created_for ||
+        category.created_for === learnerId ||
+        category.created_for === "all")
     )
       return category;
   });

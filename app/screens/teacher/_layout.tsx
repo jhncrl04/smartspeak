@@ -34,18 +34,6 @@ const TeacherLayout = () => {
             title: "Manage Learners",
           }}
         />
-        <Stack.Screen
-          name="learnerProfile"
-          options={{
-            title: "Learner Profile",
-          }}
-        />
-        <Stack.Screen
-          name="learnerBoard"
-          options={{
-            title: "Asign Cards",
-          }}
-        />
       </Stack>
     </SidebarProvider>
   );
