@@ -89,26 +89,26 @@ const AddPecsModal = ({ visible, onClose, categoryId }: AddPecsModalProps) => {
     const result = useCamera
       ? await ImagePicker.launchCameraAsync({
           allowsEditing: true,
-          quality: 0.9, // Slightly reduce initial quality
+          quality: 0.9,
         })
       : await ImagePicker.launchImageLibraryAsync({
           allowsEditing: true,
-          quality: 0.9, // Slightly reduce initial quality
-          mediaTypes: ImagePicker.MediaTypeOptions.Images, // Only images
+          quality: 0.9,
+          mediaTypes: ImagePicker.MediaTypeOptions.Images,
         });
 
     if (!result.canceled) {
       const uri = result.assets[0].uri;
       setError("");
 
-      // 1. Only validate file type (not size - we'll compress it)
+      // 1. Only validate file type
       const validate = await validateImage(uri);
       if (!validate.isValid && validate.error?.includes("Invalid image type")) {
         Alert.alert("Invalid Image", validate.error);
         return;
       }
 
-      // 2. Always compress the image (handles oversized images automatically)
+      // 2. Always compress the image
       const compression = await compressImageToSize(uri);
       if (!compression.success) {
         Alert.alert(
@@ -118,9 +118,7 @@ const AddPecsModal = ({ visible, onClose, categoryId }: AddPecsModalProps) => {
         return;
       }
 
-      // Skip base64 size validation - compressImageToSize already handles this
-
-      // 3. Log compression stats (optional)
+      // 3. Log compression stats
       if (compression.originalSize && compression.compressedSize) {
         const savings = (
           ((compression.originalSize - compression.compressedSize) /
@@ -141,7 +139,6 @@ const AddPecsModal = ({ visible, onClose, categoryId }: AddPecsModalProps) => {
 
       if (uploadedBase64) {
         setImage(uploadedBase64);
-        // Alert.alert("Success", "Profile picture updated!");
       } else {
         Alert.alert("Upload Failed", "Please try again.");
       }
@@ -157,11 +154,35 @@ const AddPecsModal = ({ visible, onClose, categoryId }: AddPecsModalProps) => {
     (cat) => cat.id === selectedCategory
   );
 
+  // ✅ Set default category when modal opens with categoryId
+  useEffect(() => {
+    if (visible && categoryId) {
+      setSelectedCategory(categoryId);
+
+      // Also set the card type based on category settings
+      const categoryData = categories.find((cat) => cat.id === categoryId);
+      if (categoryData) {
+        if (categoryData.is_assignable !== false) {
+          setIsSpecificLearnerCard(false);
+          setSelectedLearner("");
+        } else {
+          setIsSpecificLearnerCard(true);
+          if (categoryData.created_for) {
+            setSelectedLearner(categoryData.created_for);
+          }
+        }
+      }
+    }
+  }, [visible, categoryId, categories]);
+
+  // ✅ Reset form when modal closes
   useEffect(() => {
     if (!visible) {
       setImage("");
       setCardName("");
       setIsSpecificLearnerCard(false);
+      setSelectedLearner("");
+      // Only reset category if there's no default categoryId
       if (!categoryId) {
         setSelectedCategory("");
       }
@@ -174,6 +195,10 @@ const AddPecsModal = ({ visible, onClose, categoryId }: AddPecsModalProps) => {
       label: `${student.first_name} ${student.last_name}`,
       value: student.id,
     }));
+
+  categories.forEach((c) => {
+    console.log(c.category_name);
+  });
 
   // ✅ Handle category change properly
   const handleCategoryChange = (categoryId: string) => {
@@ -198,7 +223,7 @@ const AddPecsModal = ({ visible, onClose, categoryId }: AddPecsModalProps) => {
   };
 
   const categoryDropdownItems = categories.map((cat) => {
-    if (cat.is_assignable === false) {
+    if (cat.is_assignable === false && cat.created_by_role !== "ADMIN") {
       const assignedUser = students.find((u) => u.id === cat.created_for);
 
       const userName = assignedUser
@@ -217,13 +242,14 @@ const AddPecsModal = ({ visible, onClose, categoryId }: AddPecsModalProps) => {
     };
   });
 
-  console.log(categoryDropdownItems);
-
   // Show card type selection only when category is assignable (gives user freedom to choose)
   const showCardTypeSelection =
     selectedCategoryData && selectedCategoryData.is_assignable !== false;
 
   const canSubmit = image !== "" && cardName !== "" && selectedCategory !== "";
+
+  // ✅ Check if category dropdown should be disabled
+  const isCategoryDisabled = !!categoryId;
 
   return (
     <>
@@ -280,6 +306,7 @@ const AddPecsModal = ({ visible, onClose, categoryId }: AddPecsModalProps) => {
                   placeholder="Select Category"
                   value={selectedCategory}
                   onChange={handleCategoryChange}
+                  isDisabled={isCategoryDisabled}
                 />
               </TextFieldWrapper>
 
@@ -400,13 +427,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.shadow,
     flexDirection: "row",
-    justifyContent: "flex-end", // pushes modal to right side
+    justifyContent: "flex-end",
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
   },
   modalContainer: {
-    width: "50%", // side sheet style
+    width: "50%",
     height: "100%",
     backgroundColor: COLORS.white,
     borderTopLeftRadius: 16,

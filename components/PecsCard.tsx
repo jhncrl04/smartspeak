@@ -68,6 +68,7 @@ const PecsCard = ({ learnerId, action, cardId }: CardProps) => {
     pecsImage: { width: cardWidth, height: cardWidth },
     pecsInfoContainer: {
       paddingVertical: 10,
+      paddingHorizontal: 5,
       justifyContent: "center",
       alignItems: "center",
       backgroundColor: category?.background_color
@@ -77,7 +78,7 @@ const PecsCard = ({ learnerId, action, cardId }: CardProps) => {
     pecsName: {
       fontFamily: "Poppins",
       fontWeight: 500,
-      fontSize: 16,
+      fontSize: 14,
 
       color: COLORS.white,
       lineHeight: 17,
@@ -108,7 +109,13 @@ const PecsCard = ({ learnerId, action, cardId }: CardProps) => {
           )}
           <Image style={styles.pecsImage} source={{ uri: card?.image }} />
           <View style={styles.pecsInfoContainer}>
-            <Text style={styles.pecsName}>{card?.card_name}</Text>
+            <Text
+              style={styles.pecsName}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              {card?.card_name}
+            </Text>
             <Text style={styles.pecsCategory}>{category?.category_name}</Text>
           </View>
         </TouchableOpacity>

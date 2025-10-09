@@ -37,24 +37,25 @@ export const useCategoriesStore = create<CategoriesStore>((set, get) => ({
           } as Category;
 
           if (change.type === "added" || change.type === "modified") {
-            // Client-side filter: check if any learner is in assigned_to
-            if (learnerIds && learnerIds.length > 0) {
-              const assignedTo = categoryData.assigned_to || [];
-              const hasMatchingLearner = learnerIds.some((learnerId) =>
-                assignedTo.includes(learnerId)
-              );
+            // // Client-side filter: check if any learner is in assigned_to
+            // if (learnerIds && learnerIds.length > 0) {
+            //   const assignedTo = categoryData.assigned_to || [];
+            //   const hasMatchingLearner = learnerIds.some((learnerId) =>
+            //     assignedTo.includes(learnerId)
+            //   );
 
-              // Only add if it matches at least one learner
-              if (hasMatchingLearner) {
-                categoriesMap.set(change.doc.id, categoryData);
-              } else {
-                // Remove if it no longer matches
-                categoriesMap.delete(change.doc.id);
-              }
-            } else {
-              // No learner filter, add all user's categories
-              categoriesMap.set(change.doc.id, categoryData);
-            }
+            //   // Only add if it matches at least one learner
+            //   if (hasMatchingLearner) {
+            //     categoriesMap.set(change.doc.id, categoryData);
+            //   } else {
+            //     // Remove if it no longer matches
+            //     categoriesMap.delete(change.doc.id);
+            //   }
+            // } else {
+            //   // No learner filter, add all user's categories
+            // categoriesMap.set(change.doc.id, categoryData);
+            // }
+            categoriesMap.set(change.doc.id, categoryData);
           } else if (change.type === "removed") {
             categoriesMap.delete(change.doc.id);
           }

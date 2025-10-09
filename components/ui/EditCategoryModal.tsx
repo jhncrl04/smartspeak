@@ -23,9 +23,9 @@ import {
 import imageToBase64 from "@/helper/imageToBase64";
 import {
   deleteCategoryWithLoading,
-  getCategoryWithId,
   updateCategory,
 } from "@/services/categoryService";
+import { useCategoriesStore } from "@/stores/categoriesStores";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import { runOnJS } from "react-native-reanimated";
@@ -41,34 +41,35 @@ type modalProps = {
 };
 
 const EditCategoryModal = ({ visible, onClose, categoryId }: modalProps) => {
+  const { categories } = useCategoriesStore();
+
   const [categoryName, setCategoryName] = useState("");
   const [selectedColor, setSelectedColor] = useState("#fff");
   const [image, setImage] = useState("");
   const [error, setError] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  // Load category details when modal opens
+  // Load category data whenever modal opens or categoryId changes
   useEffect(() => {
-    if (!visible || !categoryId) return;
+    if (visible && categoryId) {
+      const category = categories.find((c) => c.id === categoryId);
 
-    const fetchCategoryDetails = async () => {
-      try {
-        const category = await getCategoryWithId(categoryId);
-        if (category) {
-          setCategoryName(category.category_name);
-          setSelectedColor(category.background_color || "#fff");
-          setImage(category.image || "");
-        }
-      } catch (err) {
-        console.error("Error fetching category: ", err);
+      if (category) {
+        setCategoryName(category.category_name || "");
+        setSelectedColor(category.background_color || "#fff");
+        setImage(category.image || "");
       }
-    };
+    }
+  }, [visible, categoryId, categories]);
 
-    fetchCategoryDetails();
-  }, [visible, categoryId]);
-
-  // Reset image on close
+  // Reset form when modal closes
   useEffect(() => {
-    if (!visible) setImage("");
+    if (!visible) {
+      setCategoryName("");
+      setSelectedColor("#fff");
+      setImage("");
+      setError("");
+    }
   }, [visible]);
 
   const onSelectColor = ({ hex }: any) => {
@@ -110,26 +111,26 @@ const EditCategoryModal = ({ visible, onClose, categoryId }: modalProps) => {
     const result = useCamera
       ? await ImagePicker.launchCameraAsync({
           allowsEditing: true,
-          quality: 0.9, // Slightly reduce initial quality
+          quality: 0.9,
         })
       : await ImagePicker.launchImageLibraryAsync({
           allowsEditing: true,
-          quality: 0.9, // Slightly reduce initial quality
-          mediaTypes: ImagePicker.MediaTypeOptions.Images, // Only images
+          quality: 0.9,
+          mediaTypes: ImagePicker.MediaTypeOptions.Images,
         });
 
     if (!result.canceled) {
       const uri = result.assets[0].uri;
       setError("");
 
-      // 1. Only validate file type (not size - we'll compress it)
+      // 1. Only validate file type
       const validate = await validateImage(uri);
       if (!validate.isValid && validate.error?.includes("Invalid image type")) {
         Alert.alert("Invalid Image", validate.error);
         return;
       }
 
-      // 2. Always compress the image (handles oversized images automatically)
+      // 2. Always compress the image
       const compression = await compressImageToSize(uri);
       if (!compression.success) {
         Alert.alert(
@@ -139,9 +140,7 @@ const EditCategoryModal = ({ visible, onClose, categoryId }: modalProps) => {
         return;
       }
 
-      // Skip base64 size validation - compressImageToSize already handles this
-
-      // 3. Log compression stats (optional)
+      // 3. Log compression stats
       if (compression.originalSize && compression.compressedSize) {
         const savings = (
           ((compression.originalSize - compression.compressedSize) /
@@ -162,7 +161,6 @@ const EditCategoryModal = ({ visible, onClose, categoryId }: modalProps) => {
 
       if (uploadedBase64) {
         setImage(uploadedBase64);
-        // Alert.alert("Success", "Profile picture updated!");
       } else {
         Alert.alert("Upload Failed", "Please try again.");
       }
@@ -184,7 +182,7 @@ const EditCategoryModal = ({ visible, onClose, categoryId }: modalProps) => {
       await updateCategory(categoryId, {
         category_name: categoryName,
         background_color: selectedColor,
-        image: await imageToBase64(image),
+        image: image ? await imageToBase64(image) : "",
       });
 
       showToast(
@@ -203,8 +201,6 @@ const EditCategoryModal = ({ visible, onClose, categoryId }: modalProps) => {
       );
     }
   };
-
-  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleDelete = async () => {
     try {
@@ -304,13 +300,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.shadow,
     flexDirection: "row",
-    justifyContent: "flex-end", // pushes modal to right side
+    justifyContent: "flex-end",
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
   },
   modalContainer: {
-    width: "50%", // side-sheet style
+    width: "50%",
     height: "100%",
     backgroundColor: COLORS.white,
     borderTopLeftRadius: 16,

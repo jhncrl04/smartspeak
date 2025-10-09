@@ -145,7 +145,7 @@ const Sidebar = ({ onNavigate, userRole }: SidebarProps) => {
                     style={{
                       flexDirection: "row",
                       alignItems: "center",
-                      justifyContent: "space-between",
+                      justifyContent: "flex-start",
                       gap: 10,
                     }}
                     onPress={() => {
@@ -163,21 +163,30 @@ const Sidebar = ({ onNavigate, userRole }: SidebarProps) => {
                     <Text
                       style={{
                         fontFamily: "Poppins",
-                        fontWeight: "500",
-                        fontSize: 16,
+                        fontWeight: "600",
+                        fontSize: 14,
+                        maxWidth: "60%",
+                        textAlign: "left",
                       }}
                       numberOfLines={1}
                       ellipsizeMode="tail"
                     >{`${user?.fname} ${user?.lname}`}</Text>
                   </TouchableOpacity>
                 )}
-                <Icon
-                  name={expanded ? "chevron-left" : "chevron-right"}
-                  size={24}
-                  color={COLORS.gray}
+                <TouchableOpacity
+                  style={{
+                    width: 40,
+                    flexDirection: "row",
+                    justifyContent: "center",
+                  }}
                   onPress={toggleSidebar}
-                  style={{ paddingHorizontal: 10 }}
-                />
+                >
+                  <Icon
+                    name={expanded ? "chevron-left" : "chevron-right"}
+                    size={24}
+                    color={COLORS.gray}
+                  />
+                </TouchableOpacity>
               </View>
 
               <View style={styles.sidebarInnerContainer}>
@@ -193,12 +202,22 @@ const Sidebar = ({ onNavigate, userRole }: SidebarProps) => {
                       },
                     ]}
                     onPress={() => {
-                      if (pathname === item.screen) return;
+                      // Show loading first
+                      setIsLoading(true);
+
+                      // Wait a bit, then navigate
+                      setTimeout(() => {
+                        router.push(item.screen as any);
+                        onNavigate(item.screen);
+
+                        // Hide loading after navigation
+                        setTimeout(() => {
+                          setIsLoading(false);
+                          setDisableSidebar(false);
+                        }, 300);
+                      }, 100); // Small delay to show loading on current screen
 
                       setDisableSidebar(true);
-
-                      router.push(item.screen as any);
-                      onNavigate(item.screen);
                     }}
                   >
                     <View
@@ -263,7 +282,7 @@ const logoutHandler = () => {
 
 const styles = StyleSheet.create({
   sidebar: {
-    backgroundColor: COLORS.navbarBg,
+    backgroundColor: COLORS.pureWhite,
     paddingHorizontal: 8,
     justifyContent: "space-between",
     borderRightWidth: 1,

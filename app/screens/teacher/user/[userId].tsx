@@ -44,7 +44,7 @@ const LearnerProfile = () => {
   const [isPreviousReportsModalActive, setIsPreviousReportsModalActive] =
     useState(false);
 
-  const age = calculateAge(userInfo?.date_of_birth);
+  const age = calculateAge(userInfo?.date_of_birth!);
 
   // const handleRemoveLearner = async (learnerId: string, sectionId: string) => {
   //   await removeAsStudent(learnerId);

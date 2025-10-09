@@ -45,7 +45,7 @@ const LearnerProfile = () => {
   const [isPreviousReportsModalActive, setIsPreviousReportsModalActive] =
     useState(false);
 
-  const age = calculateAge(userInfo?.date_of_birth);
+  const age = calculateAge(userInfo?.date_of_birth!);
 
   return (
     <>

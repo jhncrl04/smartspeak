@@ -107,6 +107,8 @@ const AddCategoryModal = ({ visible, onClose }: modalProps) => {
     }
   }, [visible]);
 
+  console.log(mappedStudents);
+
   const canSubmit =
     categoryName !== "" && (isAssignable || selectedLearner !== null);
 

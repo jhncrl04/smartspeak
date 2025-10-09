@@ -12,7 +12,7 @@ import { useCategoriesStore } from "@/stores/categoriesStores";
 import { useUsersStore } from "@/stores/userStore";
 import { router } from "expo-router";
 import { useLocalSearchParams } from "expo-router/build/hooks";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { ActivityIndicator } from "react-native-paper";
 
@@ -31,6 +31,14 @@ const ManageThisCategoryScreen = () => {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | undefined>("");
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   const activeCategory = categories.find((category) => {
     if (category.id === categoryId) return category;
@@ -113,7 +121,7 @@ const ManageThisCategoryScreen = () => {
                     {error}
                   </Text>
                 </View>
-              ) : cards.length === 0 ? (
+              ) : filteredCards.length >= 0 ? (
                 <View
                   style={{
                     flex: 1,

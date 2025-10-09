@@ -3,11 +3,13 @@ import FabMenu from "@/components/FabMenu";
 import PageHeader from "@/components/PageHeader";
 import Sidebar from "@/components/Sidebar";
 import AddCategoryModal from "@/components/ui/AddCategoryModal";
+import COLORS from "@/constants/Colors";
 import getCurrentUid from "@/helper/getCurrentUid";
 import { useCategoriesStore } from "@/stores/categoriesStores";
 import { router } from "expo-router";
 import { useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
+import { ActivityIndicator } from "react-native-paper";
 
 const ManageBoardsScreen = () => {
   const handleNavigation = (screen: string) => {
@@ -18,6 +20,10 @@ const ManageBoardsScreen = () => {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [activeModal, setActiveModal] = useState<"add" | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [navigatingCategoryId, setNavigatingCategoryId] = useState<
+    string | null
+  >(null);
 
   const uid = getCurrentUid();
 
@@ -35,6 +41,30 @@ const ManageBoardsScreen = () => {
     return categoryName.includes(query);
   });
 
+  const handleBoardPress = (categoryId: string, createdBy: string) => {
+    // Prevent navigation if already navigating
+    if (navigatingCategoryId) return;
+
+    // Set the navigating state
+    setNavigatingCategoryId(categoryId);
+    setLoading(true);
+
+    // Navigate to the category
+    router.push({
+      pathname: "/screens/guardian/category/[categoryId]",
+      params: {
+        categoryId: categoryId,
+        creatorId: createdBy,
+      },
+    });
+
+    // Reset navigating state after a delay (fallback in case navigation doesn't complete)
+    setTimeout(() => {
+      setNavigatingCategoryId(null);
+      setLoading(false);
+    }, 2000);
+  };
+
   const handleSearch = (query: string) => {
     setSearchQuery(query);
   };
@@ -47,40 +77,41 @@ const ManageBoardsScreen = () => {
       />
       <View style={styles.container}>
         <Sidebar userRole="teacher" onNavigate={handleNavigation} />
-        <View style={styles.mainContentContainer}>
-          <PageHeader
-            collectionToSearch="pecsCategories"
-            query="local"
-            onSearch={(query) => {
-              handleSearch(query as string);
-            }}
-            pageTitle="Manage Categories"
-            hasFilter={true}
-            searchPlaceholder="Search Category"
-          />
-          <View style={styles.boardContainer}>
-            {filteredCategories.map((category, index) => (
-              <Board
-                categoryId={category.id}
-                key={category.id}
-                routerHandler={() => {
-                  router.push({
-                    pathname: "/screens/guardian/category/[categoryId]",
-                    params: {
-                      categoryId: category.id,
-                      creatorId: category.created_by,
-                    },
-                  });
-                }}
-              />
-            ))}
+        <ScrollView showsVerticalScrollIndicator={false}>
+          <View style={styles.mainContentContainer}>
+            <PageHeader
+              collectionToSearch="pecsCategories"
+              query="local"
+              onSearch={(query) => {
+                handleSearch(query as string);
+              }}
+              pageTitle="Manage Categories"
+              hasFilter={true}
+              searchPlaceholder="Search Category"
+            />
+            <View style={styles.boardContainer}>
+              {filteredCategories.map((category, index) => (
+                <Board
+                  categoryId={category.id}
+                  key={category.id}
+                  routerHandler={() => {
+                    handleBoardPress(category.id, category.created_by);
+                  }}
+                />
+              ))}
+            </View>
           </View>
-        </View>
+        </ScrollView>
         <FabMenu
           page="manageBoards"
           actions={{ add: () => setActiveModal("add") }}
         />
       </View>
+      {navigatingCategoryId && (
+        <View style={styles.boardLoadingOverlay}>
+          <ActivityIndicator size="large" color={COLORS.accent} />
+        </View>
+      )}
     </>
   );
 };
@@ -113,6 +144,47 @@ const styles = StyleSheet.create({
     alignItems: "center",
 
     gap: 15,
+  },
+  boardWrapper: {
+    position: "relative",
+  },
+  boardLoadingOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 8,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+    minHeight: 200,
+  },
+  loadingText: {
+    fontFamily: "Poppins",
+    fontSize: 16,
+    marginTop: 10,
+    color: COLORS.black,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+    minHeight: 200,
+  },
+  emptyText: {
+    fontFamily: "Poppins",
+    fontSize: 16,
+    fontWeight: "600",
+    color: COLORS.gray,
+    textAlign: "center",
   },
 });
 

@@ -2,8 +2,6 @@ import COLORS from "@/constants/Colors";
 import { useResponsiveCardSize } from "@/helper/setCardWidth";
 import { useAuthStore } from "@/stores/userAuthStore";
 import { useUsersStore } from "@/stores/userStore";
-import { Entypo } from "@expo/vector-icons";
-import { router } from "expo-router";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 type cardType = "profile" | "add card";
@@ -12,9 +10,15 @@ type profile = {
   cardType: cardType;
   learnerId: string;
   onSection?: string;
+  handleProfilePress?: () => void;
 };
 
-const LearnerCard = ({ cardType, learnerId, onSection }: profile) => {
+const LearnerCard = ({
+  cardType,
+  learnerId,
+  onSection,
+  handleProfilePress,
+}: profile) => {
   const { cardWidth, cardHeight } = useResponsiveCardSize();
 
   const user = useAuthStore((state) => state.user);
@@ -113,65 +117,38 @@ const LearnerCard = ({ cardType, learnerId, onSection }: profile) => {
     },
   });
 
-  return cardType === "profile" ? (
-    <TouchableOpacity
-      style={styles.cards}
-      onPress={() => {
-        router.push({
-          pathname:
-            user?.role.toLowerCase() === "guardian"
-              ? `/screens/guardian/user/[userId]`
-              : "/screens/teacher/user/[userId]",
-          params: {
-            userId: learnerId,
-            sectionId: onSection,
-          },
-        });
-      }}
-    >
-      <View style={styles.cardImageContainer}>
-        <Image
-          source={
-            learner?.profile_pic
-              ? { uri: learner?.profile_pic }
-              : require("@/assets/images/default.jpg")
-          }
-          style={styles.cardImage}
-        />
-      </View>
-      <View style={styles.cardInfoContainer}>
-        <View style={styles.labelContainer}>
-          <Text
-            numberOfLines={1}
-            ellipsizeMode="tail"
-            style={[styles.profileInfo, styles.profileName]}
-          >
-            {`${learner?.first_name} ${learner?.last_name}`}
-          </Text>
-        </View>
-        <View style={styles.labelContainer}>
-          <Text
-            numberOfLines={1}
-            ellipsizeMode="tail"
-            style={styles.profileInfo}
-          >
-            {learner?.gender ?? "n/a"}
-          </Text>
-        </View>
-      </View>
-    </TouchableOpacity>
-  ) : (
+  return (
     <>
-      <TouchableOpacity style={styles.cards}>
+      <TouchableOpacity style={styles.cards} onPress={handleProfilePress}>
         <View style={styles.cardImageContainer}>
-          <Entypo
-            name="plus"
-            size={24}
-            style={[styles.cardImage, styles.addCardIcon]}
+          <Image
+            source={
+              learner?.profile_pic
+                ? { uri: learner?.profile_pic }
+                : require("@/assets/images/default.jpg")
+            }
+            style={styles.cardImage}
           />
         </View>
         <View style={styles.cardInfoContainer}>
-          <Text style={styles.addCardLabel}>Add Learner</Text>
+          <View style={styles.labelContainer}>
+            <Text
+              numberOfLines={1}
+              ellipsizeMode="tail"
+              style={[styles.profileInfo, styles.profileName]}
+            >
+              {`${learner?.first_name} ${learner?.last_name}`}
+            </Text>
+          </View>
+          <View style={styles.labelContainer}>
+            <Text
+              numberOfLines={1}
+              ellipsizeMode="tail"
+              style={styles.profileInfo}
+            >
+              {learner?.gender ?? "n/a"}
+            </Text>
+          </View>
         </View>
       </TouchableOpacity>
     </>
