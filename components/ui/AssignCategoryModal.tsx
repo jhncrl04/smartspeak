@@ -29,16 +29,14 @@ const AssignCategoryModal = ({ visible, onClose, learnerId }: Props) => {
 
   const uid = getCurrentUid();
 
-  const mappedCategories = categories.filter((category) => {
-    if (
+  const mappedCategories = categories.filter(
+    (category) =>
       category.created_by === uid &&
       !category.assigned_to?.includes(learnerId!) &&
       (!category.created_for ||
         category.created_for === learnerId ||
         category.created_for === "all")
-    )
-      return category;
-  });
+  );
 
   const filterCategories = mappedCategories.filter((category) => {
     if (!searchQuery.trim()) return true;

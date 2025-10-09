@@ -130,7 +130,11 @@ const Sidebar = ({ onNavigate, userRole }: SidebarProps) => {
           { width: currentWidth }, // dynamic width here
         ]}
       >
-        <ScrollView showsVerticalScrollIndicator={false}>
+        <ScrollView
+          decelerationRate="fast" // slows down the momentum
+          scrollEventThrottle={16}
+          showsVerticalScrollIndicator={false}
+        >
           <View
             style={{
               paddingVertical: 16,

@@ -46,14 +46,12 @@ const ManageThisCategoryScreen = () => {
     if (category.id === categoryId) return category;
   });
 
-  const filteredCards = cards.filter((card) => {
-    if (
+  const filteredCards = cards.filter(
+    (card) =>
       (card.created_by === "ADMIN" &&
         card.category_name === activeCategory?.category_name) ||
       card.category_id === (categoryId as string)
-    )
-      return card;
-  });
+  );
 
   const [activeModal, setActiveModal] = useState<
     "add-card" | "edit-category" | null
@@ -73,7 +71,7 @@ const ManageThisCategoryScreen = () => {
       />
       <View style={styles.container}>
         <Sidebar userRole="teacher" onNavigate={handleNavigation} />
-        <ScrollView>
+        <ScrollView showsVerticalScrollIndicator={false}>
           <View style={styles.mainContentContainer}>
             <View style={styles.header}>
               <View>
@@ -129,7 +127,7 @@ const ManageThisCategoryScreen = () => {
                     {error}
                   </Text>
                 </View>
-              ) : filteredCards.length >= 0 ? (
+              ) : filteredCards.length === 0 ? (
                 <View
                   style={{
                     flex: 1,

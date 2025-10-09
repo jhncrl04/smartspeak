@@ -86,7 +86,7 @@ const ChildManagementScreen = () => {
       />
       <View style={styles.container}>
         <Sidebar userRole="guardian" onNavigate={handleNavigation} />
-        <ScrollView>
+        <ScrollView showsVerticalScrollIndicator={false}>
           <View style={styles.pageContainer}>
             <PageHeader
               collectionToSearch="users"

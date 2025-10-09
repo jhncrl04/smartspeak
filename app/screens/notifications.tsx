@@ -233,6 +233,8 @@ const NotificationsScreen = () => {
           )}
         </View>
         <ScrollView
+          decelerationRate="fast" // slows down the momentum
+          scrollEventThrottle={16}
           style={styles.notificationsList}
           showsVerticalScrollIndicator={false}
         >
@@ -358,6 +360,8 @@ const NotificationsScreen = () => {
                   </View>
 
                   <ScrollView
+                    decelerationRate="fast" // slows down the momentum
+                    scrollEventThrottle={16}
                     style={styles.modalBody}
                     showsVerticalScrollIndicator={false}
                   >

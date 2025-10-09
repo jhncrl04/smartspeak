@@ -37,17 +37,15 @@ const AssignCardModal = ({
 
   const uid = getCurrentUid();
 
-  const mappedCards = cards.filter((card) => {
-    if (
+  const mappedCards = cards.filter(
+    (card) =>
       card.created_by === uid &&
       card.category_id === categoryId &&
       (!card.created_for ||
         card.created_for === learnerId ||
         card.created_for === "all") &&
       !card.assigned_to?.includes(learnerId)
-    )
-      return card;
-  });
+  );
 
   const filteredCards = mappedCards.filter((card) => {
     if (!searchQuery.trim()) return true;

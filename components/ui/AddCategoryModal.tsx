@@ -1,5 +1,5 @@
 import COLORS from "@/constants/Colors";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Image,
@@ -22,6 +22,7 @@ import { useUsersStore } from "@/stores/userStore";
 import * as ImagePicker from "expo-image-picker";
 import { runOnJS } from "react-native-reanimated";
 import TextFieldWrapper from "../TextfieldWrapper";
+import LoadingScreen from "./LoadingScreen";
 import MyDropdown from "./MyDropdown";
 
 type Learner = {
@@ -33,55 +34,85 @@ type Learner = {
 type modalProps = {
   visible: boolean;
   onClose: () => void;
-  learners?: Learner[]; // List of available learners
+  learners?: Learner[];
 };
 
-const user = useAuthStore.getState().user;
-
 const AddCategoryModal = ({ visible, onClose }: modalProps) => {
+  const user = useAuthStore((state) => state.user); // ✅ Move inside component
   const { users: students } = useUsersStore();
 
   const [categoryName, setCategoryName] = useState("");
   const [selectedColor, setSelectedColor] = useState("#fff");
   const [isAssignable, setIsAssignable] = useState(true);
+  const [image, setImage] = useState("");
+  const [error, setError] = useState("");
+  const [selectedLearner, setSelectedLearner] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const onSelectColor = ({ hex }: any) => {
     "worklet";
     runOnJS(setSelectedColor)(hex);
   };
 
-  // image upload functionalities
-  const [image, setImage] = useState("");
-  const [error, setError] = useState("");
+  const showImagePickerOptions = () => {
+    Alert.alert("Select Photo", "Choose how you want to add a photo", [
+      { text: "Camera", onPress: () => pickImage(true) },
+      { text: "Gallery", onPress: () => pickImage(false) },
+      { text: "Cancel", style: "cancel" },
+    ]);
+  };
 
-  const pickImage = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  const pickImage = async (useCamera: boolean = false) => {
+    let permissionResult;
 
-    if (status !== "granted") {
+    if (useCamera) {
+      permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+    } else {
+      permissionResult =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+    }
+
+    if (permissionResult.status !== "granted") {
       Alert.alert(
         "Permission Denied",
-        "Sorry, camera roll permission is needed to upload."
+        `Sorry, ${
+          useCamera ? "camera" : "media library"
+        } permission is needed to upload.`
       );
-    } else {
-      const result = await ImagePicker.launchImageLibraryAsync();
+      return;
+    }
 
-      if (!result.canceled) {
-        const uri = result.assets[0].uri;
-        setImage(uri);
-        setError("");
-      }
+    const result = useCamera
+      ? await ImagePicker.launchCameraAsync({
+          allowsEditing: true,
+          quality: 0.9,
+        })
+      : await ImagePicker.launchImageLibraryAsync({
+          allowsEditing: true,
+          quality: 0.9,
+          mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        });
+
+    if (!result.canceled) {
+      const uri = result.assets[0].uri;
+      setImage(uri);
+      setError("");
     }
   };
 
-  const mappedStudents = students
-    .filter((student) => user?.handledChildren?.includes(student.id))
-    .map((student) => ({
-      label: `${student.first_name} ${student.last_name}`,
-      value: student.id,
-    }));
+  // ✅ Use useMemo for stable reference
+  const mappedStudents = useMemo(() => {
+    if (!user?.handledChildren) return [];
 
-  const [selectedLearner, setSelectedLearner] = useState<string>("");
+    return students
+      .filter((student) => user.handledChildren!.includes(student.id))
+      .map((student) => ({
+        label: `${student.first_name} ${student.last_name}`,
+        value: student.id,
+      }));
+  }, [students, user?.handledChildren]);
 
+  // ✅ Set default learner when mappedStudents changes
   useEffect(() => {
     if (mappedStudents.length > 0 && !selectedLearner) {
       setSelectedLearner(mappedStudents[0].value);
@@ -90,11 +121,12 @@ const AddCategoryModal = ({ visible, onClose }: modalProps) => {
 
   const handleAssignabilityChange = (assignable: boolean) => {
     setIsAssignable(assignable);
-    if (assignable && mappedStudents.length > 0) {
+    if (!assignable && mappedStudents.length > 0 && !selectedLearner) {
       setSelectedLearner(mappedStudents[0].value);
     }
   };
 
+  // ✅ Reset form when modal closes
   useEffect(() => {
     if (!visible) {
       setImage("");
@@ -104,172 +136,183 @@ const AddCategoryModal = ({ visible, onClose }: modalProps) => {
       setSelectedLearner(
         mappedStudents.length > 0 ? mappedStudents[0].value : ""
       );
+      setError("");
     }
-  }, [visible]);
-
-  console.log(mappedStudents);
+  }, [visible, mappedStudents]);
 
   const canSubmit =
-    categoryName !== "" && (isAssignable || selectedLearner !== null);
+    categoryName !== "" && (isAssignable || selectedLearner !== "");
+
+  const handleSubmit = async () => {
+    if (!canSubmit) {
+      if (categoryName === "") {
+        Alert.alert("Error", "Please enter a category name.");
+      } else if (!isAssignable && selectedLearner === "") {
+        Alert.alert("Error", "Please select a learner for this category.");
+      }
+      return;
+    }
+
+    const category = {
+      name: categoryName,
+      color: selectedColor,
+      image: image,
+      isAssignable: isAssignable,
+      assignedLearnerId: isAssignable ? null : selectedLearner,
+    };
+
+    try {
+      setIsLoading(true);
+      await addCategory(category);
+      onClose();
+    } catch (err) {
+      console.error("Error adding category:", err);
+      Alert.alert("Error", "Failed to add category. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
-    <Modal
-      animationType="slide"
-      transparent={true}
-      visible={visible}
-      onRequestClose={() => {
-        Alert.alert("Modal has been closed.");
-        onClose();
-      }}
-    >
-      <View style={styles.overlay}>
-        <TouchableWithoutFeedback onPress={onClose}>
-          <View style={styles.backdrop} />
-        </TouchableWithoutFeedback>
-        <View style={styles.modalContainer}>
-          {/* Close button */}
-          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <Icon name="x" size={22} color={COLORS.gray} />
-          </TouchableOpacity>
-
-          {/* Scrollable content */}
-          <ScrollView
-            style={styles.mainContainer}
-            showsVerticalScrollIndicator={false}
-          >
-            {/* Image Upload */}
-            <TouchableOpacity style={styles.imageContainer} onPress={pickImage}>
-              {image !== "" ? (
-                <Image source={{ uri: image }} style={styles.imagePreview} />
-              ) : (
-                <Icon name="image" size={50} color={COLORS.gray} />
-              )}
+    <>
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={visible}
+        onRequestClose={() => {
+          Alert.alert("Modal has been closed.");
+          onClose();
+        }}
+      >
+        <View style={styles.overlay}>
+          <TouchableWithoutFeedback onPress={onClose}>
+            <View style={styles.backdrop} />
+          </TouchableWithoutFeedback>
+          <View style={styles.modalContainer}>
+            {/* Close button */}
+            <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+              <Icon name="x" size={22} color={COLORS.gray} />
             </TouchableOpacity>
 
-            {/* Category Name */}
-            <TextFieldWrapper label="Category Name">
-              <TextInput
-                value={categoryName}
-                onChangeText={setCategoryName}
-                placeholder="Category Name"
-                style={styles.input}
-              />
-            </TextFieldWrapper>
-
-            {/* Color Picker */}
-            <TextFieldWrapper label="Background Color">
-              <ColorPicker
-                style={styles.colorPicker}
-                value={selectedColor}
-                onComplete={onSelectColor}
+            {/* Scrollable content */}
+            <ScrollView
+              decelerationRate="fast" // slows down the momentum
+              scrollEventThrottle={16}
+              style={styles.mainContainer}
+              showsVerticalScrollIndicator={false}
+            >
+              {/* Image Upload */}
+              <TouchableOpacity
+                style={styles.imageContainer}
+                onPress={showImagePickerOptions}
               >
-                <Panel5 />
-              </ColorPicker>
-            </TextFieldWrapper>
+                {image !== "" ? (
+                  <Image source={{ uri: image }} style={styles.imagePreview} />
+                ) : (
+                  <Icon name="image" size={50} color={COLORS.gray} />
+                )}
+              </TouchableOpacity>
 
-            {/* Assignment Type */}
-            <TextFieldWrapper label="Assignment Type">
-              <View style={styles.optionRow}>
-                <TouchableOpacity
-                  style={[
-                    styles.optionButton,
-                    isAssignable && styles.optionButtonSelected,
-                  ]}
-                  onPress={() => handleAssignabilityChange(true)}
-                >
-                  <Icon
-                    name={isAssignable ? "check-circle-fill" : "circle"}
-                    size={16}
-                    color={isAssignable ? COLORS.accent : COLORS.gray}
-                  />
-                  <Text
-                    style={[
-                      styles.optionText,
-                      isAssignable && styles.optionTextSelected,
-                    ]}
-                  >
-                    Assignable to any learner
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.optionRow}>
-                <TouchableOpacity
-                  style={[
-                    styles.optionButton,
-                    !isAssignable && styles.optionButtonSelected,
-                  ]}
-                  onPress={() => handleAssignabilityChange(false)}
-                >
-                  <Icon
-                    name={!isAssignable ? "check-circle-fill" : "circle"}
-                    size={16}
-                    color={!isAssignable ? COLORS.accent : COLORS.gray}
-                  />
-                  <Text
-                    style={[
-                      styles.optionText,
-                      !isAssignable && styles.optionTextSelected,
-                    ]}
-                  >
-                    Assign to specific learner
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </TextFieldWrapper>
-
-            {/* Learner Selection */}
-            {!isAssignable && (
-              <TextFieldWrapper label="Select Learner">
-                <MyDropdown
-                  dropdownItems={mappedStudents}
-                  onChange={(value) => {
-                    setSelectedLearner(value as string);
-                  }}
-                  placeholder=""
-                  value={selectedLearner}
+              {/* Category Name */}
+              <TextFieldWrapper label="Category Name">
+                <TextInput
+                  value={categoryName}
+                  onChangeText={setCategoryName}
+                  placeholder="Category Name"
+                  style={styles.input}
                 />
               </TextFieldWrapper>
-            )}
 
-            {/* Submit Button */}
-            <View style={styles.buttonContainer}>
-              <PrimaryButton
-                title="Add Category"
-                clickHandler={() => {
-                  if (!canSubmit) {
-                    if (categoryName === "") {
-                      Alert.alert("Error", "Please enter a category name.");
-                    } else if (!isAssignable && selectedLearner === null) {
-                      Alert.alert(
-                        "Error",
-                        "Please select a learner for this category."
-                      );
-                    }
-                    return;
-                  }
+              {/* Color Picker */}
+              <TextFieldWrapper label="Background Color">
+                <ColorPicker
+                  style={styles.colorPicker}
+                  value={selectedColor}
+                  onComplete={onSelectColor}
+                >
+                  <Panel5 />
+                </ColorPicker>
+              </TextFieldWrapper>
 
-                  const category = {
-                    name: categoryName,
-                    color: selectedColor,
-                    image: image,
-                    isAssignable: isAssignable,
-                    assignedLearnerId: isAssignable ? null : selectedLearner,
-                  };
+              {/* Assignment Type */}
+              <TextFieldWrapper label="Assignment Type">
+                <View style={styles.optionRow}>
+                  <TouchableOpacity
+                    style={[
+                      styles.optionButton,
+                      isAssignable && styles.optionButtonSelected,
+                    ]}
+                    onPress={() => handleAssignabilityChange(true)}
+                  >
+                    <Icon
+                      name={isAssignable ? "check-circle-fill" : "circle"}
+                      size={16}
+                      color={isAssignable ? COLORS.accent : COLORS.gray}
+                    />
+                    <Text
+                      style={[
+                        styles.optionText,
+                        isAssignable && styles.optionTextSelected,
+                      ]}
+                    >
+                      Assignable to any learner
+                    </Text>
+                  </TouchableOpacity>
+                </View>
 
-                  addCategory(category)
-                    .then(() => {
-                      onClose();
-                    })
-                    .catch((err) => {});
-                }}
-                disabled={!canSubmit}
-              />
-            </View>
-          </ScrollView>
+                <View style={styles.optionRow}>
+                  <TouchableOpacity
+                    style={[
+                      styles.optionButton,
+                      !isAssignable && styles.optionButtonSelected,
+                    ]}
+                    onPress={() => handleAssignabilityChange(false)}
+                  >
+                    <Icon
+                      name={!isAssignable ? "check-circle-fill" : "circle"}
+                      size={16}
+                      color={!isAssignable ? COLORS.accent : COLORS.gray}
+                    />
+                    <Text
+                      style={[
+                        styles.optionText,
+                        !isAssignable && styles.optionTextSelected,
+                      ]}
+                    >
+                      Assign to specific learner
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </TextFieldWrapper>
+
+              {/* Learner Selection */}
+              {!isAssignable && (
+                <TextFieldWrapper label="Select Learner">
+                  <MyDropdown
+                    dropdownItems={mappedStudents}
+                    onChange={(value) => {
+                      setSelectedLearner(value as string);
+                    }}
+                    placeholder="Select a learner"
+                    value={selectedLearner}
+                  />
+                </TextFieldWrapper>
+              )}
+
+              {/* Submit Button */}
+              <View style={styles.buttonContainer}>
+                <PrimaryButton
+                  title="Add Category"
+                  clickHandler={handleSubmit}
+                  disabled={!canSubmit || isLoading}
+                />
+              </View>
+            </ScrollView>
+          </View>
         </View>
-      </View>
-    </Modal>
+      </Modal>
+      <LoadingScreen visible={isLoading} />
+    </>
   );
 };
 
@@ -278,13 +321,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.shadow,
     flexDirection: "row",
-    justifyContent: "flex-end", // pushes modal to right side
+    justifyContent: "flex-end",
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
   },
   modalContainer: {
-    width: "50%", // side sheet style
+    width: "50%",
     height: "100%",
     backgroundColor: COLORS.white,
     borderTopLeftRadius: 16,
@@ -361,68 +404,6 @@ const styles = StyleSheet.create({
   optionTextSelected: {
     color: COLORS.accent,
     fontWeight: "500",
-  },
-  learnerSelector: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderWidth: 1,
-    borderColor: COLORS.gray,
-    borderRadius: 6,
-    backgroundColor: COLORS.white,
-  },
-  learnerSelectorContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-  },
-  learnerAvatar: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    marginRight: 8,
-  },
-  selectedLearnerText: {
-    fontSize: 14,
-    color: COLORS.black,
-  },
-  placeholderText: {
-    fontSize: 14,
-    color: COLORS.gray,
-  },
-  learnerDropdown: {
-    position: "absolute",
-    top: "100%",
-    left: 0,
-    right: 0,
-    backgroundColor: COLORS.white,
-    borderWidth: 1,
-    borderColor: COLORS.gray,
-    borderRadius: 6,
-    maxHeight: 150,
-    zIndex: 1000,
-    elevation: 5,
-  },
-  learnerList: {
-    flex: 1,
-  },
-  learnerItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.lightGray || "#f0f0f0",
-  },
-  selectedLearnerItem: {
-    backgroundColor: COLORS.accent + "10",
-  },
-  learnerItemText: {
-    fontSize: 14,
-    color: COLORS.black,
-    flex: 1,
   },
   buttonContainer: {
     marginTop: 15,

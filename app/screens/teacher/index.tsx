@@ -27,7 +27,7 @@ const ManageLearnersScreen = () => {
 
   const user = useAuthStore((state) => state.user);
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   // const [sections, setSections] = useState<GradeAndSection[]>([]);
   const [activeSection, setActiveSection] = useState<string | undefined>(
     undefined
@@ -155,7 +155,12 @@ const ManageLearnersScreen = () => {
       /> */}
       <View style={styles.container}>
         <Sidebar userRole="teacher" onNavigate={handleNavigation} />
-        <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
+        <ScrollView
+          decelerationRate="fast" // slows down the momentum
+          scrollEventThrottle={16}
+          showsVerticalScrollIndicator={false}
+          style={{ flex: 1 }}
+        >
           <View style={styles.pageContainer}>
             <PageHeader
               pageTitle="Manage Learners"

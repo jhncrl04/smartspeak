@@ -37,15 +37,13 @@ const LearnerProfileCategory = () => {
     if (category.id === categoryId) return category;
   });
 
-  const filteredCards = cards.filter((card) => {
-    if (
+  const filteredCards = cards.filter(
+    (card) =>
       (card.created_by === "ADMIN" &&
         card.category_name === activeCategory?.category_name) ||
       (card.assigned_to?.includes(userId) &&
         card.category_id === (categoryId as string))
-    )
-      return card;
-  });
+  );
 
   const uid = getCurrentUid();
 

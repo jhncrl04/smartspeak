@@ -258,6 +258,8 @@ const MessageScreen = ({ userRole = "teacher" }: MessageScreenProps) => {
             </View>
           ) : (
             <ScrollView
+              decelerationRate="fast" // slows down the momentum
+              scrollEventThrottle={16}
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.scrollContent}
@@ -314,6 +316,8 @@ const MessageScreen = ({ userRole = "teacher" }: MessageScreenProps) => {
 
         {/* Conversations list (scrollable) */}
         <ScrollView
+          decelerationRate="fast" // slows down the momentum
+          scrollEventThrottle={16}
           style={styles.messageContainer}
           showsVerticalScrollIndicator
         >

@@ -27,7 +27,7 @@ import { addCard } from "@/services/cardsService";
 import { useCategoriesStore } from "@/stores/categoriesStores";
 import { useAuthStore } from "@/stores/userAuthStore";
 import { useUsersStore } from "@/stores/userStore";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import TextFieldWrapper from "../TextfieldWrapper";
 import LoadingScreen from "./LoadingScreen";
 
@@ -37,15 +37,25 @@ type AddPecsModalProps = {
   categoryId?: string;
 };
 
-const user = useAuthStore.getState().user;
-
 const AddPecsModal = ({ visible, onClose, categoryId }: AddPecsModalProps) => {
   const { users: students } = useUsersStore();
-  // ✅ FIX: Get all categories once (stable reference)
+  const user = useAuthStore((state) => state.user); // ✅ Move inside component
+
+  // ✅ Get categories from store with proper reactivity
   const allCategories = useCategoriesStore((state) => state.categories);
 
-  // ✅ Filter in useMemo with stable dependency
-  const categories = allCategories.filter((c) => c.created_by === user?.uid);
+  // ✅ Filter categories with useMemo for stable reference
+  const categories = useMemo(() => {
+    if (!user?.uid) return [];
+
+    const filtered = allCategories.filter((c) => c.created_by === user.uid);
+
+    console.log("User UID:", user.uid);
+    console.log("All Categories:", allCategories.length);
+    console.log("Filtered Categories:", filtered.length);
+
+    return filtered;
+  }, [allCategories, user?.uid]);
 
   const [image, setImage] = useState("");
   const [error, setError] = useState("");
@@ -67,10 +77,8 @@ const AddPecsModal = ({ visible, onClose, categoryId }: AddPecsModalProps) => {
     let permissionResult;
 
     if (useCamera) {
-      // Camera permission
       permissionResult = await ImagePicker.requestCameraPermissionsAsync();
     } else {
-      // Gallery permission
       permissionResult =
         await ImagePicker.requestMediaLibraryPermissionsAsync();
     }
@@ -85,7 +93,6 @@ const AddPecsModal = ({ visible, onClose, categoryId }: AddPecsModalProps) => {
       return;
     }
 
-    // Open camera or gallery
     const result = useCamera
       ? await ImagePicker.launchCameraAsync({
           allowsEditing: true,
@@ -101,14 +108,12 @@ const AddPecsModal = ({ visible, onClose, categoryId }: AddPecsModalProps) => {
       const uri = result.assets[0].uri;
       setError("");
 
-      // 1. Only validate file type
       const validate = await validateImage(uri);
       if (!validate.isValid && validate.error?.includes("Invalid image type")) {
         Alert.alert("Invalid Image", validate.error);
         return;
       }
 
-      // 2. Always compress the image
       const compression = await compressImageToSize(uri);
       if (!compression.success) {
         Alert.alert(
@@ -118,7 +123,6 @@ const AddPecsModal = ({ visible, onClose, categoryId }: AddPecsModalProps) => {
         return;
       }
 
-      // 3. Log compression stats
       if (compression.originalSize && compression.compressedSize) {
         const savings = (
           ((compression.originalSize - compression.compressedSize) /
@@ -134,7 +138,6 @@ const AddPecsModal = ({ visible, onClose, categoryId }: AddPecsModalProps) => {
         );
       }
 
-      // 4. Upload the compressed base64 image
       const uploadedBase64 = await imageToBase64(compression.base64!);
 
       if (uploadedBase64) {
@@ -143,7 +146,6 @@ const AddPecsModal = ({ visible, onClose, categoryId }: AddPecsModalProps) => {
         Alert.alert("Upload Failed", "Please try again.");
       }
 
-      // 5. Cleanup temporary file
       if (compression.compressedUri) {
         await cleanupCompressedImage(compression.compressedUri);
       }
@@ -154,23 +156,25 @@ const AddPecsModal = ({ visible, onClose, categoryId }: AddPecsModalProps) => {
     (cat) => cat.id === selectedCategory
   );
 
-  // ✅ Set default category when modal opens with categoryId
+  // ✅ Set default category when modal opens
   useEffect(() => {
-    if (visible && categoryId) {
-      setSelectedCategory(categoryId);
+    if (visible && categoryId && categories.length > 0) {
+      const categoryExists = categories.find((cat) => cat.id === categoryId);
 
-      // Also set the card type based on category settings
-      const categoryData = categories.find((cat) => cat.id === categoryId);
-      if (categoryData) {
-        if (categoryData.is_assignable !== false) {
+      if (categoryExists) {
+        setSelectedCategory(categoryId);
+
+        if (categoryExists.is_assignable !== false) {
           setIsSpecificLearnerCard(false);
           setSelectedLearner("");
         } else {
           setIsSpecificLearnerCard(true);
-          if (categoryData.created_for) {
-            setSelectedLearner(categoryData.created_for);
+          if (categoryExists.created_for) {
+            setSelectedLearner(categoryExists.created_for);
           }
         }
+      } else {
+        console.warn("Category not found:", categoryId);
       }
     }
   }, [visible, categoryId, categories]);
@@ -182,25 +186,25 @@ const AddPecsModal = ({ visible, onClose, categoryId }: AddPecsModalProps) => {
       setCardName("");
       setIsSpecificLearnerCard(false);
       setSelectedLearner("");
-      // Only reset category if there's no default categoryId
       if (!categoryId) {
         setSelectedCategory("");
       }
     }
   }, [visible, categoryId]);
 
-  const mappedStudents = students
-    .filter((student) => user?.handledChildren?.includes(student.id))
-    .map((student) => ({
-      label: `${student.first_name} ${student.last_name}`,
-      value: student.id,
-    }));
+  // ✅ Map students with useMemo
+  const mappedStudents = useMemo(() => {
+    if (!user?.handledChildren) return [];
 
-  categories.forEach((c) => {
-    console.log(c.category_name);
-  });
+    return students
+      .filter((student) => user.handledChildren!.includes(student.id))
+      .map((student) => ({
+        label: `${student.first_name} ${student.last_name}`,
+        value: student.id,
+      }));
+  }, [students, user?.handledChildren]);
 
-  // ✅ Handle category change properly
+  // ✅ Handle category change
   const handleCategoryChange = (categoryId: string) => {
     setSelectedCategory(categoryId);
 
@@ -208,13 +212,10 @@ const AddPecsModal = ({ visible, onClose, categoryId }: AddPecsModalProps) => {
 
     if (categoryData) {
       if (categoryData.is_assignable !== false) {
-        // Assignable category - default to assignable
         setIsSpecificLearnerCard(false);
         setSelectedLearner("");
       } else {
-        // Non-assignable category - default to specific learner
         setIsSpecificLearnerCard(true);
-        // Set the learner this category is assigned to
         if (categoryData.created_for) {
           setSelectedLearner(categoryData.created_for);
         }
@@ -222,33 +223,34 @@ const AddPecsModal = ({ visible, onClose, categoryId }: AddPecsModalProps) => {
     }
   };
 
-  const categoryDropdownItems = categories.map((cat) => {
-    if (cat.is_assignable === false && cat.created_by_role !== "ADMIN") {
-      const assignedUser = students.find((u) => u.id === cat.created_for);
+  // ✅ Map category dropdown items with useMemo
+  const categoryDropdownItems = useMemo(() => {
+    return categories.map((cat) => {
+      if (cat.is_assignable === false && cat.created_by_role !== "ADMIN") {
+        const assignedUser = students.find((u) => u.id === cat.created_for);
 
-      const userName = assignedUser
-        ? `${assignedUser.first_name} ${assignedUser.last_name}`.trim()
-        : "Unknown";
+        const userName = assignedUser
+          ? `${assignedUser.first_name} ${assignedUser.last_name}`.trim()
+          : "Unknown";
+
+        return {
+          label: `${cat.category_name} (${userName} use only)`,
+          value: cat.id,
+        };
+      }
 
       return {
-        label: `${cat.category_name} (${userName} use only)`,
+        label: cat.category_name,
         value: cat.id,
       };
-    }
+    });
+  }, [categories, students]);
 
-    return {
-      label: cat.category_name,
-      value: cat.id,
-    };
-  });
-
-  // Show card type selection only when category is assignable (gives user freedom to choose)
   const showCardTypeSelection =
     selectedCategoryData && selectedCategoryData.is_assignable !== false;
 
   const canSubmit = image !== "" && cardName !== "" && selectedCategory !== "";
 
-  // ✅ Check if category dropdown should be disabled
   const isCategoryDisabled = !!categoryId;
 
   return (
@@ -267,17 +269,14 @@ const AddPecsModal = ({ visible, onClose, categoryId }: AddPecsModalProps) => {
             <View style={styles.backdrop} />
           </TouchableWithoutFeedback>
           <View style={styles.modalContainer}>
-            {/* Close button */}
             <TouchableOpacity style={styles.closeButton} onPress={onClose}>
               <Icon name="x" size={22} color={COLORS.gray} />
             </TouchableOpacity>
 
-            {/* Scrollable content */}
             <ScrollView
               style={styles.mainContainer}
               showsVerticalScrollIndicator={false}
             >
-              {/* Image Upload */}
               <TouchableOpacity
                 style={styles.imageContainer}
                 onPress={showImagePickerOptions}
@@ -289,7 +288,6 @@ const AddPecsModal = ({ visible, onClose, categoryId }: AddPecsModalProps) => {
                 )}
               </TouchableOpacity>
 
-              {/* Card Name */}
               <TextFieldWrapper label="Card Name">
                 <TextInput
                   value={cardName}
@@ -299,7 +297,6 @@ const AddPecsModal = ({ visible, onClose, categoryId }: AddPecsModalProps) => {
                 />
               </TextFieldWrapper>
 
-              {/* Category Selection */}
               <TextFieldWrapper label="Category Name">
                 <MyDropdown
                   dropdownItems={categoryDropdownItems}
@@ -310,11 +307,9 @@ const AddPecsModal = ({ visible, onClose, categoryId }: AddPecsModalProps) => {
                 />
               </TextFieldWrapper>
 
-              {/* Card Type Selection - Only show when category is assignable (gives user choice) */}
               {showCardTypeSelection && (
                 <TextFieldWrapper label="Card Type">
                   <View style={styles.radioContainer}>
-                    {/* Assignable Option */}
                     <TouchableOpacity
                       style={styles.radioOption}
                       onPress={() => setIsSpecificLearnerCard(false)}
@@ -334,7 +329,6 @@ const AddPecsModal = ({ visible, onClose, categoryId }: AddPecsModalProps) => {
                       </Text>
                     </TouchableOpacity>
 
-                    {/* Specific Learner Option */}
                     <TouchableOpacity
                       style={styles.radioOption}
                       onPress={() => setIsSpecificLearnerCard(true)}
@@ -371,7 +365,6 @@ const AddPecsModal = ({ visible, onClose, categoryId }: AddPecsModalProps) => {
                   </TextFieldWrapper>
                 )}
 
-              {/* Submit Button */}
               <View style={styles.buttonContainer}>
                 <PrimaryButton
                   title="Add Card"
@@ -402,7 +395,6 @@ const AddPecsModal = ({ visible, onClose, categoryId }: AddPecsModalProps) => {
                     addCard(card)
                       .then(() => {
                         setIsLoading(false);
-
                         onClose();
                       })
                       .catch((err) => {

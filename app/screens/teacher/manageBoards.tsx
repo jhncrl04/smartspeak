@@ -7,9 +7,8 @@ import COLORS from "@/constants/Colors";
 import getCurrentUid from "@/helper/getCurrentUid";
 import { useCategoriesStore } from "@/stores/categoriesStores";
 import { router } from "expo-router";
-import { ScrollView } from "moti";
 import { useEffect, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { ActivityIndicator } from "react-native-paper";
 
 const ManageBoardsScreen = () => {
@@ -94,7 +93,11 @@ const ManageBoardsScreen = () => {
       />
       <View style={styles.container}>
         <Sidebar userRole="teacher" onNavigate={handleNavigation} />
-        <ScrollView showsVerticalScrollIndicator={false}>
+        <ScrollView
+          decelerationRate="fast" // slows down the momentum
+          scrollEventThrottle={16}
+          showsVerticalScrollIndicator={false}
+        >
           <View style={styles.mainContentContainer}>
             <PageHeader
               pageTitle="Manage Categories"
