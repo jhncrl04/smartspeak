@@ -5,7 +5,7 @@ import firestore from "@react-native-firebase/firestore";
 import { useFonts } from "expo-font";
 import { router } from "expo-router";
 import * as ScreenOrientation from "expo-screen-orientation";
-import * as Speech from "expo-speech";
+import * as Speech from 'expo-speech';
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Animated, Dimensions, FlatList, Image, Modal, StyleSheet, Text, TouchableOpacity, View, } from "react-native";
 import { RFValue } from "react-native-responsive-fontsize";
@@ -28,6 +28,10 @@ export default function HomeScreen() {
 
   // State to store user's full name
   const [userFullName, setUserFullName] = useState<string>('');
+
+  // NEW: Speech initialization state
+  const [isSpeechReady, setIsSpeechReady] = useState(false);
+  const [speechError, setSpeechError] = useState<string | null>(null);
 
   // Function to get user's full name from Firebase
   const fetchUserFullName = async () => {
@@ -73,37 +77,7 @@ export default function HomeScreen() {
     }
   };
 
-  // LOGGING FUNCTIONS - Updated to get fresh name if userFullName is empty
-  const logCardTap = async (card: CardType, action: 'add' | 'remove', sentencePosition?: number) => {
-    try {
-      // Get fresh user name if not already loaded
-      let currentUserName = userFullName;
-      if (!currentUserName || currentUserName === user?.email) {
-        console.log("User full name not loaded, fetching now...");
-        currentUserName = await fetchUserFullName();
-      }
-      
-      console.log("Logging card tap with user name:", currentUserName);
-
-      const logData = {
-        user_id: user?.uid || 'unknown',
-        user_name: currentUserName || user?.email || 'unknown',
-        action: action === 'add' ? 'card added to sentence' : 'card removed from sentence',
-        item_category: card.categoryId,
-        item_id: card.id,
-        item_name: card.text,
-        sentence_position: sentencePosition,
-        timestamp: firestore.FieldValue.serverTimestamp(),
-        user_type: 'learner',
-      };
-
-      await firestore().collection('pecsLogs').add(logData);
-      console.log(`Card ${action} logged to pecsLogs:`, card.text, sentencePosition ? `at position ${sentencePosition}` : '');
-    } catch (error) {
-      console.error('Error logging card tap:', error);
-    }
-  };
-
+  // ONLY KEEP: Sentence play logging function
   const logPlaySentence = async (sentenceCards: SentenceCardType[]) => {
     try {
       // Get fresh user name if not already loaded
@@ -229,6 +203,60 @@ export default function HomeScreen() {
   // NEW: Add state for footer readiness
   const [isFooterReady, setIsFooterReady] = useState(false);
 
+  // UPDATED: Initialize Speech with pre-warming to reduce first-speech delay
+  useEffect(() => {
+    const initializeSpeech = async () => {
+      try {
+        console.log('Initializing Speech...');
+        
+        // Pre-warm the speech engine with a silent utterance
+        // This reduces the delay for the first actual speech
+        await Speech.speak(' ', {
+          language: "fil-PH",
+          pitch: 1.0,
+          rate: 0.8,
+          volume: 0.01, // Almost silent
+        });
+        
+        // Stop immediately after a short delay
+        setTimeout(async () => {
+          await Speech.stop();
+          setIsSpeechReady(true);
+          console.log('Speech initialized successfully');
+        }, 100);
+        
+      } catch (error) {
+        console.error('Error initializing speech:', error);
+        setSpeechError('Speech may not work properly');
+        // Still set as ready - speech might work anyway
+        setIsSpeechReady(true);
+      }
+    };
+
+    initializeSpeech();
+  }, []);
+
+  // UPDATED: Safe speech function with better error handling
+  const speakWithSpeech = async (text: string, options = {}) => {
+    try {
+      // Stop any current speech first
+      await Speech.stop();
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
+      await Speech.speak(text, {
+        language: "fil-PH",
+        pitch: 1.1,
+        rate: 0.8,
+        ...options,
+      });
+      
+      return true;
+    } catch (error) {
+      console.error('Error with speech:', error);
+      return false;
+    }
+  };
+
   // UPDATED: Enhanced function to check if arrays are equal (including content changes)
   const areArraysEqual = (arr1: any[], arr2: any[]) => {
     if (arr1.length !== arr2.length) return false;
@@ -322,53 +350,39 @@ export default function HomeScreen() {
       if (notificationTimeoutRef.current) {
         clearTimeout(notificationTimeoutRef.current);
       }
+      // Cleanup speech
+      Speech.stop();
     };
   }, []);
 
-  // Function to play card name when added to sentence strip
+  // UPDATED: Function to play card name using Expo Speech
   const playCardName = async (cardText: string) => {
     if (isPlayingCardName) {
-      // If already playing a card name, stop the current one first
       await Speech.stop();
     }
 
     setIsPlayingCardName(true);
 
     try {
-      // Configure speech options for card name
-      const speechOptions = {
-        language: "fil-PH",
-        pitch: 1.1, // Slightly higher pitch for card names
-        rate: 0.9, // Normal speed for single words
-        voice: undefined,
-      };
+      const success = await speakWithSpeech(cardText);
+      
+      if (!success) {
+        console.warn('Speech failed for card:', cardText);
+      }
 
-      // Speak the card name
-      await Speech.speak(cardText, {
-        ...speechOptions,
-        onStart: () => {
-          console.log("Card name speech started:", cardText);
-        },
-        onDone: () => {
-          console.log("Card name speech finished:", cardText);
-          setIsPlayingCardName(false);
-        },
-        onStopped: () => {
-          console.log("Card name speech stopped:", cardText);
-          setIsPlayingCardName(false);
-        },
-        onError: (error) => {
-          console.error("Card name speech error:", error);
-          setIsPlayingCardName(false);
-        },
-      });
+      // Estimate duration based on text length
+      const estimatedDuration = Math.max(1000, cardText.length * 200);
+      setTimeout(() => {
+        setIsPlayingCardName(false);
+      }, estimatedDuration);
+      
     } catch (error) {
-      console.error("Error playing card name:", error);
+      console.error('Error playing card name:', error);
       setIsPlayingCardName(false);
     }
   };
 
-  // UPDATED: Function to handle card tap - now includes category color AND logging
+  // UPDATED: Function to handle card tap - REMOVED logging for individual cards
   const handleCardTap = async (card: CardType) => {
     // Check if sentence strip is full (max 8 cards)
     if (sentenceCards.length >= 8) {
@@ -401,9 +415,6 @@ export default function HomeScreen() {
 
     // Add card to sentence strip with its category color
     setSentenceCards((prev) => [...prev, sentenceCard]);
-
-    // LOG: Card added to sentence strip
-    await logCardTap(card, 'add', sentenceCards.length + 1);
 
     // Play the card name when added to sentence strip
     await playCardName(card.text);
@@ -523,7 +534,7 @@ export default function HomeScreen() {
     setSelectedCategory(categoryId);
   }, []); // No dependencies needed
 
-  // UPDATED: Use real-time listeners with proper update handling
+  // UPDATED: Use real-time listeners with proper update handling - REMOVED ADMIN CARDS
   useEffect(() => {
     if (!user?.uid) {
       console.log("No user found, not setting up listeners");
@@ -544,7 +555,7 @@ export default function HomeScreen() {
     // Array to store unsubscribe functions
     const unsubscribeListeners: (() => void)[] = [];
 
-    // Real-time listener for categories
+    // Real-time listener for categories - ONLY SHOW ASSIGNED CATEGORIES
     const categoriesUnsubscribe = firestore()
       .collection("pecsCategories")
       .onSnapshot(
@@ -562,28 +573,15 @@ export default function HomeScreen() {
               console.log("Created by:", categoryData.created_by);
               console.log("Assigned to:", categoryData.assigned_to);
 
-              const isAdminCreated = 
-                categoryData.created_by === "ADMIN" ||
-                categoryData.created_by === "admin" ||
-                (typeof categoryData.created_by === 'string' && categoryData.created_by.toUpperCase() === "ADMIN");
-
-              // Categories filtering logic
+              // UPDATED: REMOVED ADMIN CATEGORIES - Only show categories assigned to current user
               let shouldShowCategory = false;
 
-              if (categoryData.created_by === currentUserId) {
-                shouldShowCategory = true;
-                console.log("Showing category: Created by current user");
-              } else if (isAdminCreated) {
-                shouldShowCategory = true;
-                console.log("Showing category: Created by admin (PUBLIC CATEGORY)");
-              } else if (categoryData.assigned_to && Array.isArray(categoryData.assigned_to) && categoryData.assigned_to.includes(currentUserId)) {
+              // Only show categories that are explicitly assigned to this user
+              if (categoryData.assigned_to && Array.isArray(categoryData.assigned_to) && categoryData.assigned_to.includes(currentUserId)) {
                 shouldShowCategory = true;
                 console.log("Showing category: Assigned to current user");
-              } else if (!categoryData.assigned_to) {
-                shouldShowCategory = true;
-                console.log("Showing category: Public category (no assignment)");
               } else {
-                console.log("Hiding category: Not accessible to current user");
+                console.log("Hiding category: Not assigned to current user");
               }
 
               if (shouldShowCategory) {
@@ -648,7 +646,7 @@ export default function HomeScreen() {
 
     unsubscribeListeners.push(categoriesUnsubscribe);
 
-    // Real-time listener for cards
+    // Real-time listener for cards - ONLY SHOW ASSIGNED CARDS
     const cardsUnsubscribe = firestore()
       .collection("cards")
       .onSnapshot(
@@ -668,25 +666,15 @@ export default function HomeScreen() {
               console.log("Created by:", cardData.created_by);
               console.log("Assigned to:", cardData.assigned_to);
 
-              const isAdminCreated = 
-                cardData.created_by === "ADMIN" ||
-                cardData.created_by === "admin" ||
-                (typeof cardData.created_by === 'string' && cardData.created_by.toUpperCase() === "ADMIN");
-
-              // Cards filtering logic
+              // UPDATED: REMOVED ADMIN CARDS - Only show cards assigned to current user
               let shouldShowCard = false;
 
-              if (cardData.created_by === currentUserId) {
-                shouldShowCard = true;
-                console.log("Showing card: Created by current user");
-              } else if (isAdminCreated) {
-                shouldShowCard = true;
-                console.log("Showing card: Created by admin (public card)");
-              } else if (cardData.assigned_to && Array.isArray(cardData.assigned_to) && cardData.assigned_to.includes(currentUserId)) {
+              // Only show cards that are explicitly assigned to this user
+              if (cardData.assigned_to && Array.isArray(cardData.assigned_to) && cardData.assigned_to.includes(currentUserId)) {
                 shouldShowCard = true;
                 console.log("Showing card: Assigned to current user");
               } else {
-                console.log("Hiding card: Not created by user/admin and not assigned to user");
+                console.log("Hiding card: Not assigned to current user");
               }
 
               if (shouldShowCard) {
@@ -755,10 +743,10 @@ export default function HomeScreen() {
 
     unsubscribeListeners.push(cardsUnsubscribe);
 
-    // NEW: Individual card update listener for real-time text changes
+    // NEW: Individual card update listener for real-time text changes - ONLY FOR ASSIGNED CARDS
     const cardUpdatesUnsubscribe = firestore()
       .collection("cards")
-      .where("created_by", "in", [user.uid, "ADMIN", "admin"])
+      .where("assigned_to", "array-contains", user.uid)
       .onSnapshot((snapshot) => {
         snapshot.docChanges().forEach((change) => {
           if (change.type === 'modified') {
@@ -805,62 +793,48 @@ export default function HomeScreen() {
     setSentenceCards((prev) => prev.slice(0, -1));
   };
 
-  // UPDATED: Play sentence function with logging
+  // UPDATED: Play sentence function with Expo Speech
   const playSentence = async () => {
     if (sentenceCards.length > 0 && !isPlaying) {
       setIsPlaying(true);
 
-      // LOG: Sentence play action
+      // LOG: Sentence play action - ONLY LOGGING REMAINING
       await logPlaySentence(sentenceCards);
 
       try {
-        // Stop any ongoing speech (including card names)
+        // Stop any ongoing speech
         await Speech.stop();
         setIsPlayingCardName(false);
+
+        // Brief pause before starting new speech
+        await new Promise(resolve => setTimeout(resolve, 100));
 
         // Create the sentence from card texts
         const sentence = sentenceCards.map((card) => card.text).join(" ");
         console.log("Playing sentence:", sentence);
 
-        // Configure speech options
-        const speechOptions = {
-          language: "fil-PH", // You can change this to other languages like 'es-ES', 'fr-FR', etc.
-          pitch: 1.1, // Range: 0.5 - 2.0
-          rate: 0.9, // Range: 0.1 - 2.0 (0.8 is slightly slower for better clarity)
-          voice: undefined, // Let the system choose the default voice
-        };
+        const success = await speakWithSpeech(sentence, { rate: 0.75 });
+        
+        if (!success) {
+          console.warn('Sentence speech failed');
+        }
 
-        // Speak the sentence
-        await Speech.speak(sentence, {
-          ...speechOptions,
-          onStart: () => {
-            console.log("Speech started");
-          },
-          onDone: () => {
-            console.log("Speech finished");
-            setIsPlaying(false);
-          },
-          onStopped: () => {
-            console.log("Speech stopped");
-            setIsPlaying(false);
-          },
-          onError: (error) => {
-            console.error("Speech error:", error);
-            setIsPlaying(false);
-          },
-        });
+        // Estimate sentence duration and reset playing state
+        const sentenceDuration = Math.max(2000, sentence.length * 150);
+        setTimeout(() => {
+          setIsPlaying(false);
+        }, sentenceDuration);
+        
       } catch (error) {
         console.error("Error playing sentence:", error);
         setIsPlaying(false);
-        alert("Error playing audio. Please try again.");
       }
     } else if (sentenceCards.length === 0) {
-      // Show notification instead of alert
       showNotificationMessage();
     }
   };
 
-  // Stop speech function (useful for cleanup)
+  // UPDATED: Stop speech function
   const stopSpeech = async () => {
     try {
       await Speech.stop();
@@ -870,13 +844,6 @@ export default function HomeScreen() {
       console.error("Error stopping speech:", error);
     }
   };
-
-  // Cleanup speech when component unmounts
-  useEffect(() => {
-    return () => {
-      Speech.stop();
-    };
-  }, []);
 
   // UPDATED: Simplified card render function - now uses dynamic background color
   const renderCard = ({
@@ -948,7 +915,7 @@ export default function HomeScreen() {
     );
   };
 
-  // UPDATED: Sentence card now uses individual card's stored category color AND includes logging for removal
+  // UPDATED: Sentence card now uses individual card's stored category color - REMOVED logging for removal
   const renderSentenceCard = (card: SentenceCardType, index: number): JSX.Element => {
     return (
       <TouchableOpacity
@@ -957,10 +924,8 @@ export default function HomeScreen() {
           styles.sentenceCard,
           { backgroundColor: card.categoryColor } // Use the stored category color for each card
         ]}
-        onPress={async () => {
-          // LOG: Card removed from sentence strip
-          await logCardTap(card, 'remove', index + 1);
-          
+        onPress={() => {
+          // REMOVED: Card removed logging
           setSentenceCards((prev: SentenceCardType[]) =>
             prev.filter((_, i: number) => i !== index)
           );
@@ -991,6 +956,20 @@ export default function HomeScreen() {
     );
   };
 
+  // Add a debug component to show speech status (optional)
+  const renderSpeechStatus = () => {
+    if (speechError) {
+      return (
+        <View style={styles.speechErrorContainer}>
+          <Text style={styles.speechErrorText}>
+            Note: {speechError}
+          </Text>
+        </View>
+      );
+    }
+    return null;
+  };
+
   if (!fontsLoaded) {
     return null; // Don't render until fonts are loaded
   }
@@ -1016,6 +995,9 @@ export default function HomeScreen() {
 
   return (
     <ThemedView style={styles.container}>
+      {/* Speech Status Indicator */}
+      {renderSpeechStatus()}
+
       {/* NOTIFICATION BOX */}
       {showNotification && (
         <Animated.View
@@ -1232,6 +1214,7 @@ export default function HomeScreen() {
   );
 }
 
+// ... (keep all your existing styles exactly the same)
 const { width, height } = Dimensions.get("window");
 const isTablet = width > 915;
 
@@ -1251,6 +1234,24 @@ const styles = StyleSheet.create({
     fontSize: RFValue(12),
     color: "#9B72CF",
     fontWeight: "500",
+  },
+
+  // Speech Error Styles
+  speechErrorContainer: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    right: 10,
+    backgroundColor: '#FFEAA7',
+    padding: 8,
+    borderRadius: 5,
+    zIndex: 1000,
+  },
+  speechErrorText: {
+    color: '#E17055',
+    fontSize: 12,
+    textAlign: 'center',
+    fontFamily: "Poppins",
   },
 
   // NOTIFICATION STYLES
