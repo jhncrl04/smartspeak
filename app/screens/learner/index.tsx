@@ -1413,7 +1413,8 @@ const styles = StyleSheet.create({
 
   sentenceStrip: {
     backgroundColor: "#9B72CF",
-    height: height * 0.19,
+     height: isTablet ? height * 0.17 : height * 0.19,
+    // height: height * 0.19,
     flexDirection: "row",
     gap: width * 0.01,
     justifyContent: "space-between",
@@ -1427,7 +1428,7 @@ const styles = StyleSheet.create({
     paddingVertical: height * 0.01,
     paddingHorizontal: width * 0.01,
     borderRadius: width * 0.01,
-    height: height * 0.14, 
+    height: isTablet ? height * 0.12 : height * 0.14, 
     justifyContent: "center",
     alignItems: "center",
   },
@@ -1466,7 +1467,7 @@ const styles = StyleSheet.create({
   sentence: {
     backgroundColor: "#fafafa",
     flex: 1,
-    height: height * 0.17,
+    height: isTablet ? height * 0.15 : height * 0.17,
     borderRadius: width * 0.01,
     justifyContent: "center",
     alignItems: "center",
@@ -1541,6 +1542,7 @@ const styles = StyleSheet.create({
   card: {
     // backgroundColor is now set dynamically using current category color
     borderRadius: width * 0.01,
+    
     shadowColor: "rgba(67, 67, 67, 0.3)",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.08,
@@ -1563,7 +1565,7 @@ const styles = StyleSheet.create({
   imageCard: {
     width: "100%",
     height: "100%",
-    resizeMode: "cover",
+    resizeMode: "contain",
   },
 
   textContainer: {

@@ -656,7 +656,7 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins",
     fontSize: RFValue(8),
     color: "#fafafa",
-    fontWeight: "500",
+    fontWeight: "600",
     letterSpacing: 0.5,
   },
   cancelBtnText: {
