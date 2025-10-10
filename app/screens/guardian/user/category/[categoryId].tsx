@@ -37,15 +37,13 @@ const LearnerProfileCategory = () => {
     if (category.id === categoryId) return category;
   });
 
-  const filteredCards = cards.filter((card) => {
-    if (
+  const filteredCards = cards.filter(
+    (card) =>
       (card.created_by === "ADMIN" &&
         card.category_name === activeCategory?.category_name) ||
       (card.assigned_to?.includes(userId) &&
         card.category_id === (categoryId as string))
-    )
-      return card;
-  });
+  );
 
   const uid = getCurrentUid();
 
@@ -89,7 +87,7 @@ const LearnerProfileCategory = () => {
             <LearnerProfileHeader
               profile={userInfo?.profile_pic!}
               name={`${userInfo?.first_name} ${userInfo?.last_name}`}
-              age={calculateAge(userInfo?.date_of_birth)}
+              age={calculateAge(userInfo?.date_of_birth!)}
               buttonHandler={() => {
                 router.push({
                   pathname: "/screens/guardian/user/settings/[userId]",

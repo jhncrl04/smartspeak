@@ -2,12 +2,13 @@ import LearnerCard from "@/components/LearnerCard";
 import PageHeader from "@/components/PageHeader";
 import SectionTabs from "@/components/SectionTabs";
 import Sidebar from "@/components/Sidebar";
+import LoadingScreen from "@/components/ui/LoadingScreen";
 import COLORS from "@/constants/Colors";
-import { calculateAge } from "@/helper/calculateAge";
 import {
   useGradeLevelsStore,
   useSectionsStore,
 } from "@/stores/gradeSectionsStore";
+import { useAuthStore } from "@/stores/userAuthStore";
 import { useUsersStore } from "@/stores/userStore";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
@@ -24,7 +25,9 @@ const ManageLearnersScreen = () => {
     router.push(screen as any);
   };
 
-  const [loading, setLoading] = useState(true);
+  const user = useAuthStore((state) => state.user);
+
+  const [loading, setLoading] = useState(false);
   // const [sections, setSections] = useState<GradeAndSection[]>([]);
   const [activeSection, setActiveSection] = useState<string | undefined>(
     undefined
@@ -32,6 +35,7 @@ const ManageLearnersScreen = () => {
   const [activeModal, setActiveModal] = useState<
     "add" | "edit" | "move" | null
   >(null);
+
   const [searchQuery, setSearchQuery] = useState<string>("");
 
   const {
@@ -115,6 +119,34 @@ const ManageLearnersScreen = () => {
     setSearchQuery(query);
   };
 
+  const handleProfilePress = (learnerId: string, onSection: string) => {
+    try {
+      if (loading) return;
+      // Show loading immediately
+      setLoading(true);
+
+      // Navigate after data is loaded
+      router.push({
+        pathname:
+          user?.role.toLowerCase() === "guardian"
+            ? `/screens/guardian/user/[userId]`
+            : "/screens/teacher/user/[userId]",
+        params: {
+          userId: learnerId,
+          sectionId: onSection,
+        },
+      });
+    } catch (error) {
+      console.error("Error loading learner data:", error);
+      // You can show an error toast here
+    } finally {
+      // Hide loading after navigation
+      setTimeout(() => {
+        setLoading(false);
+      }, 500); // Small delay to let navigation complete
+    }
+  };
+
   return (
     <>
       {/* <AddLearnerModal
@@ -123,7 +155,12 @@ const ManageLearnersScreen = () => {
       /> */}
       <View style={styles.container}>
         <Sidebar userRole="teacher" onNavigate={handleNavigation} />
-        <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
+        <ScrollView
+          decelerationRate="fast" // slows down the momentum
+          scrollEventThrottle={16}
+          showsVerticalScrollIndicator={false}
+          style={{ flex: 1 }}
+        >
           <View style={styles.pageContainer}>
             <PageHeader
               pageTitle="Manage Learners"
@@ -178,12 +215,11 @@ const ManageLearnersScreen = () => {
                   <LearnerCard
                     key={student.id}
                     cardType="profile"
-                    gender={student.gender}
-                    image={student.profile_pic}
                     learnerId={student.id}
                     onSection={activeSection}
-                    name={`${student.first_name} ${student.last_name}`}
-                    age={calculateAge(student.date_of_birth)}
+                    handleProfilePress={() => {
+                      handleProfilePress(student.id, activeSection!);
+                    }}
                   />
                 ))
               ) : (
@@ -219,6 +255,7 @@ const ManageLearnersScreen = () => {
           }}
         /> */}
       </View>
+      <LoadingScreen visible={loading} />
     </>
   );
 };

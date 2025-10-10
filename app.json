@@ -108,6 +108,7 @@
           }
         }
       ],
+      "expo-notifications",
       "expo-web-browser"
     ],
     "experiments": {

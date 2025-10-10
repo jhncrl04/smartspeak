@@ -24,9 +24,8 @@ type userDataType = FormDataType;
 
 const SignUpCredentialScreens = () => {
   const { formData, setFormData } = useSignupForm();
-  const [confirmPass, setConfirmPass] = useState("Johncarlo1");
+  const [confirmPass, setConfirmPass] = useState("");
 
-  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
   const [passwordStrength, setPasswordStrength] = useState<number>(0);
@@ -36,8 +35,6 @@ const SignUpCredentialScreens = () => {
     const { score, feedback } = zxcvbn(password);
 
     setPasswordStrength(score);
-
-    console.log(score);
 
     switch (score) {
       case 0:

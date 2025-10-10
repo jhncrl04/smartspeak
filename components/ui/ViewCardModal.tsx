@@ -218,11 +218,6 @@ const ViewCardModal = ({
         );
       } else if (action === "Delete") {
         await deleteCard(cardId);
-        showToast(
-          "success",
-          "Card Deleted",
-          `${card?.card_name} has been deleted.`
-        );
       } else if (action === "Update") {
         if (cardName.trim() === "") {
           showToast("error", "Error", "Please enter a card name.");

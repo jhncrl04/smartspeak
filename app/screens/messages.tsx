@@ -3,6 +3,7 @@ import ChatSnippet from "@/components/ChatSnippet";
 import MySearchBar from "@/components/mySearchBar";
 import ProfileBubble from "@/components/ProfileBubble";
 import Sidebar from "@/components/Sidebar";
+import COLORS from "@/constants/Colors";
 import auth from "@react-native-firebase/auth";
 import firestore from "@react-native-firebase/firestore";
 import { router } from "expo-router";
@@ -162,10 +163,6 @@ const MessageScreen = ({ userRole = "teacher" }: MessageScreenProps) => {
     setSearchQuery(query);
   };
 
-  const getSearchPlaceholder = () => {
-    return userRole === "guardian" ? "Search Teachers" : "Search Guardians";
-  };
-
   // 🔥 Fetch conversations where current user is a participant (real-time)
   useEffect(() => {
     if (!currentUserId) return;
@@ -246,7 +243,7 @@ const MessageScreen = ({ userRole = "teacher" }: MessageScreenProps) => {
         <Text style={styles.header}>Messages</Text>
         <View style={{ flexGrow: 0 }}>
           <MySearchBar
-            placeholder={getSearchPlaceholder()}
+            placeholder={"Search User"}
             query="local"
             onSearch={handleSearch as () => void}
           />
@@ -261,6 +258,8 @@ const MessageScreen = ({ userRole = "teacher" }: MessageScreenProps) => {
             </View>
           ) : (
             <ScrollView
+              decelerationRate="fast" // slows down the momentum
+              scrollEventThrottle={16}
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.scrollContent}
@@ -317,6 +316,8 @@ const MessageScreen = ({ userRole = "teacher" }: MessageScreenProps) => {
 
         {/* Conversations list (scrollable) */}
         <ScrollView
+          decelerationRate="fast" // slows down the momentum
+          scrollEventThrottle={16}
           style={styles.messageContainer}
           showsVerticalScrollIndicator
         >
@@ -366,9 +367,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   profileCarousel: {
+    backgroundColor: COLORS.pureWhite,
     gap: 10,
     flexDirection: "row",
     overflow: "hidden",
+
+    minHeight: 85,
+
+    marginVertical: 5,
+    borderRadius: 10,
   },
   scrollContent: {
     gap: 5,

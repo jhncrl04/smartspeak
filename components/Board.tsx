@@ -1,7 +1,7 @@
 import COLORS from "@/constants/Colors";
-import getCurrentUid from "@/helper/getCurrentUid";
 import { useResponsiveCardSize } from "@/helper/setCardWidth";
 import { useCategoriesStore } from "@/stores/categoriesStores";
+import { useAuthStore } from "@/stores/userAuthStore";
 import { useUsersStore } from "@/stores/userStore";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Icon from "react-native-vector-icons/Octicons";
@@ -14,6 +14,8 @@ type boardProp = {
 const Board = ({ categoryId, routerHandler }: boardProp) => {
   const { categories } = useCategoriesStore();
   const { users } = useUsersStore();
+
+  const uid = useAuthStore.getState().user?.uid;
 
   const category = categories.find((cat) => cat.id === categoryId);
 
@@ -74,23 +76,21 @@ const Board = ({ categoryId, routerHandler }: boardProp) => {
     },
   });
 
-  const uid = getCurrentUid();
-
   const creatorName = () => {
     if (!category) return "Unknown";
-
-    if (category.creator_name) {
-      return `by ${category.creator_name}`;
-    }
-
-    // Fallback for admin categories
-    if (category.created_by_role === "ADMIN") {
-      return "System Default";
-    }
 
     // If it's the current user's category
     if (category.created_by === uid) {
       return "by You";
+    }
+
+    // if (category.creator_name) {
+    //   return `by ${category.creator_name}`;
+    // }
+
+    // Fallback for admin categories
+    if (category.created_by_role === "ADMIN") {
+      return "System Default";
     }
 
     // Generic fallback
@@ -116,7 +116,7 @@ const Board = ({ categoryId, routerHandler }: boardProp) => {
           source={
             category?.image
               ? { uri: category?.image }
-              : require("@/assets/images/pecs1.png")
+              : require("@/assets/images/no-image.png")
           }
         />
         <Text numberOfLines={1} ellipsizeMode="tail" style={styles.boardName}>

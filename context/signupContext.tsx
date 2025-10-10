@@ -26,11 +26,11 @@ type FormContextType = {
 const defaultValue: FormContextType = {
   formData: {
     role: "",
-    first_name: "jc",
-    last_name: "servidad",
-    phone_number: "09457880606",
-    email: "albert@gmail.com",
-    password: "johncarlo1",
+    first_name: "",
+    last_name: "",
+    phone_number: "",
+    email: "",
+    password: "",
     creation_date: new Date(),
     province: "",
     province_name: "",

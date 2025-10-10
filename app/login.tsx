@@ -20,11 +20,9 @@ import {
 import Icon from "react-native-vector-icons/Octicons";
 
 const LoginScreen = () => {
-  // added a value for testing, remove when done
-  const [email, setEmail] = useState("johncarloservidad1@gmail.com");
-  const [password, setPassword] = useState("Johncarlo12");
-  // const [email, setEmail] = useState("");
-  // const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
   const [loading, setLoading] = useState(false);
 
   const [showPassword, setShowPassword] = useState(false);
@@ -88,6 +86,7 @@ const LoginScreen = () => {
 
           setLoginState(firebaseUser, userDoc);
 
+          // await registerPushNotifications(userDoc.uid);
           router.replace(`/screens/${role.toLowerCase()}` as any);
         } else {
           console.log("User document missing or role not found.");

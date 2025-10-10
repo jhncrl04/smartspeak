@@ -17,6 +17,8 @@ import { Alert } from "react-native";
 import { getCategoryWithId } from "./categoryService";
 import { createLog } from "./loggingService";
 
+import NetInfo from "@react-native-community/netinfo";
+
 type cardProps = {
   name: string;
   category_id: string;
@@ -29,6 +31,16 @@ const cardCollection = firestore().collection("cards");
 
 export const addCard = async (cardInfo: cardProps) => {
   const uid = useAuthStore.getState().user?.uid;
+
+  const networkStatus = await NetInfo.fetch();
+  if (!networkStatus.isConnected) {
+    showToast(
+      "error",
+      "No Internet Connection",
+      "Please check your connection and try again"
+    );
+    throw new Error("No Internet Connection");
+  }
 
   const current_date = new Date();
 
@@ -121,6 +133,16 @@ const confirmCardDeletion = async (
   cardRef: FirebaseFirestoreTypes.DocumentReference,
   cardInfo: any
 ) => {
+  const networkStatus = await NetInfo.fetch();
+  if (!networkStatus.isConnected) {
+    showToast(
+      "error",
+      "No Internet Connection",
+      "Please check your connection and try again"
+    );
+    throw new Error("No Internet Connection");
+  }
+
   if (!cardInfo) throw new Error("Card not found");
 
   const current_date = new Date();
@@ -149,7 +171,13 @@ const confirmCardDeletion = async (
   };
 
   // Delete first AFTER we save the info
-  await cardRef.delete();
+  await cardRef.delete().then(() => {
+    showToast(
+      "success",
+      "Card Deleted",
+      `${cardInfo?.card_name} card has been deleted.`
+    );
+  });
 
   createLog(logBody);
 };
@@ -198,6 +226,16 @@ export const updateCard = async (
   cardName: string,
   cardImage: string
 ) => {
+  const networkStatus = await NetInfo.fetch();
+  if (!networkStatus.isConnected) {
+    showToast(
+      "error",
+      "No Internet Connection",
+      "Please check your connection and try again"
+    );
+    throw new Error("No Internet Connection");
+  }
+
   try {
     const cardRef = cardCollection.doc(cardId);
 
@@ -587,6 +625,16 @@ export const listenToUnassignedCards = (
 };
 
 export const assignCard = async (cardId: string, learnerId?: string) => {
+  const networkStatus = await NetInfo.fetch();
+  if (!networkStatus.isConnected) {
+    showToast(
+      "error",
+      "No Internet Connection",
+      "Please check your connection and try again"
+    );
+    throw new Error("No Internet Connection");
+  }
+
   try {
     await cardCollection
       .doc(cardId)
@@ -764,6 +812,16 @@ export const getCardInfoWithId = async (cardId: string) => {
 };
 
 export const unassignCard = async (learnerId: string, cardId: string) => {
+  const networkStatus = await NetInfo.fetch();
+  if (!networkStatus.isConnected) {
+    showToast(
+      "error",
+      "No Internet Connection",
+      "Please check your connection and try again"
+    );
+    throw new Error("No Internet Connection");
+  }
+
   try {
     await cardCollection
       .doc(cardId)

@@ -7,7 +7,7 @@ type LoadingScreenProps = {
 
 const LoadingScreen = ({ visible }: LoadingScreenProps) => {
   return (
-    <Modal transparent visible={visible} animationType="fade">
+    <Modal transparent visible={visible}>
       <View style={styles.overlay}>
         <ActivityIndicator size="large" color={COLORS.accent} />
       </View>
@@ -17,6 +17,15 @@ const LoadingScreen = ({ visible }: LoadingScreenProps) => {
 
 const styles = StyleSheet.create({
   overlay: {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+
+    width: "100%",
+    height: "100%",
+
     flex: 1,
     backgroundColor: COLORS.shadow,
     justifyContent: "center",

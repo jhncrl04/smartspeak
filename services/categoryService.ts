@@ -2,6 +2,7 @@ import { showToast } from "@/components/ui/MyToast";
 import imageToBase64 from "@/helper/imageToBase64";
 import { useAuthStore } from "@/stores/userAuthStore";
 import { CreateLogInput, DeleteLogInput, UpdateLog } from "@/types/log";
+import NetInfo from "@react-native-community/netinfo";
 import firestore, {
   arrayRemove,
   arrayUnion,
@@ -21,6 +22,16 @@ type categoryProps = {
 const categoryCollection = firestore().collection("pecsCategories");
 
 export const addCategory = async (categoryInfo: categoryProps) => {
+  const networkStatus = await NetInfo.fetch();
+  if (!networkStatus.isConnected) {
+    showToast(
+      "error",
+      "No Internet Connection",
+      "Please check your connection and try again"
+    );
+    throw new Error("No Internet Connection");
+  }
+
   const uid = useAuthStore.getState().user?.uid;
 
   const currentDate = new Date();
@@ -262,6 +273,16 @@ export const assignCategory = async (
   categoryId: string,
   learnerId?: string
 ) => {
+  const networkStatus = await NetInfo.fetch();
+  if (!networkStatus.isConnected) {
+    showToast(
+      "error",
+      "No Internet Connection",
+      "Please check your connection and try again"
+    );
+    throw new Error("No Internet Connection");
+  }
+
   try {
     await categoryCollection
       .doc(categoryId)
@@ -275,6 +296,16 @@ export const unassignCategory = async (
   categoryId: string,
   learnerId: string
 ) => {
+  const networkStatus = await NetInfo.fetch();
+  if (!networkStatus.isConnected) {
+    showToast(
+      "error",
+      "No Internet Connection",
+      "Please check your connection and try again"
+    );
+    throw new Error("No Internet Connection");
+  }
+
   try {
     const cardCollection = firestore().collection("cards");
 
@@ -395,6 +426,16 @@ export const updateCategory = async (
     image?: string;
   }
 ) => {
+  const networkStatus = await NetInfo.fetch();
+  if (!networkStatus.isConnected) {
+    showToast(
+      "error",
+      "No Internet Connection",
+      "Please check your connection and try again"
+    );
+    throw new Error("No Internet Connection");
+  }
+
   try {
     const category = await getCategoryWithId(categoryId);
 
@@ -491,6 +532,16 @@ export const deleteCategory = async (categoryId: string): Promise<boolean> => {
 
 // Helper function to perform the actual deletion
 const performDeletion = async (categoryId: string, category: any) => {
+  const networkStatus = await NetInfo.fetch();
+  if (!networkStatus.isConnected) {
+    showToast(
+      "error",
+      "No Internet Connection",
+      "Please check your connection and try again"
+    );
+    throw new Error("No Internet Connection");
+  }
+
   try {
     // 1. Get all cards in this category
     const cardsSnapshot = await firestore()
@@ -543,6 +594,16 @@ export const deleteCategoryWithLoading = async (
   categoryId: string,
   onLoadingChange?: (loading: boolean) => void
 ): Promise<boolean> => {
+  const networkStatus = await NetInfo.fetch();
+  if (!networkStatus.isConnected) {
+    showToast(
+      "error",
+      "No Internet Connection",
+      "Please check your connection and try again"
+    );
+    throw new Error("No Internet Connection");
+  }
+
   onLoadingChange?.(true);
 
   try {

@@ -45,9 +45,6 @@ const ForgotPasswordScreen = () => {
     setIsLoading(true);
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
       auth().sendPasswordResetEmail(email);
 
       Alert.alert(

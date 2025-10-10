@@ -12,7 +12,7 @@ import { useCategoriesStore } from "@/stores/categoriesStores";
 import { useUsersStore } from "@/stores/userStore";
 import { router } from "expo-router";
 import { useLocalSearchParams } from "expo-router/build/hooks";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { ActivityIndicator } from "react-native-paper";
 
@@ -32,18 +32,29 @@ const ManageThisCategoryScreen = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | undefined>("");
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, []);
+
   const activeCategory = categories.find((category) => {
     if (category.id === categoryId) return category;
   });
 
   const filteredCards = cards.filter((card) => {
-    if (
-      (card.created_by === "ADMIN" &&
-        card.category_name === activeCategory?.category_name) ||
-      card.category_id === (categoryId as string)
-    )
-      return card;
+    const isAdminCard =
+      card.created_by === "ADMIN" &&
+      card.category_name === activeCategory?.category_name;
+
+    const isUserCard = card.category_id === categoryId;
+
+    return isAdminCard || isUserCard;
   });
+
+  console.log(filteredCards);
 
   const [activeModal, setActiveModal] = useState<
     "add-card" | "edit-category" | null
@@ -94,47 +105,17 @@ const ManageThisCategoryScreen = () => {
                   <Text>Loading cards...</Text>
                 </View>
               ) : error ? (
-                <View
-                  style={{
-                    flex: 1,
-                    justifyContent: "center",
-                    alignItems: "center",
-                  }}
-                >
-                  <Text
-                    style={{
-                      fontFamily: "Poppins",
-                      fontSize: 16,
-                      fontWeight: 600,
-
-                      color: COLORS.errorText,
-                    }}
-                  >
-                    {error}
-                  </Text>
+                <View style={styles.errorContainer}>
+                  <Text style={styles.errorText}>{error}</Text>
                 </View>
-              ) : cards.length === 0 ? (
-                <View
-                  style={{
-                    flex: 1,
-                    justifyContent: "center",
-                    alignItems: "center",
-                  }}
-                >
-                  <Text
-                    style={{
-                      fontFamily: "Poppins",
-                      fontSize: 16,
-                      fontWeight: 600,
-
-                      color: COLORS.gray,
-                    }}
-                  >
+              ) : filteredCards.length === 0 ? ( // ✅ Fixed condition
+                <View style={styles.emptyContainer}>
+                  <Text style={styles.emptyText}>
                     No cards found in this category.
                   </Text>
                 </View>
               ) : (
-                filteredCards.map((card, index) => (
+                filteredCards.map((card) => (
                   <PecsCard action="Delete" cardId={card.id} key={card.id} />
                 ))
               )}
@@ -169,12 +150,9 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontSize: 14,
   },
-
   container: {
     flex: 1,
-
     flexDirection: "row",
-
     gap: 10,
   },
   sidebar: {
@@ -189,9 +167,7 @@ const styles = StyleSheet.create({
   },
   mainContentContainer: {
     flex: 1,
-
     gap: 10,
-
     paddingHorizontal: 30,
     paddingVertical: 10,
   },
@@ -199,11 +175,8 @@ const styles = StyleSheet.create({
     flex: 1,
     flexWrap: "wrap",
     flexDirection: "row",
-
     alignItems: "center",
-
     paddingVertical: 10,
-
     gap: 15,
   },
   loadingContainer: {
@@ -211,6 +184,28 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  errorText: {
+    fontFamily: "Poppins",
+    fontSize: 16,
+    fontWeight: "600",
+    color: COLORS.errorText,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  emptyText: {
+    fontFamily: "Poppins",
+    fontSize: 16,
+    fontWeight: "600",
+    color: COLORS.gray,
   },
 });
 

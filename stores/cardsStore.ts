@@ -46,6 +46,8 @@ export const useCardsStore = create<CardsStore>((set, get) => ({
       set({ cards, isLoading: false, error: null });
     };
 
+    // Listen to cards created by the current user
+    // These should ALWAYS be included, regardless of learner filtering
     const userUnsubscribe = CARD_COLLECTION.where(
       "created_by",
       "==",
@@ -59,21 +61,8 @@ export const useCardsStore = create<CardsStore>((set, get) => ({
           } as Card;
 
           if (change.type === "added" || change.type === "modified") {
-            if (learnerIds && learnerIds.length > 0) {
-              const assignedTo = card.assigned_to || [];
-
-              const hasMatchingLearner = learnerIds.some((learnerId) =>
-                assignedTo.includes(learnerId)
-              );
-
-              if (hasMatchingLearner) {
-                cardsMap.set(change.doc.id, card);
-              } else {
-                cardsMap.delete(change.doc.id);
-              }
-            } else {
-              cardsMap.set(change.doc.id, card);
-            }
+            // Always include cards created by the user
+            cardsMap.set(change.doc.id, card);
           } else if (change.type === "removed") {
             cardsMap.delete(change.doc.id);
           }
@@ -88,7 +77,7 @@ export const useCardsStore = create<CardsStore>((set, get) => ({
     );
     unsubscribers.push(userUnsubscribe);
 
-    // This gets categories from OTHER teachers/guardians
+    // Listen to cards from OTHER teachers/guardians assigned to learners
     if (learnerIds && learnerIds.length > 0) {
       // Split into batches of 10 if needed (array-contains-any limit)
       const batchSize = 10;
@@ -107,10 +96,14 @@ export const useCardsStore = create<CardsStore>((set, get) => ({
                 ...change.doc.data(),
               } as Card;
 
-              if (change.type === "added" || change.type === "modified") {
-                cardsMap.set(change.doc.id, card);
-              } else if (change.type === "removed") {
-                cardsMap.delete(change.doc.id);
+              // Only process cards NOT created by the current user
+              // (to avoid duplicates with the user listener above)
+              if (card.created_by !== userId) {
+                if (change.type === "added" || change.type === "modified") {
+                  cardsMap.set(change.doc.id, card);
+                } else if (change.type === "removed") {
+                  cardsMap.delete(change.doc.id);
+                }
               }
             });
             updateCards();
@@ -124,7 +117,8 @@ export const useCardsStore = create<CardsStore>((set, get) => ({
       }
     }
 
-    // Apply same learner filter
+    // Listen to admin cards
+    // Always include admin cards regardless of learner filtering
     const adminUnsubscribe = CARD_COLLECTION.where(
       "created_by",
       "==",
@@ -138,12 +132,8 @@ export const useCardsStore = create<CardsStore>((set, get) => ({
           } as Card;
 
           if (change.type === "added" || change.type === "modified") {
-            // Client-side filter for learners
-            if (learnerIds && learnerIds.length > 0) {
-              cardsMap.set(change.doc.id, card);
-            } else {
-              cardsMap.set(change.doc.id, card);
-            }
+            // Always include admin cards
+            cardsMap.set(change.doc.id, card);
           } else if (change.type === "removed") {
             cardsMap.delete(change.doc.id);
           }

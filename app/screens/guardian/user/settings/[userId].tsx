@@ -15,7 +15,11 @@ import {
 } from "react-native";
 
 import TextFieldWrapper from "@/components/TextfieldWrapper";
-import { updateUserInfo, uploadProfilePic } from "@/services/userService";
+import {
+  requestGuardianChange,
+  updateUserInfo,
+  uploadProfilePic,
+} from "@/services/userService";
 import * as ImagePicker from "expo-image-picker";
 
 import ActionLink from "@/components/ActionLink";
@@ -29,12 +33,15 @@ import Constants from "expo-constants";
 
 import { showToast } from "@/components/ui/MyToast";
 import { censorEmail } from "@/helper/censorEmail";
+import getCurrentUid from "@/helper/getCurrentUid";
 import { getUserInfo } from "@/services/userApi/Authentication";
 import { User } from "@/types/user";
 import Icon from "react-native-vector-icons/Octicons";
 
 const ChildSettings = () => {
   const { userId } = useLocalSearchParams();
+
+  const guardianId = getCurrentUid();
 
   // Consolidated form data state
   const [formData, setFormData] = useState({
@@ -51,6 +58,11 @@ const ChildSettings = () => {
     barangay: null as string | null,
     barangay_name: null as string | null,
   });
+
+  // Add this to your component state
+  const [showGuardianChangeModal, setShowGuardianChangeModal] = useState(false);
+  const [newGuardianEmail, setNewGuardianEmail] = useState("");
+  const [isRequestingChange, setIsRequestingChange] = useState(false);
 
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -362,6 +374,76 @@ const ChildSettings = () => {
     );
   }
 
+  // Component handler function
+  const handleGuardianChangeRequest = async () => {
+    setIsLoading(true);
+    // Validate email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!newGuardianEmail.trim() || !emailRegex.test(newGuardianEmail)) {
+      Alert.alert("Validation Error", "Please enter a valid email address.");
+      setIsLoading(false);
+
+      return;
+    }
+
+    // Prevent sending to same email
+    if (newGuardianEmail.toLowerCase() === formData.email.toLowerCase()) {
+      Alert.alert("Error", "Cannot send request to the current guardian.");
+      setIsLoading(false);
+
+      return;
+    }
+
+    Alert.alert(
+      "Confirm Guardian Change Request",
+      `Send a guardian change request to ${newGuardianEmail}? The new guardian will need to approve this request.`,
+      [
+        { text: "Cancel", style: "cancel", onPress: () => setIsLoading(false) },
+        {
+          text: "Send Request",
+          onPress: async () => {
+            setIsRequestingChange(true);
+
+            try {
+              const result = await requestGuardianChange(
+                userId as string,
+                newGuardianEmail.trim(),
+                guardianId!
+              );
+
+              if (result.success) {
+                showToast(
+                  "success",
+                  "Request Sent",
+                  `Guardian change request sent to ${newGuardianEmail}`
+                );
+                setShowGuardianChangeModal(false);
+                setNewGuardianEmail("");
+                setIsLoading(false);
+              } else {
+                showToast(
+                  "error",
+                  "Request Failed",
+                  result.error || "Failed to send guardian change request"
+                );
+                setIsLoading(false);
+              }
+            } catch (error) {
+              setIsLoading(false);
+
+              console.error("Error sending guardian change request:", error);
+              showToast("error", "Error", "An unexpected error occurred");
+            } finally {
+              setIsLoading(false);
+
+              setIsRequestingChange(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   return (
     <View style={styles.container}>
       <Sidebar userRole="teacher" onNavigate={handleNavigation} />
@@ -517,6 +599,40 @@ const ChildSettings = () => {
                   />
                 </View>
               </View>
+              <View style={styles.settingsSection}>
+                <Text style={styles.sectionHeader}>Guardian Management</Text>
+                <View style={styles.card}>
+                  <Text style={styles.subsectionHeader}>Change Guardian</Text>
+                  <Text style={styles.helperText}>
+                    Send a request to transfer guardianship to another account.
+                    The new guardian must approve the request.
+                  </Text>
+
+                  <TextFieldWrapper label="New Guardian Email">
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder="Enter new guardian's email"
+                      value={newGuardianEmail}
+                      onChangeText={setNewGuardianEmail}
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      editable={!isRequestingChange}
+                    />
+                  </TextFieldWrapper>
+
+                  <View style={styles.buttonRow}>
+                    <PrimaryButton
+                      title={
+                        isRequestingChange
+                          ? "Sending Request..."
+                          : "Send Change Request"
+                      }
+                      clickHandler={handleGuardianChangeRequest}
+                      disabled={isRequestingChange || !newGuardianEmail.trim()}
+                    />
+                  </View>
+                </View>
+              </View>
             </View>
           </View>
         </View>
@@ -537,6 +653,13 @@ const styles = StyleSheet.create({
     color: COLORS.black,
     textAlign: "center",
     marginBottom: 16,
+  },
+  helperText: {
+    fontSize: 13,
+    fontFamily: "Poppins",
+    color: COLORS.gray,
+    marginBottom: 12,
+    lineHeight: 18,
   },
   profileCard: {
     backgroundColor: "white",

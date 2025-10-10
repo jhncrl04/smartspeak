@@ -49,20 +49,24 @@ const ManageCardsScreen = () => {
       />
       <View style={styles.container}>
         <Sidebar userRole="teacher" onNavigate={handleNavigation} />
-        <View style={styles.mainContentContainer}>
-          <PageHeader
-            collectionToSearch="cards"
-            onSearch={(query) => {
-              handleSearch(query as string);
-            }}
-            query="card"
-            pageTitle="Manage Cards"
-            hasFilter={true}
-            searchPlaceholder="Search Card"
-          />
-          <ScrollView>
+        <ScrollView
+          decelerationRate="fast" // slows down the momentum
+          scrollEventThrottle={16}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.mainContentContainer}>
+            <PageHeader
+              collectionToSearch="cards"
+              onSearch={(query) => {
+                handleSearch(query as string);
+              }}
+              query="card"
+              pageTitle="Manage Cards"
+              hasFilter={true}
+              searchPlaceholder="Search Card"
+            />
             <View style={styles.cardContainer}>
-              {cards.length === 0 ? (
+              {filteredCards.length === 0 ? (
                 <View
                   style={{
                     flex: 1,
@@ -88,8 +92,8 @@ const ManageCardsScreen = () => {
                 ))
               )}
             </View>
-          </ScrollView>
-        </View>
+          </View>
+        </ScrollView>
         <FabMenu
           page="manageCards"
           actions={{ add: () => setActiveModal("add") }}

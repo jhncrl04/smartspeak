@@ -29,13 +29,11 @@ const LearnerProfile = () => {
     if (user.id === userId) return user;
   });
 
-  const mappedCategories = categories.filter((category) => {
-    if (
+  const mappedCategories = categories.filter(
+    (category) =>
       category.assigned_to?.includes(userId as string) ||
       category.created_by_role === "ADMIN"
-    )
-      return category;
-  });
+  );
 
   const [activeModal, setActiveModal] = useState<
     "assign_category" | "remove_learner" | null
@@ -44,7 +42,7 @@ const LearnerProfile = () => {
   const [isPreviousReportsModalActive, setIsPreviousReportsModalActive] =
     useState(false);
 
-  const age = calculateAge(userInfo?.date_of_birth);
+  const age = calculateAge(userInfo?.date_of_birth!);
 
   // const handleRemoveLearner = async (learnerId: string, sectionId: string) => {
   //   await removeAsStudent(learnerId);

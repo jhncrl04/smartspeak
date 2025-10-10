@@ -407,6 +407,8 @@ const SettingScreen = () => {
     <View style={styles.container}>
       <Sidebar userRole="teacher" onNavigate={handleNavigation} />
       <ScrollView
+        decelerationRate="fast" // slows down the momentum
+        scrollEventThrottle={16}
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}

@@ -49,7 +49,11 @@ const ManageCardsScreen = () => {
       />
       <View style={styles.container}>
         <Sidebar userRole="teacher" onNavigate={handleNavigation} />
-        <ScrollView showsVerticalScrollIndicator={false}>
+        <ScrollView
+          decelerationRate="fast" // slows down the momentum
+          scrollEventThrottle={16}
+          showsVerticalScrollIndicator={false}
+        >
           <View style={styles.mainContentContainer}>
             <PageHeader
               collectionToSearch="cards"

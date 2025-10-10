@@ -1,7 +1,7 @@
 import COLORS from "@/constants/Colors";
 import { formatDate, toDate } from "@/helper/formatDate";
 import getCurrentUid from "@/helper/getCurrentUid";
-import { fetchReportsForStudent } from "@/services/reportService";
+import { subscribeToStudentReports } from "@/services/reportService";
 import { useLearnerSentencesStore } from "@/stores/learnerSentencesStore";
 import { Progress } from "@/types/progressReport";
 import { ScrollView } from "moti";
@@ -55,36 +55,40 @@ const LearnerHistoryModal = ({
   const [selectedSentence, setSelectedSentence] = useState<any>(null);
 
   useEffect(() => {
-    if (visible && learnerId) {
-      fetchReportsData();
-      fetchSentences(learnerId);
-    }
+    if (!visible || !learnerId) return;
 
+    // Set loading state
+    setReportsLoading(true);
+
+    // Subscribe to reports (loads from cache first, then updates)
+    const unsubscribeReports = subscribeToStudentReports(
+      learnerId,
+      (data) => {
+        setReports(data);
+        setReportsLoading(false);
+      },
+      (error) => {
+        console.error("Error fetching reports:", error);
+        setReportsLoading(false);
+      }
+    );
+
+    // Fetch  sentences
+    fetchSentences(learnerId);
+
+    // Cleanup
     return () => {
+      unsubscribeReports();
       if (!visible) {
         clearSentences();
       }
     };
   }, [visible, learnerId]);
 
-  const fetchReportsData = async () => {
-    setReportsLoading(true);
-    try {
-      const data = await fetchReportsForStudent(learnerId);
-      setReports(data);
-    } catch (error) {
-      console.error("Error fetching reports:", error);
-    } finally {
-      setReportsLoading(false);
-    }
-  };
-
   const onReportsRefresh = async () => {
     setReportsRefreshing(true);
-    await fetchReportsData();
-    setReportsRefreshing(false);
+    setTimeout(() => setReportsRefreshing(false), 500);
   };
-
   const onSentencesRefresh = async () => {
     setSentencesRefreshing(true);
     await fetchSentences(learnerId);
