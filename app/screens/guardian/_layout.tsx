@@ -30,6 +30,12 @@ const GuardianLayout = () => {
           options={{ title: "Manage Categories" }}
         />
         <Stack.Screen name="manageCards" options={{ title: "Manage Cards" }} />
+        <Stack.Screen
+          name="user/[userId]"
+          options={{
+            animation: "none", // or "fade", "slide_from_right"
+          }}
+        />
       </Stack>
     </SidebarProvider>
   );

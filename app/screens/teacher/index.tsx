@@ -2,6 +2,7 @@ import LearnerCard from "@/components/LearnerCard";
 import PageHeader from "@/components/PageHeader";
 import SectionTabs from "@/components/SectionTabs";
 import Sidebar from "@/components/Sidebar";
+import SkeletonCard from "@/components/SkeletonCard";
 import LoadingScreen from "@/components/ui/LoadingScreen";
 import COLORS from "@/constants/Colors";
 import {
@@ -11,9 +12,10 @@ import {
 import { useAuthStore } from "@/stores/userAuthStore";
 import { useUsersStore } from "@/stores/userStore";
 import { router } from "expo-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Animated,
   ScrollView,
   StyleSheet,
   Text,
@@ -21,111 +23,98 @@ import {
 } from "react-native";
 
 const ManageLearnersScreen = () => {
-  const handleNavigation = (screen: string) => {
+  const handleNavigation = useCallback((screen: string) => {
     router.push(screen as any);
-  };
-
-  const user = useAuthStore((state) => state.user);
-
-  const [loading, setLoading] = useState(false);
-  // const [sections, setSections] = useState<GradeAndSection[]>([]);
-  const [activeSection, setActiveSection] = useState<string | undefined>(
-    undefined
-  );
-  const [activeModal, setActiveModal] = useState<
-    "add" | "edit" | "move" | null
-  >(null);
-
-  const [searchQuery, setSearchQuery] = useState<string>("");
+  }, []);
 
   const {
     sections,
     isLoading: sectionLoading,
     error: sectionError,
   } = useSectionsStore();
-
   const {
     gradeLevels,
     isLoading: gradeLevelLoading,
     error: gradeLevelError,
   } = useGradeLevelsStore();
+  const { users: learners, isLoading: learnersLoading } = useUsersStore();
+  const user = useAuthStore((state) => state.user);
 
-  const {
-    users: learners,
-    isLoading: learnersLoading,
-    error: learnersError,
-  } = useUsersStore();
+  const [loading, setLoading] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const [activeSection, setActiveSection] = useState<string | undefined>(
+    undefined
+  );
+  const [searchQuery, setSearchQuery] = useState<string>("");
 
-  const mappedSection = sections
-    .map((section) => {
-      const gradeLevel = gradeLevels.find((gl) => gl.id === section.grade_id);
+  const fadeAnim = useRef(new Animated.Value(1)).current;
 
-      return {
-        gradeLevelInfo: gradeLevel,
-        sectionInfo: section,
-      };
-    })
-    .filter((item) => item.gradeLevelInfo);
+  // Map sections with grade levels
+  const mappedSection = useMemo(() => {
+    return sections
+      .map((section) => {
+        const gradeLevel = gradeLevels.find((gl) => gl.id === section.grade_id);
+        return { gradeLevelInfo: gradeLevel, sectionInfo: section };
+      })
+      .filter((item) => item.gradeLevelInfo);
+  }, [sections, gradeLevels]);
 
+  // Set initial active section
   useEffect(() => {
     if (mappedSection.length > 0 && !activeSection) {
       setActiveSection(mappedSection[0].sectionInfo.id);
     }
-  }, [mappedSection, activeSection]);
+  }, [mappedSection.length, activeSection]);
 
-  if (sectionLoading || gradeLevelLoading) {
-    return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" />
-      </View>
-    );
-  }
+  // Get filtered students
+  const filteredStudents = useMemo(() => {
+    const section = sections.find((s) => s.id === activeSection);
+    return section?.students || [];
+  }, [sections, activeSection]);
 
-  if (sectionError || gradeLevelError) {
-    return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <Text style={{ color: "red" }}>
-          Error loading data: {sectionError || gradeLevelError}
-        </Text>
-      </View>
-    );
-  }
+  // Map and filter students by search
+  const mappedStudents = useMemo(() => {
+    return learners
+      .filter((learner) => {
+        if (!filteredStudents.includes(learner.id as never)) return false;
+        if (!searchQuery.trim()) return true;
 
-  const filteredStudents: string[] =
-    sections.find((s) => s.id === activeSection)?.students || [];
+        const query = searchQuery.toLowerCase().trim();
+        const firstName = learner.first_name.toLowerCase();
+        const lastName = learner.last_name.toLowerCase();
+        const fullName = `${firstName} ${lastName}`;
 
-  // Filter students by section and search query
-  const mappedStudents = learners.filter((learner) => {
-    // First check if student is in the active section
-    if (!filteredStudents.includes(learner.id)) return false;
+        return (
+          firstName.includes(query) ||
+          lastName.includes(query) ||
+          fullName.includes(query)
+        );
+      })
+      .sort((a, b) => a.first_name.localeCompare(b.first_name));
+  }, [learners, filteredStudents, searchQuery]);
 
-    // If no search query, show all students in section
-    if (!searchQuery.trim()) return true;
+  // Fade animation
+  useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: searching ? 0 : 1,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  }, [searching, fadeAnim]);
 
-    // Filter by search query (case-insensitive)
-    const query = searchQuery.toLowerCase().trim();
-    const firstName = learner.first_name.toLowerCase();
-    const lastName = learner.last_name.toLowerCase();
-    const fullName = `${firstName} ${lastName}`;
-
-    return (
-      firstName.includes(query) ||
-      lastName.includes(query) ||
-      fullName.includes(query)
-    );
-  });
-
-  const handleSearch = (query: string) => {
+  const handleSearch = useCallback((query: string) => {
+    setSearching(true);
     setSearchQuery(query);
-  };
+    setTimeout(() => {
+      setSearching(false);
+    }, 1000);
+  }, []);
 
-  const handleProfilePress = (learnerId: string, onSection: string) => {
-    try {
+  const handleProfilePress = useCallback(
+    (learnerId: string, onSection: string) => {
       if (loading) return;
-      // Show loading immediately
-      setLoading(true);
 
-      // Navigate after data is loaded
+      setLoading(true);
       router.push({
         pathname:
           user?.role.toLowerCase() === "guardian"
@@ -136,27 +125,44 @@ const ManageLearnersScreen = () => {
           sectionId: onSection,
         },
       });
-    } catch (error) {
-      console.error("Error loading learner data:", error);
-      // You can show an error toast here
-    } finally {
-      // Hide loading after navigation
+
       setTimeout(() => {
         setLoading(false);
-      }, 500); // Small delay to let navigation complete
-    }
-  };
+      }, 500);
+    },
+    [user?.role, loading]
+  );
+
+  const handleSectionPress = useCallback((sectionId: string) => {
+    setActiveSection(sectionId);
+  }, []);
+
+  // Loading state
+  if (sectionLoading || gradeLevelLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+
+  // Error state
+  if (sectionError || gradeLevelError) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <Text style={{ color: "red" }}>
+          Error loading data: {sectionError || gradeLevelError}
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <>
-      {/* <AddLearnerModal
-        onClose={() => setActiveModal(null)}
-        visible={activeModal === "add"}
-      /> */}
       <View style={styles.container}>
         <Sidebar userRole="teacher" onNavigate={handleNavigation} />
         <ScrollView
-          decelerationRate="fast" // slows down the momentum
+          decelerationRate="fast"
           scrollEventThrottle={16}
           showsVerticalScrollIndicator={false}
           style={{ flex: 1 }}
@@ -166,12 +172,11 @@ const ManageLearnersScreen = () => {
               pageTitle="Manage Learners"
               hasFilter={false}
               searchPlaceholder="Search Learner"
-              onSearch={(query) => {
-                handleSearch(query as string);
-              }}
+              onSearch={(query) => handleSearch(query as string)}
               collectionToSearch="cards"
               query="local"
             />
+
             {/* Tabs */}
             <View
               style={{
@@ -188,19 +193,19 @@ const ManageLearnersScreen = () => {
                 showsHorizontalScrollIndicator={false}
               >
                 <View style={styles.tabsContainer}>
-                  {mappedSection.map((s) => (
-                    <SectionTabs
-                      key={s.sectionInfo.id}
-                      active={s.sectionInfo.id === activeSection}
-                      label={`${s.gradeLevelInfo?.name} - ${s.sectionInfo.name}`}
-                      onPress={() => setActiveSection(s.sectionInfo.id)}
-                    />
-                  ))}
-
-                  {sections.length <= 0 && (
+                  {mappedSection.length > 0 ? (
+                    mappedSection.map((s) => (
+                      <SectionTabs
+                        key={s.sectionInfo.id}
+                        active={s.sectionInfo.id === activeSection}
+                        label={`${s.gradeLevelInfo?.name} - ${s.sectionInfo.name}`}
+                        onPress={() => handleSectionPress(s.sectionInfo.id)}
+                      />
+                    ))
+                  ) : (
                     <SectionTabs
                       active={true}
-                      label={`No Section Found`}
+                      label="No Section Found"
                       onPress={() => {}}
                     />
                   )}
@@ -209,51 +214,50 @@ const ManageLearnersScreen = () => {
             </View>
 
             {/* Students */}
-            <View style={styles.cardContainer}>
-              {mappedStudents.length > 0 ? (
-                mappedStudents.map((student) => (
-                  <LearnerCard
-                    key={student.id}
-                    cardType="profile"
-                    learnerId={student.id}
-                    onSection={activeSection}
-                    handleProfilePress={() => {
-                      handleProfilePress(student.id, activeSection!);
-                    }}
-                  />
-                ))
+            <View>
+              {loading || searching ? (
+                <SkeletonCard type="learner" />
               ) : (
-                <View
-                  style={{
-                    flex: 1,
-                    justifyContent: "center",
-                    alignItems: "center",
-                  }}
+                <Animated.View
+                  style={[styles.cardContainer, { opacity: fadeAnim }]}
                 >
-                  <Text
-                    style={{
-                      fontFamily: "Poppins",
-                      fontSize: 16,
-                      fontWeight: 600,
-
-                      color: COLORS.gray,
-                    }}
-                  >
-                    No students in this section.
-                  </Text>
-                </View>
+                  {mappedStudents.length > 0 ? (
+                    mappedStudents.map((student) => (
+                      <LearnerCard
+                        key={student.id}
+                        cardType="profile"
+                        learnerId={student.id}
+                        onSection={activeSection}
+                        handleProfilePress={() =>
+                          handleProfilePress(student.id, activeSection!)
+                        }
+                      />
+                    ))
+                  ) : (
+                    <View
+                      style={{
+                        flex: 1,
+                        justifyContent: "center",
+                        alignItems: "center",
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontFamily: "Poppins",
+                          fontSize: 16,
+                          fontWeight: 600,
+                          color: COLORS.gray,
+                        }}
+                      >
+                        No students found.
+                      </Text>
+                    </View>
+                  )}
+                </Animated.View>
               )}
             </View>
           </View>
         </ScrollView>
-        {/* hide adding of learner on teacher side for now */}
-        {/* <FabMenu
-          page="learners"
-          actions={{
-            add: () => setActiveModal("add"),
-            edit: () => setActiveModal("edit"),
-          }}
-        /> */}
       </View>
       <LoadingScreen visible={loading} />
     </>
@@ -263,9 +267,7 @@ const ManageLearnersScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-
     flexDirection: "row",
-
     position: "relative",
   },
   pageContainer: {
@@ -287,9 +289,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexWrap: "wrap",
     flexDirection: "row",
-
     alignItems: "center",
-
     gap: 15,
   },
 });

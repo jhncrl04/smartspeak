@@ -22,7 +22,7 @@ const ChatSnippet = (props: messageProps) => {
         source={
           props.profilePic
             ? { uri: props.profilePic }
-            : require("./default.jpg") // ✅ fallback image
+            : require("@/assets/images/default.jpg") // ✅ fallback image
         }
         style={styles.profile}
       />

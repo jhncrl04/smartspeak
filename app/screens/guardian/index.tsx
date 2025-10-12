@@ -2,14 +2,15 @@ import FabMenu from "@/components/FabMenu";
 import LearnerCard from "@/components/LearnerCard";
 import PageHeader from "@/components/PageHeader";
 import Sidebar from "@/components/Sidebar";
+import SkeletonCard from "@/components/SkeletonCard";
 import AddChildModal from "@/components/ui/AddChildModal";
 import LoadingScreen from "@/components/ui/LoadingScreen";
 import COLORS from "@/constants/Colors";
 import { useAuthStore } from "@/stores/userAuthStore";
 import { useUsersStore } from "@/stores/userStore";
 import { router } from "expo-router";
-import { useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Animated, ScrollView, StyleSheet, Text, View } from "react-native";
 
 const ChildManagementScreen = () => {
   const handleNavigation = (screen: string) => {
@@ -28,6 +29,7 @@ const ChildManagementScreen = () => {
   const [activeModal, setActiveModal] = useState<"add-child" | null>(null);
 
   const [loading, setLoading] = useState(false);
+  const [searching, setSearching] = useState(false);
 
   // Filter children and search query
   const mappedChildren = children.filter((child) => {
@@ -47,13 +49,19 @@ const ChildManagementScreen = () => {
     );
   });
 
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+
+  // Add fade animation when loading changes
+  useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: searching ? 0 : 1,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  }, [searching]);
+
   const handleProfilePress = (learnerId: string) => {
     try {
-      if (loading) return;
-      // Show loading immediately
-      setLoading(true);
-
-      // Navigate after data is loaded
       router.push({
         pathname:
           user?.role.toLowerCase() === "guardian"
@@ -65,17 +73,20 @@ const ChildManagementScreen = () => {
       });
     } catch (error) {
       console.error("Error loading learner data:", error);
-      // You can show an error toast here
     } finally {
-      // Hide loading after navigation
       setTimeout(() => {
         setLoading(false);
-      }, 500); // Small delay to let navigation complete
+      }, 500);
     }
   };
 
   const handleSearch = (query: string) => {
+    setSearching(true);
     setSearchQuery(query);
+
+    setTimeout(() => {
+      setSearching(false);
+    }, 1000);
   };
 
   return (
@@ -98,38 +109,47 @@ const ChildManagementScreen = () => {
               hasFilter={false}
               searchPlaceholder="Search Child"
             />
-            <View style={styles.cardContainer}>
-              {mappedChildren.length > 0 ? (
-                mappedChildren?.map((child) => (
-                  <LearnerCard
-                    key={child.id}
-                    learnerId={child.id}
-                    cardType={"profile"}
-                    handleProfilePress={() => {
-                      handleProfilePress(child.id);
-                    }}
-                  />
-                ))
+            <View
+              style={{
+                paddingVertical: 20,
+              }}
+            >
+              {loading || searching ? (
+                <SkeletonCard type="learner" />
               ) : (
-                <View
-                  style={{
-                    flex: 1,
-                    justifyContent: "center",
-                    alignItems: "center",
-                  }}
+                <Animated.View
+                  style={[styles.cardContainer, { opacity: fadeAnim }]}
                 >
-                  <Text
-                    style={{
-                      fontFamily: "Poppins",
-                      fontSize: 16,
-                      fontWeight: 600,
-
-                      color: COLORS.gray,
-                    }}
-                  >
-                    No child found.
-                  </Text>
-                </View>
+                  {mappedChildren.length > 0 ? (
+                    mappedChildren.map((child) => (
+                      <LearnerCard
+                        key={child.id}
+                        learnerId={child.id}
+                        cardType="profile"
+                        handleProfilePress={() => handleProfilePress(child.id)}
+                      />
+                    ))
+                  ) : (
+                    <View
+                      style={{
+                        flex: 1,
+                        justifyContent: "center",
+                        alignItems: "center",
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontFamily: "Poppins",
+                          fontSize: 16,
+                          fontWeight: "600",
+                          color: COLORS.gray,
+                        }}
+                      >
+                        No child found.
+                      </Text>
+                    </View>
+                  )}
+                </Animated.View>
               )}
             </View>
           </View>
@@ -147,7 +167,6 @@ const ChildManagementScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-
     flexDirection: "row",
   },
   pageContainer: { flex: 1, paddingHorizontal: 30, paddingVertical: 20 },
@@ -159,12 +178,8 @@ const styles = StyleSheet.create({
     flex: 1,
     flexWrap: "wrap",
     flexDirection: "row",
-
     alignItems: "center",
-
     gap: 15,
-
-    paddingVertical: 20,
   },
 });
 

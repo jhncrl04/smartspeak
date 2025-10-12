@@ -53,9 +53,9 @@ const PecsCard = ({ learnerId, action, cardId }: CardProps) => {
     },
     shadowWrapper: {
       borderRadius: 5,
-      shadowColor: COLORS.shadow,
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.2,
+      shadowColor: COLORS.gray,
+      shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: 0.5,
       shadowRadius: 5,
       elevation: 5,
     },
@@ -107,7 +107,14 @@ const PecsCard = ({ learnerId, action, cardId }: CardProps) => {
               <Icon name="lock" size={15} color={COLORS.black} />
             </View>
           )}
-          <Image style={styles.pecsImage} source={{ uri: card?.image }} />
+          <Image
+            style={styles.pecsImage}
+            source={
+              card?.image
+                ? { uri: card.image }
+                : require("@/assets/images/no-image.png")
+            }
+          />
           <View style={styles.pecsInfoContainer}>
             <Text
               style={styles.pecsName}
@@ -116,7 +123,13 @@ const PecsCard = ({ learnerId, action, cardId }: CardProps) => {
             >
               {card?.card_name}
             </Text>
-            <Text style={styles.pecsCategory}>{category?.category_name}</Text>
+            <Text
+              style={styles.pecsCategory}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              {category?.category_name || "N/A"}
+            </Text>
           </View>
         </TouchableOpacity>
       </View>

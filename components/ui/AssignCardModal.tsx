@@ -37,10 +37,15 @@ const AssignCardModal = ({
 
   const uid = getCurrentUid();
 
+  const activeCategory = categories.find(
+    (category) => category.id === categoryId
+  );
+
   const mappedCards = cards.filter(
     (card) =>
-      card.created_by === uid &&
-      card.category_id === categoryId &&
+      (card.created_by === uid || card.created_by === "ADMIN") &&
+      (card.category_id === categoryId ||
+        card.category_name === activeCategory?.category_name) &&
       (!card.created_for ||
         card.created_for === learnerId ||
         card.created_for === "all") &&
@@ -56,10 +61,6 @@ const AssignCardModal = ({
 
     return cardName.includes(query);
   });
-
-  const activeCategory = categories.find(
-    (category) => category.id === categoryId
-  );
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);

@@ -2,13 +2,21 @@ import FabMenu from "@/components/FabMenu";
 import PageHeader from "@/components/PageHeader";
 import PecsCard from "@/components/PecsCard";
 import Sidebar from "@/components/Sidebar";
+import SkeletonCard from "@/components/SkeletonCard";
 import AddPecsModal from "@/components/ui/AddPecsModal";
 import COLORS from "@/constants/Colors";
 import getCurrentUid from "@/helper/getCurrentUid";
 import { useCardsStore } from "@/stores/cardsStore";
 import { router } from "expo-router";
-import { useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import {
+  Animated,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 const ManageCardsScreen = () => {
   const handleNavigation = (screen: string) => {
@@ -16,6 +24,13 @@ const ManageCardsScreen = () => {
   };
 
   const [searchQuery, setSearchQuery] = useState("");
+  const [isScreenLoading, setIsScreenLoading] = useState(true);
+
+  const [searching, setSearching] = useState(false);
+  const [isFiltering, setIsFiltering] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<
+    "all" | "my-cards" | "system"
+  >("all");
 
   const { cards, isLoading: cardsLoading, error: cardsError } = useCardsStore();
 
@@ -23,22 +38,71 @@ const ManageCardsScreen = () => {
 
   const uid = getCurrentUid();
 
-  const mappedCards = cards.filter((card) => {
-    if (card.created_by === uid) return card;
-  });
+  const fadeAnim = useRef(new Animated.Value(1)).current;
 
-  const filteredCards = mappedCards.filter((card) => {
-    if (!searchQuery.trim()) return true;
+  useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: isScreenLoading ? 0 : 1,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  }, [isScreenLoading, isFiltering]);
 
-    // Filter by search query (case-insensitive)
-    const query = searchQuery.toLowerCase().trim();
-    const cardName = card.card_name.toLowerCase();
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsScreenLoading(false);
+      setIsFiltering(false);
+    }, 500);
 
-    return cardName.includes(query);
-  });
+    return () => clearTimeout(timer);
+  }, [isFiltering]);
+
+  const mappedCards = cards.filter(
+    (card) => card.created_by === uid || card.created_by === "ADMIN"
+  );
+
+  const filteredCards = mappedCards
+    .filter((card) => {
+      // Search filter
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase().trim();
+        const cardName = card.card_name.toLowerCase();
+        if (!cardName.includes(query)) return false;
+      }
+
+      // Category filter
+      if (activeFilter === "my-cards") {
+        return card.created_by === uid;
+      } else if (activeFilter === "system") {
+        return card.created_by === "ADMIN";
+      }
+
+      return true;
+    })
+    .sort((a, b) => {
+      const aIsUserCreated = a.created_by === uid;
+      const bIsUserCreated = b.created_by === uid;
+
+      if (aIsUserCreated && !bIsUserCreated) return -1;
+      if (!aIsUserCreated && bIsUserCreated) return 1;
+
+      const categoryA = (a.category_name || a.category_id || "").toLowerCase();
+      const categoryB = (b.category_name || b.category_id || "").toLowerCase();
+
+      if (categoryA !== categoryB) {
+        return categoryA.localeCompare(categoryB);
+      }
+
+      return a.card_name.toLowerCase().localeCompare(b.card_name.toLowerCase());
+    });
 
   const handleSearch = (query: string) => {
+    setSearching(true);
     setSearchQuery(query);
+
+    setTimeout(() => {
+      setSearching(false);
+    }, 1000);
   };
 
   return (
@@ -50,7 +114,7 @@ const ManageCardsScreen = () => {
       <View style={styles.container}>
         <Sidebar userRole="teacher" onNavigate={handleNavigation} />
         <ScrollView
-          decelerationRate="fast" // slows down the momentum
+          decelerationRate="fast"
           scrollEventThrottle={16}
           showsVerticalScrollIndicator={false}
         >
@@ -65,33 +129,66 @@ const ManageCardsScreen = () => {
               hasFilter={true}
               searchPlaceholder="Search Card"
             />
-            <View style={styles.cardContainer}>
-              {filteredCards.length === 0 ? (
-                <View
-                  style={{
-                    flex: 1,
-                    justifyContent: "center",
-                    alignItems: "center",
+            <View style={styles.filterContainer}>
+              {[
+                { id: "all", label: "All" },
+                { id: "my-cards", label: "My Cards" },
+                { id: "system", label: "System Default" },
+              ].map((filter) => (
+                <TouchableOpacity
+                  key={filter.id}
+                  style={[
+                    styles.filterButton,
+                    activeFilter === filter.id && styles.filterButtonActive,
+                  ]}
+                  onPress={() => {
+                    setIsFiltering(true);
+                    setActiveFilter(filter.id as "all" | "my-cards" | "system");
                   }}
                 >
                   <Text
+                    style={[
+                      styles.filterText,
+                      activeFilter === filter.id && styles.filterTextActive,
+                    ]}
+                  >
+                    {filter.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            {isScreenLoading || isFiltering || searching ? (
+              <SkeletonCard type="pecs" />
+            ) : (
+              <Animated.View
+                style={[styles.cardContainer, { opacity: fadeAnim }]}
+              >
+                {filteredCards.length === 0 ? (
+                  <View
                     style={{
-                      fontFamily: "Poppins",
-                      fontSize: 16,
-                      fontWeight: 600,
-
-                      color: COLORS.gray,
+                      flex: 1,
+                      justifyContent: "center",
+                      alignItems: "center",
                     }}
                   >
-                    No cards found.
-                  </Text>
-                </View>
-              ) : (
-                filteredCards.map((card, index) => (
-                  <PecsCard action="Delete" key={index} cardId={card.id} />
-                ))
-              )}
-            </View>
+                    <Text
+                      style={{
+                        fontFamily: "Poppins",
+                        fontSize: 16,
+                        fontWeight: 600,
+                        color: COLORS.gray,
+                      }}
+                    >
+                      No cards found.
+                    </Text>
+                  </View>
+                ) : (
+                  filteredCards.map((card, index) => (
+                    <PecsCard action="Delete" key={index} cardId={card.id} />
+                  ))
+                )}
+              </Animated.View>
+            )}
           </View>
         </ScrollView>
         <FabMenu
@@ -106,9 +203,7 @@ const ManageCardsScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-
     flexDirection: "row",
-
     gap: 10,
   },
   sidebar: {
@@ -117,19 +212,41 @@ const styles = StyleSheet.create({
   },
   mainContentContainer: {
     flex: 1,
-
-    gap: 20,
-
     paddingHorizontal: 30,
     paddingVertical: 20,
+    gap: 20,
+  },
+  filterContainer: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  filterButton: {
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 50,
+    backgroundColor: COLORS.lightGray,
+    borderWidth: 1.5,
+    borderColor: "transparent",
+  },
+  filterButtonActive: {
+    backgroundColor: COLORS.accent,
+    borderColor: COLORS.accent,
+  },
+  filterText: {
+    fontWeight: "600",
+    color: COLORS.black,
+    fontSize: 14,
+  },
+  filterTextActive: {
+    color: COLORS.white,
   },
   cardContainer: {
     flex: 1,
     flexWrap: "wrap",
     flexDirection: "row",
-
     alignItems: "center",
-
     gap: 15,
   },
 });

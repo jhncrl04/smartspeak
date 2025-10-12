@@ -2,7 +2,7 @@ import COLORS from "@/constants/Colors";
 import { useSidebarWidth } from "@/context/sidebarContext";
 import { useAuthStore } from "@/stores/userAuthStore";
 import { router, usePathname } from "expo-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   Image,
   ScrollView,
@@ -22,82 +22,41 @@ type SidebarProps = {
 
 const Sidebar = ({ onNavigate, userRole }: SidebarProps) => {
   const user = useAuthStore((state) => state.user);
-
   const [expanded, setExpanded] = useState(false);
-
-  const indexScreenByRole =
-    user?.role.toLowerCase() === "teacher"
-      ? "/screens/teacher/"
-      : "/screens/guardian/";
-
-  const [activeScreen, setActiveScreen] = useState(indexScreenByRole);
+  const [isLoading, setIsLoading] = useState(false);
+  const [disableSidebar, setDisableSidebar] = useState(false);
+  const pathname = usePathname();
 
   const { setWidth } = useSidebarWidth();
 
+  // Use ref to track navigation in progress
+  const isNavigatingRef = useRef(false);
+  const navigationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const teachersMenuItems = [
-    {
-      icon: "people",
-      label: "Learners",
-      screen: "/screens/teacher",
-    },
-    {
-      icon: "image",
-      label: "Cards",
-      screen: "/screens/teacher/manageCards",
-    },
+    { icon: "people", label: "Learners", screen: "/screens/teacher" },
+    { icon: "image", label: "Cards", screen: "/screens/teacher/manageCards" },
     {
       icon: "copy",
       label: "Categories",
       screen: "/screens/teacher/manageBoards",
     },
-    {
-      icon: "bell",
-      label: "Notifications",
-      screen: "/screens/notifications",
-    },
-    {
-      icon: "comment",
-      label: "Messages",
-      screen: "/screens/messages",
-    },
-    {
-      icon: "gear",
-      label: "Settings",
-      screen: "/screens/settings",
-    },
+    { icon: "bell", label: "Notifications", screen: "/screens/notifications" },
+    { icon: "comment", label: "Messages", screen: "/screens/messages" },
+    { icon: "gear", label: "Settings", screen: "/screens/settings" },
   ];
 
   const guardiansMenuItems = [
-    {
-      icon: "people",
-      label: "Children",
-      screen: "/screens/guardian",
-    },
-    {
-      icon: "image",
-      label: "Cards",
-      screen: "/screens/guardian/manageCards",
-    },
+    { icon: "people", label: "Children", screen: "/screens/guardian" },
+    { icon: "image", label: "Cards", screen: "/screens/guardian/manageCards" },
     {
       icon: "copy",
       label: "Categories",
       screen: "/screens/guardian/manageBoards",
     },
-    {
-      icon: "bell",
-      label: "Notifications",
-      screen: "/screens/notifications",
-    },
-    {
-      icon: "comment",
-      label: "Messages",
-      screen: "/screens/messages",
-    },
-    {
-      icon: "gear",
-      label: "Settings",
-      screen: "/screens/settings",
-    },
+    { icon: "bell", label: "Notifications", screen: "/screens/notifications" },
+    { icon: "comment", label: "Messages", screen: "/screens/messages" },
+    { icon: "gear", label: "Settings", screen: "/screens/settings" },
   ];
 
   const menuItems =
@@ -105,56 +64,61 @@ const Sidebar = ({ onNavigate, userRole }: SidebarProps) => {
       ? teachersMenuItems
       : guardiansMenuItems;
 
-  // Report width when expanded/collapsed
   const toggleSidebar = () => {
     const newExpanded = !expanded;
     setExpanded(newExpanded);
-
     const newWidth = newExpanded ? "25%" : 60;
     setWidth(newWidth);
+
+    console.log(newWidth);
   };
 
   const currentWidth = expanded ? "25%" : 60;
 
-  const [disableSidebar, setDisableSidebar] = useState(false);
+  const handleMenuPress = (screen: string) => {
+    if (isNavigatingRef.current || disableSidebar || pathname === screen)
+      return;
 
-  const pathname = usePathname();
+    isNavigatingRef.current = true;
+    setDisableSidebar(true);
+    setIsLoading(true);
 
-  const [isLoading, setIsLoading] = useState(false);
+    setTimeout(() => {
+      router.push(screen as any);
+      onNavigate(screen);
+
+      setTimeout(() => {
+        isNavigatingRef.current = false;
+        setDisableSidebar(false);
+        setIsLoading(false);
+      }, 200);
+    }, 100);
+  };
 
   return (
     <>
-      <View
-        style={[
-          styles.sidebar,
-          { width: currentWidth }, // dynamic width here
-        ]}
-      >
+      <View style={[styles.sidebar, { width: currentWidth }]}>
         <ScrollView
-          decelerationRate="fast" // slows down the momentum
+          decelerationRate="fast"
           scrollEventThrottle={16}
           showsVerticalScrollIndicator={false}
         >
           <View
-            style={{
-              paddingVertical: 16,
-              justifyContent: "space-between",
-            }}
+            style={{ paddingVertical: 16, justifyContent: "space-between" }}
           >
             <View style={{ gap: 0 }}>
-              {/* Expand/Collapse Button */}
               <View style={styles.toggleButton}>
                 {expanded && (
                   <TouchableOpacity
+                    disabled={isNavigatingRef.current}
                     style={{
                       flexDirection: "row",
                       alignItems: "center",
                       justifyContent: "flex-start",
                       gap: 10,
+                      opacity: isNavigatingRef.current ? 0.5 : 1,
                     }}
-                    onPress={() => {
-                      router.push("/screens/settings");
-                    }}
+                    onPress={() => handleMenuPress("/screens/settings")}
                   >
                     <Image
                       source={
@@ -194,35 +158,20 @@ const Sidebar = ({ onNavigate, userRole }: SidebarProps) => {
               </View>
 
               <View style={styles.sidebarInnerContainer}>
-                {/* Menu Items */}
                 {menuItems.map((item) => (
                   <TouchableOpacity
-                    disabled={disableSidebar || pathname === item.screen}
+                    disabled={
+                      isNavigatingRef.current || pathname === item.screen
+                    }
                     key={item.label}
                     style={[
                       styles.menuItem,
                       pathname === item.screen && {
                         backgroundColor: COLORS.lightGray,
                       },
+                      isNavigatingRef.current && { opacity: 0.5 },
                     ]}
-                    onPress={() => {
-                      // Show loading first
-                      setIsLoading(true);
-
-                      // Wait a bit, then navigate
-                      setTimeout(() => {
-                        router.push(item.screen as any);
-                        onNavigate(item.screen);
-
-                        // Hide loading after navigation
-                        setTimeout(() => {
-                          setIsLoading(false);
-                          setDisableSidebar(false);
-                        }, 300);
-                      }, 100); // Small delay to show loading on current screen
-
-                      setDisableSidebar(true);
-                    }}
+                    onPress={() => handleMenuPress(item.screen)}
                   >
                     <View
                       style={[
@@ -256,9 +205,12 @@ const Sidebar = ({ onNavigate, userRole }: SidebarProps) => {
 
             <TouchableOpacity
               style={styles.menuItem}
+              disabled={isNavigatingRef.current}
               onPress={() => {
-                logoutHandler();
-                setIsLoading(true);
+                if (!isNavigatingRef.current) {
+                  logoutHandler();
+                  setIsLoading(true);
+                }
               }}
             >
               <View style={styles.iconContainer}>
@@ -291,7 +243,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     borderRightWidth: 1,
     borderRightColor: COLORS.shadow,
-
     borderTopRightRadius: 20,
     borderBottomRightRadius: 20,
   },

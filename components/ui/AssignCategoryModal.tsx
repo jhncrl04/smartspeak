@@ -29,14 +29,18 @@ const AssignCategoryModal = ({ visible, onClose, learnerId }: Props) => {
 
   const uid = getCurrentUid();
 
-  const mappedCategories = categories.filter(
-    (category) =>
-      category.created_by === uid &&
-      !category.assigned_to?.includes(learnerId!) &&
-      (!category.created_for ||
-        category.created_for === learnerId ||
-        category.created_for === "all")
-  );
+  const mappedCategories = categories
+    .filter(
+      (category) =>
+        (category.created_by === uid || category.created_by_role === "ADMIN") &&
+        !category.assigned_to?.includes(learnerId!) &&
+        (!category.created_for ||
+          category.created_for === learnerId ||
+          category.created_for === "all")
+    )
+    .sort((a, b) => {
+      return a.category_name.localeCompare(b.category_name);
+    });
 
   const filterCategories = mappedCategories.filter((category) => {
     if (!searchQuery.trim()) return true;

@@ -50,10 +50,6 @@ const AddPecsModal = ({ visible, onClose, categoryId }: AddPecsModalProps) => {
 
     const filtered = allCategories.filter((c) => c.created_by === user.uid);
 
-    console.log("User UID:", user.uid);
-    console.log("All Categories:", allCategories.length);
-    console.log("Filtered Categories:", filtered.length);
-
     return filtered;
   }, [allCategories, user?.uid]);
 

@@ -3,6 +3,7 @@ import FabMenu from "@/components/FabMenu";
 import PageHeader from "@/components/PageHeader";
 import PecsCard from "@/components/PecsCard";
 import Sidebar from "@/components/Sidebar";
+import SkeletonCard from "@/components/SkeletonCard";
 import AddPecsModal from "@/components/ui/AddPecsModal";
 import EditCategoryModal from "@/components/ui/EditCategoryModal";
 import COLORS from "@/constants/Colors";
@@ -12,9 +13,8 @@ import { useCategoriesStore } from "@/stores/categoriesStores";
 import { useUsersStore } from "@/stores/userStore";
 import { router } from "expo-router";
 import { useLocalSearchParams } from "expo-router/build/hooks";
-import { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
-import { ActivityIndicator } from "react-native-paper";
+import { useEffect, useRef, useState } from "react";
+import { Animated, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import Icon from "react-native-vector-icons/Octicons";
 
@@ -32,7 +32,29 @@ const ManageThisCategoryScreen = () => {
   const uid = getCurrentUid();
 
   const [loading, setLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isScreenLoading, setIsScreenLoading] = useState(true);
+
+  const [searching, setSearching] = useState(false);
   const [error, setError] = useState<string | undefined>("");
+
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: isScreenLoading ? 0 : 1,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  }, [isScreenLoading]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsScreenLoading(false);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -46,16 +68,32 @@ const ManageThisCategoryScreen = () => {
     if (category.id === categoryId) return category;
   });
 
-  const filteredCards = cards.filter(
-    (card) =>
-      (card.created_by === "ADMIN" &&
-        card.category_name === activeCategory?.category_name) ||
-      card.category_id === (categoryId as string)
-  );
+  const filteredCards = cards
+    .filter((card) => {
+      const isAdminCard =
+        card.created_by === "ADMIN" &&
+        card.category_name === activeCategory?.category_name;
+
+      const isUserCard = card.category_id === categoryId;
+
+      return isAdminCard || isUserCard;
+    })
+    .sort((a, b) => {
+      return a.card_name.localeCompare(b.card_name);
+    });
 
   const [activeModal, setActiveModal] = useState<
     "add-card" | "edit-category" | null
   >(null);
+
+  const handleSearch = (query: string) => {
+    setSearching(true);
+    setSearchQuery(query);
+
+    setTimeout(() => {
+      setSearching(false);
+    }, 1000);
+  };
 
   return (
     <>
@@ -102,54 +140,21 @@ const ManageThisCategoryScreen = () => {
             </View>
 
             <View style={styles.cardContainer}>
-              {loading ? (
-                <View style={styles.loadingContainer}>
-                  <ActivityIndicator size="large" color={COLORS.black} />
-                  <Text>Loading cards...</Text>
-                </View>
+              {isScreenLoading || searching ? (
+                <SkeletonCard type="pecs" />
               ) : error ? (
-                <View
-                  style={{
-                    flex: 1,
-                    justifyContent: "center",
-                    alignItems: "center",
-                  }}
-                >
-                  <Text
-                    style={{
-                      fontFamily: "Poppins",
-                      fontSize: 16,
-                      fontWeight: 600,
-
-                      color: COLORS.errorText,
-                    }}
-                  >
-                    {error}
-                  </Text>
+                <View style={styles.errorContainer}>
+                  <Text style={styles.errorText}>{error}</Text>
                 </View>
-              ) : filteredCards.length === 0 ? (
-                <View
-                  style={{
-                    flex: 1,
-                    justifyContent: "center",
-                    alignItems: "center",
-                  }}
-                >
-                  <Text
-                    style={{
-                      fontFamily: "Poppins",
-                      fontSize: 16,
-                      fontWeight: 600,
-
-                      color: COLORS.gray,
-                    }}
-                  >
+              ) : filteredCards.length === 0 ? ( // ✅ Fixed condition
+                <View style={styles.emptyContainer}>
+                  <Text style={styles.emptyText}>
                     No cards found in this category.
                   </Text>
                 </View>
               ) : (
-                filteredCards.map((card, index) => (
-                  <PecsCard action="Delete" cardId={card.id} key={index} />
+                filteredCards.map((card) => (
+                  <PecsCard action="Delete" cardId={card.id} key={card.id} />
                 ))
               )}
             </View>
@@ -225,6 +230,28 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  errorText: {
+    fontFamily: "Poppins",
+    fontSize: 16,
+    fontWeight: "600",
+    color: COLORS.errorText,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  emptyText: {
+    fontFamily: "Poppins",
+    fontSize: 16,
+    fontWeight: "600",
+    color: COLORS.gray,
   },
 });
 

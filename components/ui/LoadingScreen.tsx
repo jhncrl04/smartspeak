@@ -1,5 +1,5 @@
 import COLORS from "@/constants/Colors";
-import { ActivityIndicator, Modal, StyleSheet, View } from "react-native";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
 
 type LoadingScreenProps = {
   visible: boolean;
@@ -7,11 +7,11 @@ type LoadingScreenProps = {
 
 const LoadingScreen = ({ visible }: LoadingScreenProps) => {
   return (
-    <Modal transparent visible={visible}>
+    visible && (
       <View style={styles.overlay}>
         <ActivityIndicator size="large" color={COLORS.accent} />
       </View>
-    </Modal>
+    )
   );
 };
 
@@ -25,6 +25,8 @@ const styles = StyleSheet.create({
 
     width: "100%",
     height: "100%",
+
+    zIndex: 20,
 
     flex: 1,
     backgroundColor: COLORS.shadow,

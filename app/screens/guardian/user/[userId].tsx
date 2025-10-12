@@ -3,16 +3,17 @@ import Board from "@/components/Board";
 import FabMenu from "@/components/FabMenu";
 import LearnerProfileHeader from "@/components/LeanerProfileHeader";
 import Sidebar from "@/components/Sidebar";
+import SkeletonCard from "@/components/SkeletonCard";
 import AssignCategoryModal from "@/components/ui/AssignCategoryModal";
 import PreviousReportsModal from "@/components/ui/PreviousReportModal";
 import COLORS from "@/constants/Colors";
 import { calculateAge } from "@/helper/calculateAge";
+import getCurrentUid from "@/helper/getCurrentUid";
 import { useCategoriesStore } from "@/stores/categoriesStores";
 import { useUsersStore } from "@/stores/userStore";
 import { router, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
-
 import Icon from "react-native-vector-icons/Octicons";
 
 const LearnerProfile = () => {
@@ -22,18 +23,48 @@ const LearnerProfile = () => {
 
   const { users } = useUsersStore();
   const { categories } = useCategoriesStore();
-
   const { userId } = useLocalSearchParams();
 
-  const userInfo = users.find((user) => {
-    if (user.id === userId) return user;
-  });
+  const [isLoading, setIsLoading] = useState(true);
 
-  const mappedCategories = categories.filter(
-    (category) =>
-      category.assigned_to?.includes(userId as string) ||
-      category.created_by_role === "ADMIN"
-  );
+  // Memoize user lookup to prevent unnecessary recalculations
+  const userInfo = useMemo(() => {
+    return users.find((user) => user.id === userId);
+  }, [users, userId]);
+
+  const uid = getCurrentUid();
+
+  // Memoize category filtering
+  const mappedCategories = useMemo(() => {
+    return categories
+      .filter((category) => category.assigned_to?.includes(userId as string))
+      .sort((a, b) => {
+        const aIsUserCreated = a.created_by === uid;
+        const bIsUserCreated = b.created_by === uid;
+
+        if (aIsUserCreated && !bIsUserCreated) return -1;
+        if (!aIsUserCreated && bIsUserCreated) return 1;
+
+        const categoryA = (a.category_name || "").toLowerCase();
+        const categoryB = (b.category_name || "").toLowerCase();
+
+        if (categoryA !== categoryB) {
+          return categoryA.localeCompare(categoryB);
+        }
+
+        return a.category_name
+          .toLowerCase()
+          .localeCompare(b.category_name.toLowerCase());
+      });
+  }, [categories, userId]);
+
+  // Simulate data load completion (remove this when actual async loads finish)
+  useEffect(() => {
+    if (userInfo) {
+      // Data is ready, hide loading
+      setIsLoading(false);
+    }
+  }, [userInfo]);
 
   const [activeModal, setActiveModal] = useState<
     "assign_category" | "remove_learner" | null
@@ -43,7 +74,24 @@ const LearnerProfile = () => {
   const [isPreviousReportsModalActive, setIsPreviousReportsModalActive] =
     useState(false);
 
-  const age = calculateAge(userInfo?.date_of_birth!);
+  const age = useMemo(() => {
+    return userInfo?.date_of_birth
+      ? calculateAge(userInfo.date_of_birth)
+      : null;
+  }, [userInfo?.date_of_birth]);
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <Sidebar userRole="guardian" onNavigate={handleNavigation} />
+        <ScrollView style={styles.scrollContainer}>
+          <View style={styles.profileSection}>
+            <SkeletonCard type="pecs" />
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <>
@@ -97,12 +145,9 @@ const LearnerProfile = () => {
                   <Text style={styles.emptyStateTitle}>
                     No Categories Assigned
                   </Text>
-                  {/* <Text style={styles.emptyStateSubtitle}>
-                    Tap the + button above to assign categories to this student
-                  </Text> */}
                 </View>
               ) : (
-                mappedCategories?.map((category, index) => (
+                mappedCategories?.map((category) => (
                   <Board
                     categoryId={category.id}
                     key={category.id}
@@ -151,42 +196,11 @@ const LearnerProfile = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-
     flexDirection: "row",
     gap: 10,
   },
-  mobileHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: COLORS.white,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.lightGray || "#f0f0f0",
-    elevation: 2,
-    shadowColor: COLORS.black,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  backButton: {
-    padding: 8,
-    borderRadius: 20,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: COLORS.black,
-    fontFamily: "Poppins",
-  },
-  menuButton: {
-    padding: 8,
-    borderRadius: 20,
-  },
   scrollContainer: {
     flex: 1,
-
     paddingHorizontal: 30,
   },
   profileSection: {
@@ -234,13 +248,6 @@ const styles = StyleSheet.create({
     marginTop: 16,
     marginBottom: 8,
     textAlign: "center",
-  },
-  emptyStateSubtitle: {
-    fontSize: 14,
-    color: COLORS.gray,
-    fontFamily: "Poppins",
-    textAlign: "center",
-    lineHeight: 20,
   },
 });
 

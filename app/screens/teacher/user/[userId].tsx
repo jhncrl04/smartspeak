@@ -3,22 +3,37 @@ import Board from "@/components/Board";
 import FabMenu from "@/components/FabMenu";
 import LearnerProfileHeader from "@/components/LeanerProfileHeader";
 import Sidebar from "@/components/Sidebar";
+import SkeletonCard from "@/components/SkeletonCard";
 import AssignCategoryModal from "@/components/ui/AssignCategoryModal";
 import PreviousReportsModal from "@/components/ui/PreviousReportModal";
 import ProgressReportModal from "@/components/ui/ProgressReportModal";
 import COLORS from "@/constants/Colors";
 import { calculateAge } from "@/helper/calculateAge";
+import getCurrentUid from "@/helper/getCurrentUid";
 import { useCategoriesStore } from "@/stores/categoriesStores";
 import { useUsersStore } from "@/stores/userStore";
 import { router, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
-import { SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import {
+  Animated,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import { ActivityIndicator } from "react-native-paper";
 import Icon from "react-native-vector-icons/Octicons";
 
 const LearnerProfile = () => {
   const handleNavigation = (screen: string) => {
     router.push(screen as any);
   };
+
+  const [isScreenLoading, setIsScreenLoading] = useState(true);
+  const [navigatingCategoryId, setNavigatingCategoryId] = useState<
+    string | null
+  >(null);
 
   const { users } = useUsersStore();
   const { categories } = useCategoriesStore();
@@ -29,11 +44,46 @@ const LearnerProfile = () => {
     if (user.id === userId) return user;
   });
 
-  const mappedCategories = categories.filter(
-    (category) =>
-      category.assigned_to?.includes(userId as string) ||
-      category.created_by_role === "ADMIN"
-  );
+  const uid = getCurrentUid();
+
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: isScreenLoading ? 0 : 1,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  }, [isScreenLoading]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsScreenLoading(false);
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  const mappedCategories = categories
+    .filter((category) => category.assigned_to?.includes(userId as string))
+    .sort((a, b) => {
+      const aIsUserCreated = a.created_by === uid;
+      const bIsUserCreated = b.created_by === uid;
+
+      if (aIsUserCreated && !bIsUserCreated) return -1;
+      if (!aIsUserCreated && bIsUserCreated) return 1;
+
+      const categoryA = (a.category_name || "").toLowerCase();
+      const categoryB = (b.category_name || "").toLowerCase();
+
+      if (categoryA !== categoryB) {
+        return categoryA.localeCompare(categoryB);
+      }
+
+      return a.category_name
+        .toLowerCase()
+        .localeCompare(b.category_name.toLowerCase());
+    });
 
   const [activeModal, setActiveModal] = useState<
     "assign_category" | "remove_learner" | null
@@ -48,6 +98,28 @@ const LearnerProfile = () => {
   //   await removeAsStudent(learnerId);
   //   await removeStudentToSection(learnerId, sectionId);
   // };
+
+  const handleBoardPress = (categoryId: string, createdBy: string) => {
+    // Prevent navigation if already navigating
+    if (navigatingCategoryId) return;
+
+    // Set the navigating state
+    setNavigatingCategoryId(categoryId);
+
+    router.push({
+      pathname: "/screens/teacher/user/category/[categoryId]",
+      params: {
+        userId: userId,
+        categoryId: categoryId,
+        creatorId: createdBy,
+      },
+    });
+
+    // Reset navigating state after a delay (fallback in case navigation doesn't complete)
+    setTimeout(() => {
+      setNavigatingCategoryId(null);
+    }, 2000);
+  };
 
   return (
     <>
@@ -92,36 +164,44 @@ const LearnerProfile = () => {
             </View>
 
             {/* Categories Grid */}
-            <View style={styles.categoriesGrid}>
-              {mappedCategories && mappedCategories.length <= 0 ? (
-                <View style={styles.emptyState}>
-                  <Icon name="inbox" size={48} color={COLORS.gray} />
-                  <Text style={styles.emptyStateTitle}>
-                    No Categories Assigned
-                  </Text>
-                  {/* <Text style={styles.emptyStateSubtitle}>
-                    Tap the + button above to assign categories to this student
-                  </Text> */}
-                </View>
-              ) : (
-                mappedCategories?.map((category, index) => (
-                  <Board
-                    key={index}
-                    categoryId={category.id}
-                    routerHandler={() => {
-                      router.push({
-                        pathname: "/screens/teacher/user/category/[categoryId]",
-                        params: {
-                          userId: userId,
-                          categoryId: category!.id,
-                          creatorId: category!.created_by,
-                        },
-                      });
+            {isScreenLoading ? (
+              <SkeletonCard type="board" />
+            ) : (
+              <Animated.View
+                style={[styles.categoriesGrid, { opacity: fadeAnim }]}
+              >
+                {mappedCategories.length === 0 ? (
+                  <View
+                    style={{
+                      flex: 1,
+                      justifyContent: "center",
+                      alignItems: "center",
                     }}
-                  />
-                ))
-              )}
-            </View>
+                  >
+                    <Text
+                      style={{
+                        fontFamily: "Poppins",
+                        fontSize: 16,
+                        fontWeight: 600,
+                        color: COLORS.gray,
+                      }}
+                    >
+                      No Categories found.
+                    </Text>
+                  </View>
+                ) : (
+                  mappedCategories.map((category, index) => (
+                    <Board
+                      categoryId={category.id}
+                      key={category.id}
+                      routerHandler={() => {
+                        handleBoardPress(category.id, category.created_by);
+                      }}
+                    />
+                  ))
+                )}
+              </Animated.View>
+            )}
           </View>
         </ScrollView>
 
@@ -154,6 +234,12 @@ const LearnerProfile = () => {
           }}
         />
       </SafeAreaView>
+
+      {navigatingCategoryId && (
+        <View style={styles.boardLoadingOverlay}>
+          <ActivityIndicator size="large" color={COLORS.accent} />
+        </View>
+      )}
     </>
   );
 };
@@ -251,6 +337,17 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins",
     textAlign: "center",
     lineHeight: 20,
+  },
+  boardLoadingOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 8,
   },
 });
 

@@ -3,6 +3,7 @@ import FabMenu from "@/components/FabMenu";
 import LearnerProfileHeader from "@/components/LeanerProfileHeader";
 import PecsCard from "@/components/PecsCard";
 import Sidebar from "@/components/Sidebar";
+import SkeletonCard from "@/components/SkeletonCard";
 import AssignCardModal from "@/components/ui/AssignCardModal";
 import { showToast } from "@/components/ui/MyToast";
 import PreviousReportsModal from "@/components/ui/PreviousReportModal";
@@ -14,14 +15,25 @@ import { useCardsStore } from "@/stores/cardsStore";
 import { useCategoriesStore } from "@/stores/categoriesStores";
 import { useUsersStore } from "@/stores/userStore";
 import { router, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
-import { SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import {
+  Animated,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import Icon from "react-native-vector-icons/Octicons";
 
 const LearnerProfileCategory = () => {
   const handleNavigation = (screen: string) => {
     router.push(screen as any);
   };
+
+  const [loading, setLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isScreenLoading, setIsScreenLoading] = useState(true);
 
   const { users } = useUsersStore();
   const { cards } = useCardsStore();
@@ -39,13 +51,30 @@ const LearnerProfileCategory = () => {
 
   const filteredCards = cards.filter(
     (card) =>
-      (card.created_by === "ADMIN" &&
-        card.category_name === activeCategory?.category_name) ||
-      (card.assigned_to?.includes(userId) &&
-        card.category_id === (categoryId as string))
+      (card.category_name === activeCategory?.category_name ||
+        card.category_id === (categoryId as string)) &&
+      card.assigned_to?.includes(userId)
   );
 
   const uid = getCurrentUid();
+
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: isScreenLoading ? 0 : 1,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  }, [isScreenLoading]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsScreenLoading(false);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   const [activeModal, setActiveModal] = useState<"assign-card" | null>(null);
 
@@ -53,9 +82,14 @@ const LearnerProfileCategory = () => {
 
   const handleUnassignCategory = async (
     categoryId: string,
-    learnerId: string
+    learnerId: string,
+    categoryName: string | undefined
   ) => {
-    const result: any = await unassignCategory(categoryId, learnerId);
+    const result: any = await unassignCategory(
+      categoryId,
+      learnerId,
+      categoryName
+    );
 
     showToast(
       "success",
@@ -113,44 +147,46 @@ const LearnerProfileCategory = () => {
               </Text>
             </View>
           </View>
-          {creatorId !== uid && (
-            <View style={styles.warningBox}>
-              <Text style={styles.warningText}>
-                This are view only category. Editing and deleting is disabled.
-              </Text>
-            </View>
-          )}
+          {creatorId !== uid ||
+            (creatorId !== "ADMIN" && (
+              <View style={styles.warningBox}>
+                <Text style={styles.warningText}>
+                  This are view only category. Editing and deleting is disabled.
+                </Text>
+              </View>
+            ))}
           <View style={styles.categoriesGrid}>
-            {filteredCards && filteredCards.length <= 0 ? (
+            {isScreenLoading ? (
+              <SkeletonCard type="pecs" />
+            ) : filteredCards.length === 0 ? ( // ✅ Fixed condition
               <View style={styles.emptyState}>
-                <Icon name="inbox" size={48} color={COLORS.gray} />
                 <Text style={styles.emptyStateTitle}>
-                  No Categories Assigned
+                  No cards found in this category.
                 </Text>
               </View>
             ) : (
-              filteredCards?.map((card, index) => (
-                <PecsCard
-                  action="Unassign"
-                  learnerId={userId as string}
-                  cardId={card.id}
-                  key={card.id}
-                />
+              filteredCards.map((card) => (
+                <PecsCard action="Delete" cardId={card.id} key={card.id} />
               ))
             )}
           </View>
         </ScrollView>
-        {uid === (creatorId as string) && (
-          <FabMenu
-            page="learnerAssignedCategory"
-            actions={{
-              assign_card: () => setActiveModal("assign-card"),
-              unassign_category: () => {
-                handleUnassignCategory(categoryId as string, userId as string);
-              },
-            }}
-          />
-        )}
+        {uid === (creatorId as string) ||
+          (creatorId !== "ADMIN" && (
+            <FabMenu
+              page="learnerAssignedCategory"
+              actions={{
+                assign_card: () => setActiveModal("assign-card"),
+                unassign_category: () => {
+                  handleUnassignCategory(
+                    categoryId as string,
+                    userId as string,
+                    activeCategory?.category_name
+                  );
+                },
+              }}
+            />
+          ))}
       </SafeAreaView>
 
       {/* modals */}

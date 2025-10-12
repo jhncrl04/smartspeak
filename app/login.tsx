@@ -100,84 +100,88 @@ const LoginScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <LoadingScreen visible={loading} />
-
-      <View style={{ flex: 1, width: "100%" }}>
-        <View style={styles.loginForm}>
-          <View style={styles.inputContainer}>
-            <TextFieldWrapper label="Email">
-              <TextInput
-                style={styles.textbox}
-                placeholder=""
-                keyboardType="email-address"
-                value={email}
-                onChangeText={setEmail}
-              />
-            </TextFieldWrapper>
-
-            <TextFieldWrapper label="Password">
-              <View
-                style={[
-                  styles.textbox,
-                  {
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-
-                    paddingHorizontal: 0,
-                    paddingVertical: 0,
-                  },
-                ]}
-              >
+    <>
+      <View style={styles.container}>
+        <View style={{ flex: 1, width: "100%" }}>
+          <View style={styles.loginForm}>
+            <View style={styles.inputContainer}>
+              <TextFieldWrapper label="Email">
                 <TextInput
+                  style={styles.textbox}
+                  placeholder=""
+                  keyboardType="email-address"
+                  value={email}
+                  onChangeText={setEmail}
+                />
+              </TextFieldWrapper>
+
+              <TextFieldWrapper label="Password">
+                <View
                   style={[
                     styles.textbox,
                     {
-                      flex: 1,
-                      borderWidth: 0,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+
+                      paddingHorizontal: 0,
+                      paddingVertical: 0,
                     },
                   ]}
-                  placeholder=""
-                  secureTextEntry={!showPassword}
-                  value={password}
-                  onChangeText={setPassword}
-                />
-                <TouchableOpacity
-                  style={{
-                    paddingHorizontal: 20,
-                    paddingVertical: 8,
-                  }}
-                  onPress={() => setShowPassword(!showPassword)}
                 >
-                  <Icon name={showPassword ? "eye-closed" : "eye"} size={20} />
-                </TouchableOpacity>
-              </View>
-            </TextFieldWrapper>
-          </View>
-          <ActionLink
-            text="Forgot Password?"
-            clickHandler={() => {
-              router.push("/forgotPassword");
-            }}
-          />
-          <View>
-            <PrimaryButton
-              title={"Log In"}
-              disabled={loading}
-              clickHandler={async () => {
-                await validateInput(email, password);
+                  <TextInput
+                    style={[
+                      styles.textbox,
+                      {
+                        flex: 1,
+                        borderWidth: 0,
+                      },
+                    ]}
+                    placeholder=""
+                    secureTextEntry={!showPassword}
+                    value={password}
+                    onChangeText={setPassword}
+                  />
+                  <TouchableOpacity
+                    style={{
+                      paddingHorizontal: 20,
+                      paddingVertical: 8,
+                    }}
+                    onPress={() => setShowPassword(!showPassword)}
+                  >
+                    <Icon
+                      name={showPassword ? "eye-closed" : "eye"}
+                      size={20}
+                    />
+                  </TouchableOpacity>
+                </View>
+              </TextFieldWrapper>
+            </View>
+            <ActionLink
+              text="Forgot Password?"
+              clickHandler={() => {
+                router.push("/forgotPassword");
               }}
             />
-            {/* <ButtonSeparator />
+            <View>
+              <PrimaryButton
+                title={"Log In"}
+                disabled={loading}
+                clickHandler={async () => {
+                  await validateInput(email, password);
+                }}
+              />
+              {/* <ButtonSeparator />
             <SecondaryButton
               title={"Continue With Google"}
               clickHandler={() => {}}
             /> */}
+            </View>
           </View>
         </View>
       </View>
-    </View>
+      <LoadingScreen visible={loading} />
+    </>
   );
 };
 

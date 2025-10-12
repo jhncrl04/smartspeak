@@ -2,13 +2,21 @@ import Board from "@/components/Board";
 import FabMenu from "@/components/FabMenu";
 import PageHeader from "@/components/PageHeader";
 import Sidebar from "@/components/Sidebar";
+import SkeletonCard from "@/components/SkeletonCard";
 import AddCategoryModal from "@/components/ui/AddCategoryModal";
 import COLORS from "@/constants/Colors";
 import getCurrentUid from "@/helper/getCurrentUid";
 import { useCategoriesStore } from "@/stores/categoriesStores";
 import { router } from "expo-router";
-import { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import {
+  Animated,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { ActivityIndicator } from "react-native-paper";
 
 const ManageBoardsScreen = () => {
@@ -20,21 +28,37 @@ const ManageBoardsScreen = () => {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [activeModal, setActiveModal] = useState<"add" | null>(null);
-  const [loading, setLoading] = useState(true);
+
+  const [isScreenLoading, setIsScreenLoading] = useState(true);
+  const [isFiltering, setIsFiltering] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<
+    "all" | "my-categories" | "system"
+  >("all");
   const [navigatingCategoryId, setNavigatingCategoryId] = useState<
     string | null
   >(null);
 
   const uid = getCurrentUid();
 
-  // Simulate loading effect
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: isScreenLoading ? 0 : 1,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  }, [isScreenLoading, isFiltering]);
+
   useEffect(() => {
     const timer = setTimeout(() => {
-      setLoading(false);
-    }, 500);
+      setIsScreenLoading(false);
+      setIsFiltering(false);
+    }, 1000);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [isFiltering]);
 
   const mappedCateories = categories.filter((category) => {
     return category.created_by === uid || category.created_by_role === "ADMIN";
@@ -42,26 +66,40 @@ const ManageBoardsScreen = () => {
 
   const filteredCategories = mappedCateories
     .filter((category) => {
-      if (!searchQuery.trim()) return true;
+      if (searchQuery.trim()) {
+        // Filter by search query (case-insensitive)
+        const query = searchQuery.toLowerCase().trim();
+        const categoryName = category.category_name.toLowerCase();
+        if (!categoryName.includes(query)) return false;
+      }
 
-      // Filter by search query (case-insensitive)
-      const query = searchQuery.toLowerCase().trim();
-      const categoryName = category.category_name.toLowerCase();
+      // Category filter
+      if (activeFilter === "my-categories") {
+        return category.created_by === uid;
+      } else if (activeFilter === "system") {
+        return category.created_by_role === "ADMIN";
+      }
 
-      return categoryName.includes(query);
+      return true;
     })
     .sort((a, b) => {
-      // Admin cards should go last
-      if (a.created_by_role === "ADMIN" && b.created_by_role !== "ADMIN")
-        return 1;
-      if (a.created_by_role !== "ADMIN" && b.created_by_role === "ADMIN")
-        return -1;
-      return 0;
-    });
+      const aIsUserCreated = a.created_by === uid;
+      const bIsUserCreated = b.created_by === uid;
 
-  const handleSearch = (query: string) => {
-    setSearchQuery(query);
-  };
+      if (aIsUserCreated && !bIsUserCreated) return -1;
+      if (!aIsUserCreated && bIsUserCreated) return 1;
+
+      const categoryA = (a.category_name || "").toLowerCase();
+      const categoryB = (b.category_name || "").toLowerCase();
+
+      if (categoryA !== categoryB) {
+        return categoryA.localeCompare(categoryB);
+      }
+
+      return a.category_name
+        .toLowerCase()
+        .localeCompare(b.category_name.toLowerCase());
+    });
 
   const handleBoardPress = (categoryId: string, createdBy: string) => {
     // Prevent navigation if already navigating
@@ -83,6 +121,15 @@ const ManageBoardsScreen = () => {
     setTimeout(() => {
       setNavigatingCategoryId(null);
     }, 2000);
+  };
+
+  const handleSearch = (query: string) => {
+    setSearching(true);
+    setSearchQuery(query);
+
+    setTimeout(() => {
+      setSearching(false);
+    }, 1000);
   };
 
   return (
@@ -109,33 +156,74 @@ const ManageBoardsScreen = () => {
               }}
               query="local"
             />
-            <View style={styles.boardContainer}>
-              {loading ? (
-                <View style={styles.loadingContainer}>
-                  <ActivityIndicator size="large" color={COLORS.black} />
-                  <Text style={styles.loadingText}>Loading categories...</Text>
-                </View>
-              ) : filteredCategories.length === 0 ? (
-                <View style={styles.emptyContainer}>
-                  <Text style={styles.emptyText}>
-                    {searchQuery.trim()
-                      ? "No categories found matching your search."
-                      : "No categories found. Create one to get started."}
+            <View style={styles.filterContainer}>
+              {[
+                { id: "all", label: "All" },
+                { id: "my-categories", label: "My Categories" },
+                { id: "system", label: "System Default" },
+              ].map((filter) => (
+                <TouchableOpacity
+                  key={filter.id}
+                  style={[
+                    styles.filterButton,
+                    activeFilter === filter.id && styles.filterButtonActive,
+                  ]}
+                  onPress={() => {
+                    setIsFiltering(true);
+                    setActiveFilter(
+                      filter.id as "all" | "my-categories" | "system"
+                    );
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.filterText,
+                      activeFilter === filter.id && styles.filterTextActive,
+                    ]}
+                  >
+                    {filter.label}
                   </Text>
-                </View>
-              ) : (
-                filteredCategories.map((category, index) => (
-                  <View key={category.id} style={styles.boardWrapper}>
+                </TouchableOpacity>
+              ))}
+            </View>
+            {isScreenLoading || isFiltering || searching ? (
+              <SkeletonCard type="board" />
+            ) : (
+              <Animated.View
+                style={[styles.boardContainer, { opacity: fadeAnim }]}
+              >
+                {filteredCategories.length === 0 ? (
+                  <View
+                    style={{
+                      flex: 1,
+                      justifyContent: "center",
+                      alignItems: "center",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontFamily: "Poppins",
+                        fontSize: 16,
+                        fontWeight: 600,
+                        color: COLORS.gray,
+                      }}
+                    >
+                      No Categories found.
+                    </Text>
+                  </View>
+                ) : (
+                  filteredCategories.map((category, index) => (
                     <Board
                       categoryId={category.id}
-                      routerHandler={() =>
-                        handleBoardPress(category.id, category.created_by)
-                      }
+                      key={category.id}
+                      routerHandler={() => {
+                        handleBoardPress(category.id, category.created_by);
+                      }}
                     />
-                  </View>
-                ))
-              )}
-            </View>
+                  ))
+                )}
+              </Animated.View>
+            )}
           </View>
         </ScrollView>
         <FabMenu
@@ -216,6 +304,32 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: COLORS.gray,
     textAlign: "center",
+  },
+  filterContainer: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  filterButton: {
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 50,
+    backgroundColor: COLORS.lightGray,
+    borderWidth: 1.5,
+    borderColor: "transparent",
+  },
+  filterButtonActive: {
+    backgroundColor: COLORS.accent,
+    borderColor: COLORS.accent,
+  },
+  filterText: {
+    fontWeight: "600",
+    color: COLORS.black,
+    fontSize: 14,
+  },
+  filterTextActive: {
+    color: COLORS.white,
   },
 });
 

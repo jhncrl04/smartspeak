@@ -34,6 +34,18 @@ const TeacherLayout = () => {
             title: "Manage Learners",
           }}
         />
+        <Stack.Screen
+          name="manageBoards"
+          options={{
+            title: "Manage Categories",
+          }}
+        />
+        <Stack.Screen
+          name="manageCards"
+          options={{
+            title: "Manage Cards",
+          }}
+        />
       </Stack>
     </SidebarProvider>
   );

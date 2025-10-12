@@ -4,7 +4,7 @@ const ProfileBubble = ({ user, onPress }: any) => {
   const profileImage =
     user?.photo_url || user?.profile_pic
       ? { uri: user?.photo_url || user?.profile_pic }
-      : require("../assets/images/default.jpg");
+      : require("@/assets/images/default.jpg");
 
   const displayName =
     user?.first_name || user?.last_name
