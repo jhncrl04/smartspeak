@@ -62,8 +62,6 @@ const ViewCardModal = ({
   const [isLoading, setIsLoading] = useState(false);
 
   const disableEdit = card?.created_by !== getCurrentUid();
-  const disableUnassign =
-    card?.created_by === "ADMIN" || card?.created_by === getCurrentUid();
 
   // Initialize state when modal opens or card changes
   useEffect(() => {
@@ -322,7 +320,7 @@ const ViewCardModal = ({
                 <SecondaryButton
                   title={action}
                   clickHandler={() => handleAction(cardId, action)}
-                  disabled={!disableUnassign}
+                  disabled={card.created_by === "ADMIN" && action === "Delete"}
                 />
               </View>
             </ScrollView>

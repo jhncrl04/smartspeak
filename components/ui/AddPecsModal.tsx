@@ -5,7 +5,6 @@ import {
   Modal,
   ScrollView,
   StyleSheet,
-  Text,
   TextInput,
   TouchableOpacity,
   TouchableWithoutFeedback,
@@ -303,7 +302,7 @@ const AddPecsModal = ({ visible, onClose, categoryId }: AddPecsModalProps) => {
                 />
               </TextFieldWrapper>
 
-              {showCardTypeSelection && (
+              {/* {showCardTypeSelection && (
                 <TextFieldWrapper label="Card Type">
                   <View style={styles.radioContainer}>
                     <TouchableOpacity
@@ -359,7 +358,7 @@ const AddPecsModal = ({ visible, onClose, categoryId }: AddPecsModalProps) => {
                       value={selectedLearner}
                     />
                   </TextFieldWrapper>
-                )}
+                )} */}
 
               <View style={styles.buttonContainer}>
                 <PrimaryButton

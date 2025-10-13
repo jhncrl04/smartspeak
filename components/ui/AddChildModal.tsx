@@ -31,6 +31,7 @@ import LoadingScreen from "./LoadingScreen";
 import MyDropdown from "./MyDropdown";
 
 import Constants from "expo-constants";
+import zxcvbn from "zxcvbn";
 
 const pscgApi = Constants.expoConfig?.extra?.PSGC_API;
 
@@ -93,7 +94,12 @@ const AddChildModal = ({ visible, onClose }: Props) => {
   const [image, setImage] = useState("");
   const [direction, setDirection] = useState<"left" | "right">("right");
 
-  // Address dropdown data (you'll need to populate these with actual data)
+  // Password validation states
+  const [showPassword, setShowPassword] = useState(false);
+  const [passwordStrength, setPasswordStrength] = useState<number>(0);
+  const [passwordMsg, setPasswordMsg] = useState("");
+
+  // Address dropdown data
   const [regions, setRegions] = useState([]);
   const [provinces, setProvinces] = useState([]);
   const [municipalities, setMunicipalities] = useState([]);
@@ -131,7 +137,7 @@ const AddChildModal = ({ visible, onClose }: Props) => {
           }))
           .sort((a: any, b: any) => a.label.localeCompare(b.label));
         setRegions(formatted);
-        setIsFirstLoad(false); // after first fetch
+        setIsFirstLoad(false);
       })
       .catch((err) => console.error("Error fetching regions:", err));
   }, []);
@@ -179,8 +185,6 @@ const AddChildModal = ({ visible, onClose }: Props) => {
           setSelectedCity(null);
           setSelectedBarangay(null);
         }
-
-        console.log(formData);
       })
       .catch((err) => console.error("Error fetching cities:", err));
   }, [formData.province]);
@@ -210,8 +214,6 @@ const AddChildModal = ({ visible, onClose }: Props) => {
         if (!isFirstLoad) {
           setSelectedBarangay(null);
         }
-
-        console.log(formData);
       })
       .catch((err) => console.error("Error fetching barangays:", err));
   }, [
@@ -220,6 +222,43 @@ const AddChildModal = ({ visible, onClose }: Props) => {
     formData.municipality_name,
   ]);
 
+  const validatePasswordStrength = (password: string) => {
+    if (password.length === 0) {
+      setPasswordMsg("");
+      setPasswordStrength(0);
+      return;
+    }
+
+    const { score, feedback } = zxcvbn(password);
+
+    setPasswordStrength(score);
+
+    switch (score) {
+      case 0:
+        setPasswordMsg("Password required");
+        break;
+      case 1:
+        setPasswordMsg(
+          feedback.warning !== ""
+            ? `${feedback.warning}.\nPassword is too weak.`
+            : "Password is too weak."
+        );
+        break;
+      case 2:
+        setPasswordMsg(
+          feedback.warning !== ""
+            ? `${feedback.warning}.\nPassword is good.`
+            : "Password is good."
+        );
+        break;
+      case 3:
+        setPasswordMsg("Password is excellent.");
+        break;
+      default:
+        setPasswordMsg("Password is excellent.");
+    }
+  };
+
   const resetForm = () => {
     setFormData(initialFormData);
     setConfirmPass("");
@@ -227,6 +266,9 @@ const AddChildModal = ({ visible, onClose }: Props) => {
     setError("");
     setStep(1);
     setDirection("right");
+    setShowPassword(false);
+    setPasswordStrength(0);
+    setPasswordMsg("");
   };
 
   const handleClose = () => {
@@ -293,6 +335,11 @@ const AddChildModal = ({ visible, onClose }: Props) => {
 
       if (formData.password !== confirmPass) {
         Alert.alert("Password mismatch", "Passwords don't match.");
+        return;
+      }
+
+      if (passwordStrength < 2) {
+        Alert.alert("Weak password", "Please create a stronger password.");
         return;
       }
     }
@@ -380,15 +427,12 @@ const AddChildModal = ({ visible, onClose }: Props) => {
           </TouchableWithoutFeedback>
 
           <View style={styles.modalContainer}>
-            {/* Close Button */}
             <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
               <Icon name="x" size={22} color={COLORS.gray} />
             </TouchableOpacity>
 
-            {/* Title */}
             <Text style={styles.modalTitle}>Add Child</Text>
 
-            {/* Step Content with ScrollView */}
             <ScrollView
               style={styles.mainContainer}
               showsVerticalScrollIndicator={false}
@@ -409,6 +453,7 @@ const AddChildModal = ({ visible, onClose }: Props) => {
                     style={styles.stepContainer}
                   >
                     <Text style={styles.title}>Account Setup</Text>
+
                     <TextFieldWrapper label="Email">
                       <TextInput
                         placeholder="Enter email"
@@ -420,26 +465,146 @@ const AddChildModal = ({ visible, onClose }: Props) => {
                         style={styles.input}
                       />
                     </TextFieldWrapper>
+
                     <TextFieldWrapper label="Password">
-                      <TextInput
-                        placeholder="Enter password"
-                        secureTextEntry
-                        value={formData.password}
-                        onChangeText={(text) =>
-                          setFormData({ ...formData, password: text })
-                        }
-                        style={styles.input}
-                      />
+                      <View
+                        style={[
+                          styles.input,
+                          {
+                            flexDirection: "row",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            paddingHorizontal: 0,
+                            paddingVertical: 0,
+                          },
+                        ]}
+                      >
+                        <TextInput
+                          style={[
+                            styles.input,
+                            {
+                              flex: 1,
+                              borderWidth: 0,
+                            },
+                          ]}
+                          placeholder="Enter password"
+                          value={formData.password}
+                          onChangeText={(text) => {
+                            validatePasswordStrength(text);
+                            setFormData({ ...formData, password: text });
+                          }}
+                          secureTextEntry={!showPassword}
+                        />
+                        <TouchableOpacity
+                          style={{
+                            paddingHorizontal: 12,
+                            paddingVertical: 8,
+                          }}
+                          onPress={() => setShowPassword(!showPassword)}
+                        >
+                          <Icon
+                            name={showPassword ? "eye-closed" : "eye"}
+                            size={18}
+                            color={COLORS.gray}
+                          />
+                        </TouchableOpacity>
+                      </View>
                     </TextFieldWrapper>
+
+                    {formData.password.length > 0 && (
+                      <>
+                        <Text style={styles.passwordGuide}>
+                          Create a strong password — at least 8 characters with
+                          a mix of letters, numbers, and symbols
+                        </Text>
+
+                        <View style={styles.passwordStrengthContainer}>
+                          <View
+                            style={[
+                              styles.strengthBar,
+                              {
+                                backgroundColor:
+                                  passwordStrength >= 1
+                                    ? COLORS.errorText
+                                    : COLORS.lightGray,
+                              },
+                            ]}
+                          />
+                          <View
+                            style={[
+                              styles.strengthBar,
+                              {
+                                backgroundColor:
+                                  passwordStrength >= 2
+                                    ? COLORS.warningBg
+                                    : COLORS.lightGray,
+                              },
+                            ]}
+                          />
+                          <View
+                            style={[
+                              styles.strengthBar,
+                              {
+                                backgroundColor:
+                                  passwordStrength >= 3
+                                    ? COLORS.successText
+                                    : COLORS.lightGray,
+                              },
+                            ]}
+                          />
+                        </View>
+
+                        <Text
+                          style={[
+                            styles.passwordMsg,
+                            {
+                              color:
+                                passwordStrength <= 1
+                                  ? COLORS.errorText
+                                  : COLORS.successText,
+                            },
+                          ]}
+                        >
+                          {passwordMsg}
+                        </Text>
+                      </>
+                    )}
+
                     <TextFieldWrapper label="Confirm Password">
-                      <TextInput
-                        placeholder="Re-enter password"
-                        secureTextEntry
-                        value={confirmPass}
-                        onChangeText={(text) => setConfirmPass(text)}
-                        style={styles.input}
-                      />
+                      <View
+                        style={[
+                          styles.input,
+                          {
+                            flexDirection: "row",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            paddingHorizontal: 0,
+                            paddingVertical: 0,
+                          },
+                        ]}
+                      >
+                        <TextInput
+                          style={[
+                            styles.input,
+                            {
+                              flex: 1,
+                              borderWidth: 0,
+                            },
+                          ]}
+                          placeholder="Re-enter password"
+                          value={confirmPass}
+                          onChangeText={(text) => setConfirmPass(text)}
+                          secureTextEntry={!showPassword}
+                        />
+                      </View>
                     </TextFieldWrapper>
+
+                    {confirmPass.length > 0 &&
+                      formData.password !== confirmPass && (
+                        <Text style={styles.mismatchMsg}>
+                          Passwords do not match
+                        </Text>
+                      )}
                   </MotiView>
                 )}
 
@@ -546,7 +711,6 @@ const AddChildModal = ({ visible, onClose }: Props) => {
                             municipality: "",
                             barangay: "",
                           });
-                          // Load provinces based on selected region
                         }}
                       />
                     </TextFieldWrapper>
@@ -564,7 +728,6 @@ const AddChildModal = ({ visible, onClose }: Props) => {
                             municipality: "",
                             barangay: "",
                           });
-                          // Load municipalities based on selected province
                         }}
                       />
                     </TextFieldWrapper>
@@ -581,7 +744,6 @@ const AddChildModal = ({ visible, onClose }: Props) => {
                             municipality_name: label as string,
                             barangay: "",
                           });
-                          // Load barangays based on selected municipality
                         }}
                       />
                     </TextFieldWrapper>
@@ -642,7 +804,6 @@ const AddChildModal = ({ visible, onClose }: Props) => {
               </AnimatePresence>
             </ScrollView>
 
-            {/* Step Indicator */}
             <View style={styles.stepIndicator}>
               <View style={[styles.dot, step === 1 && styles.activeDot]} />
               <View style={[styles.dot, step === 2 && styles.activeDot]} />
@@ -650,7 +811,6 @@ const AddChildModal = ({ visible, onClose }: Props) => {
               <View style={[styles.dot, step === 4 && styles.activeDot]} />
             </View>
 
-            {/* Buttons */}
             <View style={styles.buttonWrapper}>
               {step === 1 && (
                 <PrimaryButton title="Next" clickHandler={() => goToStep(2)} />
@@ -780,7 +940,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: "600",
-    marginBottom: 0,
+    marginBottom: 16,
     color: COLORS.black,
   },
   row: {
@@ -793,9 +953,40 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.gray,
     borderRadius: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    fontSize: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+  },
+  passwordGuide: {
+    fontSize: 13,
+    color: COLORS.gray,
+    fontWeight: "500",
+    lineHeight: 18,
+    marginTop: 8,
+    marginBottom: 10,
+  },
+  passwordStrengthContainer: {
+    flexDirection: "row",
+    gap: 5,
+    marginVertical: 10,
+    height: 6,
+  },
+  strengthBar: {
+    flex: 1,
+    borderRadius: 3,
+  },
+  passwordMsg: {
+    fontSize: 13,
+    fontWeight: "500",
+    marginBottom: 12,
+    lineHeight: 16,
+  },
+  mismatchMsg: {
+    fontSize: 13,
+    color: COLORS.errorText,
+    fontWeight: "500",
+    marginTop: 8,
+    marginBottom: 12,
   },
   imageContainer: {
     width: 100,

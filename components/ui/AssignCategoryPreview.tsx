@@ -33,7 +33,9 @@ const AssignCategoryPreview = ({
   return (
     <View style={styles.categoryPreview}>
       <View style={styles.categoryInfoContainer}>
-        <Image source={{ uri: categoryImage }} style={styles.categoryImage} />
+        <View style={styles.imageContainer}>
+          <Image source={{ uri: categoryImage }} style={styles.categoryImage} />
+        </View>
         <Text style={styles.categoryName}>{categoryName}</Text>
       </View>
       <View>
@@ -58,7 +60,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flexDirection: "row",
   },
-  categoryImage: { width: 50, height: 50, borderRadius: 50 },
+  imageContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 50,
+
+    overflow: "hidden",
+    backgroundColor: COLORS.white,
+  },
+  categoryImage: {
+    width: "100%",
+    height: "100%",
+  },
   categoryName: { fontSize: 16, fontFamily: "Poppins", color: COLORS.gray },
 });
 

@@ -97,11 +97,26 @@ const Board = ({ categoryId, routerHandler }: boardProp) => {
     return "Shared Category";
   };
 
+  const boardCreatedFor = users.find((u) => u.id === category?.created_for);
+
   return (
     <TouchableOpacity style={styles.boardContainer} onPress={routerHandler}>
       {category?.created_by !== uid && (
         <View style={styles.lockIconContainer}>
           <Icon name="lock" size={15} color={COLORS.black} />
+        </View>
+      )}
+      {category?.created_by === uid && category?.created_for && (
+        <View style={[styles.lockIconContainer, { overflow: "hidden" }]}>
+          <Icon name="person" size={15} color={COLORS.black} />
+          {/* <Image
+            style={{ width: "100%", height: "100%", aspectRatio: 1 }}
+            source={
+              boardCreatedFor?.profile_pic
+                ? { uri: boardCreatedFor?.profile_pic }
+                : require("@/assets/images/default.jpg")
+            }
+          /> */}
         </View>
       )}
       <Icon

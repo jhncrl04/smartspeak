@@ -32,22 +32,26 @@ const ChildManagementScreen = () => {
   const [searching, setSearching] = useState(false);
 
   // Filter children and search query
-  const mappedChildren = children.filter((child) => {
-    // If no search query, show all students in section
-    if (!searchQuery.trim()) return true;
+  const mappedChildren = children
+    .filter((child) => {
+      // If no search query, show all students in section
+      if (!searchQuery.trim()) return true;
 
-    // Filter by search query (case-insensitive)
-    const query = searchQuery.toLowerCase().trim();
-    const firstName = child.first_name.toLowerCase();
-    const lastName = child.last_name.toLowerCase();
-    const fullName = `${firstName} ${lastName}`;
+      // Filter by search query (case-insensitive)
+      const query = searchQuery.toLowerCase().trim();
+      const firstName = child.first_name.toLowerCase();
+      const lastName = child.last_name.toLowerCase();
+      const fullName = `${firstName} ${lastName}`;
 
-    return (
-      firstName.includes(query) ||
-      lastName.includes(query) ||
-      fullName.includes(query)
-    );
-  });
+      return (
+        firstName.includes(query) ||
+        lastName.includes(query) ||
+        fullName.includes(query)
+      );
+    })
+    .sort((a, b) => {
+      return a.first_name.localeCompare(b.first_name);
+    });
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
 

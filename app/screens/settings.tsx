@@ -35,6 +35,10 @@ import {
 import imageToBase64 from "@/helper/imageToBase64";
 import Constants from "expo-constants";
 
+import Icon from "react-native-vector-icons/Octicons";
+
+import zxcvbn from "zxcvbn";
+
 const { width: screenWidth } = Dimensions.get("window");
 
 type userType = {
@@ -276,9 +280,13 @@ const SettingScreen = () => {
   const [phoneNumber, setPhoneNumber] = useState(user?.phoneNumber || "");
   const [email, setEmail] = useState(user?.email || "");
 
+  const [showPassword, setShowPassword] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+
+  const [passwordStrength, setPasswordStrength] = useState<number>(0);
+  const [passwordMsg, setPasswordMsg] = useState("");
 
   const [selectedRegion, setSelectedRegion] = useState<string | null>(
     user?.region || null
@@ -403,6 +411,39 @@ const SettingScreen = () => {
       .catch((err) => console.error("Error fetching barangays:", err));
   }, [selectedCity, selectedProvinceLabel, selectedCityLabel]);
 
+  const validatePasswordStrength = (password: string) => {
+    if (password.length === 0) {
+      setPasswordMsg("");
+      return;
+    }
+
+    const { score, feedback } = zxcvbn(password);
+
+    setPasswordStrength(score);
+
+    switch (score) {
+      case 0:
+        setPasswordMsg("Password required");
+      case 1:
+        setPasswordMsg(
+          feedback.warning !== ""
+            ? `${feedback.warning}.\nPassword is too weak.`
+            : `Password is too weak.`
+        );
+        break;
+      case 2:
+        setPasswordMsg(
+          feedback.warning !== ""
+            ? `${feedback.warning}.\nPassword is good.`
+            : "Password is good."
+        );
+      case 3:
+        setPasswordMsg("Password is excellent.");
+      default:
+        break;
+    }
+  };
+
   return (
     <View style={styles.container}>
       <Sidebar userRole="teacher" onNavigate={handleNavigation} />
@@ -519,7 +560,7 @@ const SettingScreen = () => {
 
                   <TextFieldWrapper isFlex={true} label="Province">
                     <MyDropdown
-                      isDisabled={!selectedRegion}
+                      isDisabled={!selectedRegion || provinces.length === 0}
                       dropdownItems={provinces}
                       onChange={(value, label) => {
                         setSelectedProvince(value);
@@ -595,14 +636,110 @@ const SettingScreen = () => {
               <Text style={styles.sectionHeader}>Security</Text>
               <View style={styles.card}>
                 <TextFieldWrapper label="Current Password">
-                  <TextInput
-                    style={styles.textInput}
-                    placeholder="Enter current password"
-                    value={currentPassword}
-                    onChangeText={setCurrentPassword}
-                    secureTextEntry={true}
-                  />
+                  <View
+                    style={[
+                      styles.textInput,
+                      {
+                        flexDirection: "row",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+
+                        paddingHorizontal: 0,
+                        paddingVertical: 0,
+                      },
+                    ]}
+                  >
+                    <TextInput
+                      style={[
+                        styles.textInput,
+                        {
+                          flex: 1,
+                          borderWidth: 0,
+                        },
+                      ]}
+                      placeholder="Enter current password"
+                      value={currentPassword}
+                      onChangeText={setCurrentPassword}
+                      secureTextEntry={!showPassword}
+                    />
+                    <TouchableOpacity
+                      style={{
+                        paddingHorizontal: 20,
+                        paddingVertical: 8,
+                      }}
+                      onPress={() => setShowPassword(!showPassword)}
+                    >
+                      <Icon
+                        name={showPassword ? "eye-closed" : "eye"}
+                        size={20}
+                      />
+                    </TouchableOpacity>
+                  </View>
                 </TextFieldWrapper>
+
+                <Text
+                  style={{
+                    fontSize: 14,
+                    fontFamily: "Poppins",
+                    fontWeight: 500,
+
+                    maxWidth: 400,
+                    marginTop: 5,
+                    lineHeight: 18,
+                    color: COLORS.black,
+                  }}
+                >
+                  Create a strong password — at least 8 characters with a mix of
+                  letters, numbers, and symbols *
+                </Text>
+                <View>
+                  <Text
+                    style={{
+                      fontSize: 14,
+                      fontFamily: "Poppins",
+                      fontWeight: 500,
+                      color:
+                        passwordStrength <= 1
+                          ? COLORS.errorText
+                          : COLORS.successText,
+                      height: passwordMsg === "" ? 0 : "auto",
+                    }}
+                  >
+                    {passwordMsg}
+                  </Text>
+                </View>
+                <View style={styles.passwordStrengthContainer}>
+                  <View
+                    style={{
+                      flex: 1,
+                      borderRadius: 5,
+                      backgroundColor:
+                        passwordStrength >= 1
+                          ? COLORS.errorText
+                          : COLORS.lightGray,
+                    }}
+                  />
+                  <View
+                    style={{
+                      flex: 1,
+                      borderRadius: 5,
+                      backgroundColor:
+                        passwordStrength >= 2
+                          ? COLORS.warningBg
+                          : COLORS.lightGray,
+                    }}
+                  />
+                  <View
+                    style={{
+                      flex: 1,
+                      borderRadius: 5,
+                      backgroundColor:
+                        passwordStrength >= 3
+                          ? COLORS.successText
+                          : COLORS.lightGray,
+                    }}
+                  />
+                </View>
 
                 <TextFieldWrapper label="New Password">
                   <TextInput
@@ -611,8 +748,11 @@ const SettingScreen = () => {
                     value={newPassword}
                     autoComplete="password-new"
                     textContentType="none"
-                    onChangeText={setNewPassword}
-                    secureTextEntry={true}
+                    onChangeText={(password) => {
+                      validatePasswordStrength(password);
+                      setNewPassword(password);
+                    }}
+                    secureTextEntry={!showPassword}
                   />
                 </TextFieldWrapper>
 
@@ -624,7 +764,7 @@ const SettingScreen = () => {
                     autoComplete="password-new"
                     textContentType="none"
                     onChangeText={setConfirmPassword}
-                    secureTextEntry={true}
+                    secureTextEntry={!showPassword}
                   />
                 </TextFieldWrapper>
 
@@ -792,6 +932,15 @@ const styles = StyleSheet.create({
   buttonRow: {
     marginTop: 6,
     alignItems: "flex-end", // Always align right in landscape
+  },
+  passwordStrengthContainer: {
+    gap: 5,
+    overflow: "hidden",
+
+    borderRadius: 10,
+    flex: 1,
+    flexDirection: "row",
+    height: 10,
   },
 });
 

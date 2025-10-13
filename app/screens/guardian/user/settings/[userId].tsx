@@ -33,6 +33,7 @@ import Constants from "expo-constants";
 
 import { showToast } from "@/components/ui/MyToast";
 import { censorEmail } from "@/helper/censorEmail";
+import { formatDate, toDate } from "@/helper/formatDate";
 import getCurrentUid from "@/helper/getCurrentUid";
 import { getUserInfo } from "@/services/userApi/Authentication";
 import { User } from "@/types/user";
@@ -530,6 +531,15 @@ const ChildSettings = () => {
                     style={[styles.textInput, styles.disabledText]}
                     placeholder="Email address"
                     value={censorEmail(formData.email)}
+                    editable={false}
+                  />
+                </TextFieldWrapper>
+
+                <TextFieldWrapper label="Date of Birth">
+                  <TextInput
+                    style={[styles.textInput, styles.disabledText]}
+                    placeholder="Date of Birth"
+                    value={formatDate(toDate(user?.date_of_birth))}
                     editable={false}
                   />
                 </TextFieldWrapper>

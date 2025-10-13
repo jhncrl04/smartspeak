@@ -49,12 +49,17 @@ const LearnerProfileCategory = () => {
     if (category.id === categoryId) return category;
   });
 
-  const filteredCards = cards.filter(
-    (card) =>
-      (card.category_name === activeCategory?.category_name ||
-        card.category_id === (categoryId as string)) &&
-      card.assigned_to?.includes(userId)
-  );
+  const filteredCards = cards
+    .filter(
+      (card) =>
+        ((!card.category_id &&
+          card.category_name === activeCategory?.category_name) ||
+          card.category_id === (categoryId as string)) &&
+        card.assigned_to?.includes(userId)
+    )
+    .sort((a, b) => {
+      return a.card_name.localeCompare(b.card_name);
+    });
 
   const uid = getCurrentUid();
 
@@ -105,6 +110,8 @@ const LearnerProfileCategory = () => {
       <SafeAreaView style={styles.container}>
         <Sidebar userRole="teacher" onNavigate={handleNavigation} />
         <ScrollView
+          decelerationRate={"fast"}
+          scrollEventThrottle={16}
           style={styles.scrollContainer}
           showsVerticalScrollIndicator={false}
         >
@@ -147,14 +154,13 @@ const LearnerProfileCategory = () => {
               </Text>
             </View>
           </View>
-          {creatorId !== uid ||
-            (creatorId !== "ADMIN" && (
-              <View style={styles.warningBox}>
-                <Text style={styles.warningText}>
-                  This are view only category. Editing and deleting is disabled.
-                </Text>
-              </View>
-            ))}
+          {creatorId !== uid && creatorId !== "ADMIN" && (
+            <View style={styles.warningBox}>
+              <Text style={styles.warningText}>
+                This are view only category. Editing and deleting is disabled.
+              </Text>
+            </View>
+          )}
           <View style={styles.categoriesGrid}>
             {isScreenLoading ? (
               <SkeletonCard type="pecs" />
@@ -166,27 +172,30 @@ const LearnerProfileCategory = () => {
               </View>
             ) : (
               filteredCards.map((card) => (
-                <PecsCard action="Delete" cardId={card.id} key={card.id} />
+                <PecsCard action="Unassign" cardId={card.id} key={card.id} />
               ))
             )}
           </View>
         </ScrollView>
-        {uid === (creatorId as string) ||
-          (creatorId !== "ADMIN" && (
-            <FabMenu
-              page="learnerAssignedCategory"
-              actions={{
-                assign_card: () => setActiveModal("assign-card"),
-                unassign_category: () => {
-                  handleUnassignCategory(
-                    categoryId as string,
-                    userId as string,
-                    activeCategory?.category_name
-                  );
-                },
-              }}
-            />
-          ))}
+
+        <FabMenu
+          page={
+            uid === (activeCategory?.created_by as string) ||
+            activeCategory?.created_by_role === "ADMIN"
+              ? "learnerAssignedCategory"
+              : "learnerAssignedCategoryNoUnassign"
+          }
+          actions={{
+            assign_card: () => setActiveModal("assign-card"),
+            unassign_category: () => {
+              handleUnassignCategory(
+                categoryId as string,
+                userId as string,
+                activeCategory?.category_name
+              );
+            },
+          }}
+        />
       </SafeAreaView>
 
       {/* modals */}

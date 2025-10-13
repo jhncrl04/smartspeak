@@ -173,22 +173,24 @@ const LearnerProfileCategory = () => {
             )}
           </View>
         </ScrollView>
-        {uid === (creatorId as string) ||
-          (creatorId !== "ADMIN" && (
-            <FabMenu
-              page="learnerAssignedCategory"
-              actions={{
-                assign_card: () => setActiveModal("assign-card"),
-                unassign_category: () => {
-                  handleUnassignCategory(
-                    categoryId as string,
-                    userId as string,
-                    activeCategory?.category_name
-                  );
-                },
-              }}
-            />
-          ))}
+        <FabMenu
+          page={
+            uid === (activeCategory?.created_by as string) ||
+            activeCategory?.created_by_role === "ADMIN"
+              ? "learnerAssignedCategory"
+              : "learnerAssignedCategoryNoUnassign"
+          }
+          actions={{
+            assign_card: () => setActiveModal("assign-card"),
+            unassign_category: () => {
+              handleUnassignCategory(
+                categoryId as string,
+                userId as string,
+                activeCategory?.category_name
+              );
+            },
+          }}
+        />
       </SafeAreaView>
 
       {/* Modals */}

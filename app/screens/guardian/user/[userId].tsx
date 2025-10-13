@@ -98,6 +98,8 @@ const LearnerProfile = () => {
       <SafeAreaView style={styles.container}>
         <Sidebar userRole="guardian" onNavigate={handleNavigation} />
         <ScrollView
+          decelerationRate={"fast"}
+          scrollEventThrottle={16}
           style={styles.scrollContainer}
           showsVerticalScrollIndicator={false}
           bounces={false}

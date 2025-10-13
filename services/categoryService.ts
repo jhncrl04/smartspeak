@@ -62,6 +62,23 @@ export const addCategory = async (categoryInfo: categoryProps) => {
 
   const user = useAuthStore.getState().user;
 
+  // const newCategory = {
+  //   category_name: categoryInfo.name,
+  //   background_color: categoryInfo.color,
+  //   created_at: currentDate,
+  //   created_by: uid,
+  //   creator_name: user?.fname,
+  //   image: base64Image,
+  //   is_assignable: categoryInfo.isAssignable,
+  //   assigned_to: categoryInfo.isAssignable
+  //     ? []
+  //     : [categoryInfo.assignedLearnerId],
+  //   created_for: !categoryInfo.isAssignable
+  //     ? categoryInfo.assignedLearnerId
+  //     : "",
+  // };
+
+  // disable auto assign for now
   const newCategory = {
     category_name: categoryInfo.name,
     background_color: categoryInfo.color,
@@ -70,9 +87,7 @@ export const addCategory = async (categoryInfo: categoryProps) => {
     creator_name: user?.fname,
     image: base64Image,
     is_assignable: categoryInfo.isAssignable,
-    assigned_to: categoryInfo.isAssignable
-      ? []
-      : [categoryInfo.assignedLearnerId],
+    assigned_to: [],
     created_for: !categoryInfo.isAssignable
       ? categoryInfo.assignedLearnerId
       : "",
@@ -347,11 +362,9 @@ export const unassignCategory = async (
               onPress: async () => {
                 try {
                   // Remove learner from category
-                  await categoryCollection
-                    .doc(categoryId)
-                    .update({
-                      assigned_to: firestore.FieldValue.arrayRemove(learnerId),
-                    });
+                  await categoryCollection.doc(categoryId).update({
+                    assigned_to: firestore.FieldValue.arrayRemove(learnerId),
+                  });
 
                   // Batch unassign learner from all cards
                   const batch = firestore().batch();

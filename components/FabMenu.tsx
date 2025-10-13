@@ -9,6 +9,7 @@ type PageType =
   | "children"
   | "learnerProfile"
   | "learnerAssignedCategory"
+  | "learnerAssignedCategoryNoUnassign"
   | "manageBoards"
   | "specificBoards"
   | "manageCards"
@@ -80,6 +81,13 @@ const FabMenu = ({
         label: "Assign Card",
         onPress: actions?.["assign_card"],
       },
+      {
+        icon: "minus-box-multiple-outline",
+        label: "Unassign Category",
+        onPress: actions?.["unassign_category"],
+      },
+    ],
+    learnerAssignedCategoryNoUnassign: [
       {
         icon: "minus-box-multiple-outline",
         label: "Unassign Category",

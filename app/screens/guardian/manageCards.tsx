@@ -124,7 +124,7 @@ const ManageCardsScreen = () => {
               onSearch={(query) => {
                 handleSearch(query as string);
               }}
-              query="card"
+              query="local"
               pageTitle="Manage Cards"
               hasFilter={true}
               searchPlaceholder="Search Card"

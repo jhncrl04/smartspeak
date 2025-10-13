@@ -52,7 +52,7 @@ const PecsCard = ({ learnerId, action, cardId }: CardProps) => {
       backgroundColor: COLORS.semiWhite,
     },
     shadowWrapper: {
-      borderRadius: 5,
+      borderRadius: 10,
       shadowColor: COLORS.gray,
       shadowOffset: { width: 0, height: 10 },
       shadowOpacity: 0.5,
@@ -60,7 +60,7 @@ const PecsCard = ({ learnerId, action, cardId }: CardProps) => {
       elevation: 5,
     },
     pecsContainer: {
-      borderRadius: 5,
+      borderRadius: 10,
       overflow: "hidden",
       backgroundColor: COLORS.white,
       width: cardWidth,

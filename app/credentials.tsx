@@ -50,10 +50,10 @@ const SignUpCredentialScreens = () => {
         setPasswordMsg(
           feedback.warning !== ""
             ? `${feedback.warning}.\nPassword is good.`
-            : "Password is good"
+            : "Password is good."
         );
       case 3:
-        setPasswordMsg("Password is good");
+        setPasswordMsg("Password is excellent.");
       default:
         break;
     }
@@ -95,7 +95,7 @@ const SignUpCredentialScreens = () => {
     const isRegisterSuccess = await registerAdultUser(userData);
 
     if (isRegisterSuccess) {
-      router.push("/accountVerification");
+      router.replace("/accountVerification");
 
       console.log("register successfully");
     }
@@ -126,13 +126,16 @@ const SignUpCredentialScreens = () => {
 
           <Text
             style={{
-              fontSize: 16,
+              fontSize: 14,
               fontFamily: "Poppins",
               fontWeight: 500,
+              marginTop: 5,
+              lineHeight: 18,
               color: COLORS.black,
             }}
           >
-            Password should at least have 8 characters *
+            Create a strong password — at least 8 characters with a mix of
+            letters, numbers, and symbols *
           </Text>
           <TextFieldWrapper label="Password">
             <View
