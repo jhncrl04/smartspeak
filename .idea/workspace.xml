@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="NONE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="d62b84a3-3280-43c7-8993-65bb4854275d" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app.json" beforeDir="false" afterPath="$PROJECT_DIR$/app.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/screens/login/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/screens/login/index.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/screens/messages.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/screens/messages.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/screens/settings.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/screens/settings.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/screens/teacher/index.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/screens/teacher/index.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/screens/teacher/learnerBoard.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/screens/teacher/learnerBoard.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/screens/teacher/learnerProfile.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/screens/teacher/learnerProfile.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/screens/teacher/manageBoards.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/screens/teacher/manageBoards.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/screens/teacher/manageCards.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/app/screens/teacher/manageCards.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/AddCard.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/AddCard.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/Board.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/Board.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/Card.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/Card.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/LeanerProfileHeader.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/LeanerProfileHeader.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/PecsCard.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/PecsCard.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/PrimaryButton.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/PrimaryButton.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/Sidebar.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/components/Sidebar.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/package-lock.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ClangdSettings">
+    <option name="formatViaClangd" value="false" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProjectColorInfo"><![CDATA[{
+  "associatedIndex": 3
+}]]></component>
+  <component name="ProjectId" id="30HTEDANg1eYBKUJsrJPPiuYruc" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.cidr.known.project.marker": "true",
+    "RunOnceActivity.readMode.enableVisualFormatting": "true",
+    "cf.first.check.clang-format": "false",
+    "cidr.known.project.marker": "true",
+    "git-widget-placeholder": "Rebasing main",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "C:/Projects/smartspeak"
+  }
+}]]></component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="d62b84a3-3280-43c7-8993-65bb4854275d" name="Changes" comment="" />
+      <created>1753283386450</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1753283386450</updated>
+    </task>
+    <servers />
+  </component>
+</project>
