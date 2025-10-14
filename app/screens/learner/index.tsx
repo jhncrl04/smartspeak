@@ -258,6 +258,11 @@ export default function HomeScreen() {
   const notificationOpacity = useRef(new Animated.Value(0)).current;
   const notificationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Break reminder states
+  const [showBreakReminder, setShowBreakReminder] = useState<boolean>(false);
+  const breakReminderOpacity = useRef(new Animated.Value(0)).current;
+  const breakReminderTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Animation for card tap feedback
   const cardTapScale = useRef(new Animated.Value(1)).current;
 
@@ -467,6 +472,53 @@ export default function HomeScreen() {
     }, 2000);
   };
 
+  // Function to show break reminder
+  const showBreakReminderMessage = async () => {
+    setShowBreakReminder(true);
+
+    Animated.timing(breakReminderOpacity, {
+      toValue: 1,
+      duration: 500,
+      useNativeDriver: false,
+    }).start();
+
+    // Speak the break reminder message
+    try {
+      await Speech.stop(); // Stop any ongoing speech
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      const breakMessage = "Time for a break! You've been using the app for 30 minutes. Take a short break to rest your eyes and stretch.";
+      await speakWithSpeech(breakMessage, { rate: 0.8 });
+    } catch (error) {
+      console.error('Error speaking break reminder:', error);
+    }
+  };
+
+  // Function to dismiss break reminder
+  const dismissBreakReminder = () => {
+    Animated.timing(breakReminderOpacity, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: false,
+    }).start(() => {
+      setShowBreakReminder(false);
+      // Reset timer for another 30 minutes
+      startBreakReminderTimer();
+    });
+  };
+
+  // Function to start break reminder timer
+  const startBreakReminderTimer = () => {
+    if (breakReminderTimeoutRef.current) {
+      clearTimeout(breakReminderTimeoutRef.current);
+    }
+
+    // 30 minutes = 1800000 milliseconds
+    breakReminderTimeoutRef.current = setTimeout(() => {
+      showBreakReminderMessage();
+    }, 180000); // 30 minutes
+  };
+
   // Function to handle profile image taps
   const handleProfileTap = () => {
     setTapCount((prev) => {
@@ -497,12 +549,18 @@ export default function HomeScreen() {
 
   // Clean up timeout on unmount
   useEffect(() => {
+    // Start break reminder timer when component mounts
+    startBreakReminderTimer();
+
     return () => {
       if (tapTimeoutRef.current) {
         clearTimeout(tapTimeoutRef.current);
       }
       if (notificationTimeoutRef.current) {
         clearTimeout(notificationTimeoutRef.current);
+      }
+      if (breakReminderTimeoutRef.current) {
+        clearTimeout(breakReminderTimeoutRef.current);
       }
       Speech.stop();
     };
@@ -1130,13 +1188,6 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {/* Voice Status Indicator
-      <View style={styles.voiceStatusContainer}>
-        <Text style={styles.voiceStatusText}>
-          Voice: {currentVoice} | {isOnline ? 'Online' : 'Offline'}
-        </Text>
-      </View> */}
-
       {/* NOTIFICATION BOX */}
       {showNotification && (
         <Animated.View
@@ -1151,6 +1202,31 @@ export default function HomeScreen() {
             <Text style={styles.notificationText}>
               Please add cards to create a sentence first
             </Text>
+          </View>
+        </Animated.View>
+      )}
+
+      {/* BREAK REMINDER NOTIFICATION */}
+      {showBreakReminder && (
+        <Animated.View
+          style={[
+            styles.breakReminderContainer,
+            {
+              opacity: breakReminderOpacity,
+            }
+          ]}
+        >
+          <View style={styles.breakReminderBox}>
+            <Text style={styles.breakReminderTitle}>Time for a Break!</Text>
+            <Text style={styles.breakReminderText}>
+              You've been using the app for 30 minutes. Take a short break to rest your eyes and stretch!
+            </Text>
+            <TouchableOpacity
+              style={styles.breakReminderButton}
+              onPress={dismissBreakReminder}
+            >
+              <Text style={styles.breakReminderButtonText}>OK, Got it!</Text>
+            </TouchableOpacity>
           </View>
         </Animated.View>
       )}
@@ -1347,6 +1423,58 @@ const { width, height } = Dimensions.get("window");
 const isTablet = width > 915;
 
 const styles = StyleSheet.create({
+   breakReminderContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 9999,
+  },
+  breakReminderBox: {
+    backgroundColor: "#fafafa",
+    borderRadius: width * 0.02,
+    padding: 30,
+    width: "80%",
+    maxWidth: 500,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 10,
+  },
+  breakReminderTitle: {
+    fontSize: RFValue(16),
+    fontWeight: "700",
+    color: "#9B72CF",
+    marginBottom: 15,
+    textAlign: "center",
+  },
+  breakReminderText: {
+    fontSize: RFValue(12),
+    color: "#434343",
+    textAlign: "center",
+    marginBottom: 25,
+    lineHeight: 22,
+  },
+  breakReminderButton: {
+    backgroundColor: "#9B72CF",
+    paddingVertical: height * 0.03,
+    paddingHorizontal: width * 0.01,
+    borderRadius: width * 0.01,
+    marginBottom: width * 0.015,
+    minWidth: 200,
+    alignItems: "center",
+  },
+  breakReminderButtonText: {
+    color: "#fafafa",
+    fontSize: RFValue(12),
+    fontWeight: "600",
+  },
   container: {
     flex: 1,
     backgroundColor: "#fafafa",
@@ -1605,7 +1733,7 @@ const styles = StyleSheet.create({
     fontSize: RFValue(7),
     fontFamily: "Poppins",
     letterSpacing: 0.5,
-    fontWeight: "bold",
+    fontWeight: "600",
     color: "#9B72CF",
     textAlign: "center",
   },
