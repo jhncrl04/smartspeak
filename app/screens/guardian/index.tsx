@@ -28,7 +28,7 @@ const ChildManagementScreen = () => {
 
   const [activeModal, setActiveModal] = useState<"add-child" | null>(null);
 
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [searching, setSearching] = useState(false);
 
   // Filter children and search query
@@ -62,7 +62,15 @@ const ChildManagementScreen = () => {
       duration: 300,
       useNativeDriver: true,
     }).start();
-  }, [searching]);
+  }, [loading, searching]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [loading]);
 
   const handleProfilePress = (learnerId: string) => {
     try {

@@ -115,6 +115,21 @@ const PecsCard = ({ learnerId, action, cardId }: CardProps) => {
                 : require("@/assets/images/no-image.png")
             }
           />
+          {card?.created_by === uid &&
+            card?.created_for &&
+            card?.created_for !== "all" && (
+              <View style={[styles.lockIconContainer, { overflow: "hidden" }]}>
+                <Icon name="person" size={15} color={COLORS.black} />
+                {/* <Image
+            style={{ width: "100%", height: "100%", aspectRatio: 1 }}
+            source={
+              boardCreatedFor?.profile_pic
+                ? { uri: boardCreatedFor?.profile_pic }
+                : require("@/assets/images/default.jpg")
+            }
+          /> */}
+              </View>
+            )}
           <View style={styles.pecsInfoContainer}>
             <Text
               style={styles.pecsName}

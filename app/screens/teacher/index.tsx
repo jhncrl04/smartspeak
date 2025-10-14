@@ -40,7 +40,7 @@ const ManageLearnersScreen = () => {
   const { users: learners, isLoading: learnersLoading } = useUsersStore();
   const user = useAuthStore((state) => state.user);
 
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [searching, setSearching] = useState(false);
   const [activeSection, setActiveSection] = useState<string | undefined>(
     undefined
@@ -100,7 +100,15 @@ const ManageLearnersScreen = () => {
       duration: 300,
       useNativeDriver: true,
     }).start();
-  }, [searching, fadeAnim]);
+  }, [searching, fadeAnim, loading]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [loading]);
 
   const handleSearch = useCallback((query: string) => {
     setSearching(true);
@@ -183,8 +191,6 @@ const ManageLearnersScreen = () => {
                 flexDirection: "row",
                 gap: 20,
                 marginVertical: 15,
-                borderBottomColor: COLORS.gray,
-                borderBottomWidth: 1,
               }}
             >
               <ScrollView

@@ -307,6 +307,7 @@ export const assignCategory = async (
   }
 };
 
+const cardCollection = firestore().collection("cards");
 export const unassignCategory = async (
   categoryId: string,
   learnerId: string,
@@ -323,17 +324,17 @@ export const unassignCategory = async (
   }
 
   try {
-    const cardCollection = firestore().collection("cards");
+    // First, get the category to check if it's created for "All" or specific learners
+    const categoryDoc = await categoryCollection.doc(categoryId).get();
+    const categoryData = categoryDoc.data();
 
-    // First, check if there are cards assigned to this learner in this category
+    // Check if there are cards assigned to this learner in this category
     let cardsQuery = cardCollection.where(
       "assigned_to",
       "array-contains",
       learnerId
     );
 
-    // We can only query one indexed field at a time unless composite indexes exist.
-    // If both category_id and category_name exist, we use category_id primarily
     if (categoryId) {
       cardsQuery = cardsQuery.where("category_id", "==", categoryId);
     } else if (categoryName) {
@@ -354,7 +355,7 @@ export const unassignCategory = async (
             {
               text: "Cancel",
               style: "cancel",
-              onPress: () => resolve(false),
+              onPress: () => resolve({ success: false }),
             },
             {
               text: "Continue",
@@ -363,14 +364,14 @@ export const unassignCategory = async (
                 try {
                   // Remove learner from category
                   await categoryCollection.doc(categoryId).update({
-                    assigned_to: firestore.FieldValue.arrayRemove(learnerId),
+                    assigned_to: arrayRemove(learnerId),
                   });
 
                   // Batch unassign learner from all cards
                   const batch = firestore().batch();
                   cardsSnapshot.forEach((cardDoc) => {
                     batch.update(cardDoc.ref, {
-                      assigned_to: firestore.FieldValue.arrayRemove(learnerId),
+                      assigned_to: arrayRemove(learnerId),
                     });
                   });
                   await batch.commit();
@@ -381,11 +382,11 @@ export const unassignCategory = async (
                     `Category and ${cardCount} card(s) unassigned from learner.`
                   );
 
-                  resolve(true);
+                  resolve({ success: true });
                 } catch (err) {
                   console.error("Error unassigning category/cards:", err);
                   showToast("error", "Error", "Something went wrong.");
-                  resolve(false);
+                  resolve({ success: false, error: err });
                 }
               },
             },
@@ -395,13 +396,20 @@ export const unassignCategory = async (
     }
 
     // If no cards, just unassign the category directly
-    await categoryCollection
-      .doc(categoryId)
-      .update({ assigned_to: arrayRemove(learnerId) });
+    await categoryCollection.doc(categoryId).update({
+      assigned_to: arrayRemove(learnerId),
+    });
+
+    showToast(
+      "success",
+      "Unassigned Successfully",
+      "Category unassigned from learner."
+    );
 
     return { success: true };
   } catch (err) {
     console.error("Error unassigning category: ", err);
+    showToast("error", "Error", "Something went wrong.");
     return { success: false, error: err };
   }
 };

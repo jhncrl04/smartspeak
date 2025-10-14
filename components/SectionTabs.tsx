@@ -10,18 +10,18 @@ const SectionTabs = (props: {
     container: {
       minWidth: 100,
       backgroundColor: props.active ? COLORS.accent : COLORS.lightGray,
-      borderTopEndRadius: 10,
-      borderTopStartRadius: 10,
-      paddingTop: 10,
-      paddingBottom: 0,
-      paddingHorizontal: 20,
+      borderRadius: 50,
+      paddingVertical: 8,
+      paddingHorizontal: 16,
       alignItems: "center",
+      justifyContent: "center",
     },
     sectionName: {
       color: props.active ? COLORS.white : COLORS.black,
       fontFamily: "Poppins",
       fontWeight: "500",
       fontSize: 14,
+      lineHeight: 18,
     },
   });
 

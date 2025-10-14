@@ -42,6 +42,10 @@ const AssignCategoryModal = ({ visible, onClose, learnerId }: Props) => {
       return a.category_name.localeCompare(b.category_name);
     });
 
+  mappedCategories.forEach((element) => {
+    console.log(element.category_name);
+  });
+
   const filterCategories = mappedCategories.filter((category) => {
     if (!searchQuery.trim()) return true;
 

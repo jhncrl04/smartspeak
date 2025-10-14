@@ -5,7 +5,6 @@ import PecsCard from "@/components/PecsCard";
 import Sidebar from "@/components/Sidebar";
 import SkeletonCard from "@/components/SkeletonCard";
 import AssignCardModal from "@/components/ui/AssignCardModal";
-import { showToast } from "@/components/ui/MyToast";
 import PreviousReportsModal from "@/components/ui/PreviousReportModal";
 import COLORS from "@/constants/Colors";
 import { calculateAge } from "@/helper/calculateAge";
@@ -94,12 +93,6 @@ const LearnerProfileCategory = () => {
       categoryId,
       learnerId,
       categoryName
-    );
-
-    showToast(
-      "success",
-      "Unassign Category",
-      `${activeCategory?.category_name} has been unassigned`
     );
 
     if (result.success) router.back();

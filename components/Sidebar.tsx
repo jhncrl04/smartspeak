@@ -26,12 +26,9 @@ const Sidebar = ({ onNavigate, userRole }: SidebarProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [disableSidebar, setDisableSidebar] = useState(false);
   const pathname = usePathname();
-
   const { setWidth } = useSidebarWidth();
 
-  // Use ref to track navigation in progress
   const isNavigatingRef = useRef(false);
-  const navigationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const teachersMenuItems = [
     { icon: "people", label: "Learners", screen: "/screens/teacher" },
@@ -67,15 +64,12 @@ const Sidebar = ({ onNavigate, userRole }: SidebarProps) => {
   const toggleSidebar = () => {
     const newExpanded = !expanded;
     setExpanded(newExpanded);
-    const newWidth = newExpanded ? "25%" : 60;
-    setWidth(newWidth);
-
-    console.log(newWidth);
+    setWidth(newExpanded ? "25%" : 60);
   };
 
   const currentWidth = expanded ? "25%" : 60;
 
-  const handleMenuPress = (screen: string) => {
+  const handleMenuPress = async (screen: string) => {
     if (isNavigatingRef.current || disableSidebar || pathname === screen)
       return;
 
@@ -83,16 +77,23 @@ const Sidebar = ({ onNavigate, userRole }: SidebarProps) => {
     setDisableSidebar(true);
     setIsLoading(true);
 
-    setTimeout(() => {
+    try {
       router.push(screen as any);
       onNavigate(screen);
-
+    } catch (error) {
+      console.error("Navigation error:", error);
+    } finally {
+      // small timeout helps prevent rapid double-presses
       setTimeout(() => {
         isNavigatingRef.current = false;
         setDisableSidebar(false);
         setIsLoading(false);
-      }, 200);
-    }, 100);
+      }, 250);
+    }
+  };
+
+  const logoutHandler = () => {
+    useAuthStore.getState().logout();
   };
 
   return (
@@ -106,7 +107,8 @@ const Sidebar = ({ onNavigate, userRole }: SidebarProps) => {
           <View
             style={{ paddingVertical: 16, justifyContent: "space-between" }}
           >
-            <View style={{ gap: 0 }}>
+            {/* Top Section */}
+            <View>
               <View style={styles.toggleButton}>
                 {expanded && (
                   <TouchableOpacity
@@ -138,9 +140,12 @@ const Sidebar = ({ onNavigate, userRole }: SidebarProps) => {
                       }}
                       numberOfLines={1}
                       ellipsizeMode="tail"
-                    >{`${user?.fname} ${user?.lname}`}</Text>
+                    >
+                      {`${user?.fname ?? ""} ${user?.lname ?? ""}`}
+                    </Text>
                   </TouchableOpacity>
                 )}
+
                 <TouchableOpacity
                   style={{
                     width: 40,
@@ -148,6 +153,7 @@ const Sidebar = ({ onNavigate, userRole }: SidebarProps) => {
                     justifyContent: "center",
                   }}
                   onPress={toggleSidebar}
+                  disabled={isNavigatingRef.current}
                 >
                   <Icon
                     name={expanded ? "chevron-left" : "chevron-right"}
@@ -157,6 +163,7 @@ const Sidebar = ({ onNavigate, userRole }: SidebarProps) => {
                 </TouchableOpacity>
               </View>
 
+              {/* Menu Items */}
               <View style={styles.sidebarInnerContainer}>
                 {menuItems.map((item) => (
                   <TouchableOpacity
@@ -187,7 +194,6 @@ const Sidebar = ({ onNavigate, userRole }: SidebarProps) => {
                         }
                       />
                     </View>
-
                     {expanded && (
                       <Text
                         style={[
@@ -203,6 +209,7 @@ const Sidebar = ({ onNavigate, userRole }: SidebarProps) => {
               </View>
             </View>
 
+            {/* Logout */}
             <TouchableOpacity
               style={styles.menuItem}
               disabled={isNavigatingRef.current}
@@ -221,19 +228,15 @@ const Sidebar = ({ onNavigate, userRole }: SidebarProps) => {
                   style={{ transform: [{ scaleX: -1 }] }}
                 />
               </View>
-
               {expanded && <Text style={styles.menuText}>Log Out</Text>}
             </TouchableOpacity>
           </View>
         </ScrollView>
       </View>
+
       <LoadingScreen visible={isLoading} />
     </>
   );
-};
-
-const logoutHandler = () => {
-  useAuthStore.getState().logout();
 };
 
 const styles = StyleSheet.create({
