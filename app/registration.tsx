@@ -200,7 +200,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   link: {
-    color: COLORS.primary,
+    color: COLORS.accent,
     textDecorationLine: "underline",
     fontWeight: "600",
   },
