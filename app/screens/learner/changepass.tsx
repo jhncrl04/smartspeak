@@ -571,7 +571,7 @@ const styles = StyleSheet.create({
   },
   ProfileSubText: {
     fontFamily: "Poppins",
-    fontSize: RFValue(6),
+    fontSize: RFValue(7),
     color: "#434343",
     opacity: 0.7,
     fontWeight: "300",
@@ -579,7 +579,7 @@ const styles = StyleSheet.create({
   },
   LayerTitle: {
     fontFamily: "Poppins",
-    fontSize: RFValue(10),
+    fontSize: RFValue(11),
     color: "#434343",
     fontWeight: "500",
     letterSpacing: 0.5,
@@ -596,7 +596,7 @@ const styles = StyleSheet.create({
   },
   InputTitle: {
     fontFamily: "Poppins",
-    fontSize: RFValue(8),
+    fontSize: RFValue(9),
     color: "#434343",
     opacity: 0.7,
     fontWeight: "400",
@@ -610,7 +610,7 @@ const styles = StyleSheet.create({
   },
   InputData: {
     fontFamily: "Poppins",
-    fontSize: RFValue(8),
+    fontSize: RFValue(9),
     color: "#434343",
     opacity: 0.7,
     fontWeight: "500",
@@ -654,14 +654,14 @@ const styles = StyleSheet.create({
   },
   BtnText: {
     fontFamily: "Poppins",
-    fontSize: RFValue(6),
+    fontSize: RFValue(9),
     color: "#fafafa",
-    fontWeight: "500",
+    fontWeight: "600",
     letterSpacing: 0.5,
   },
   cancelBtnText: {
     fontFamily: "Poppins",
-    fontSize: RFValue(6),
+    fontSize: RFValue(9),
     color: "#9B72CF",
     fontWeight: "500",
     letterSpacing: 0.5,
@@ -710,7 +710,7 @@ const styles = StyleSheet.create({
     borderColor: "#9B72CF",
   },
   categoryText: {
-    fontSize: RFValue(8),
+    fontSize: RFValue(9),
     fontWeight: "500",
     color: "#9B72CF",
     fontFamily: "Poppins",

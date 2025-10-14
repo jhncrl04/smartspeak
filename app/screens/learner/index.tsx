@@ -1,11 +1,12 @@
 import { ThemedView } from "@/components/ThemedView";
 import { useAuthStore } from "@/stores/userAuthStore";
+import NetInfo from '@react-native-community/netinfo';
 import auth from "@react-native-firebase/auth";
 import firestore from "@react-native-firebase/firestore";
 import { useFonts } from "expo-font";
 import { router } from "expo-router";
 import * as ScreenOrientation from "expo-screen-orientation";
-import * as Speech from "expo-speech";
+import * as Speech from 'expo-speech';
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Animated, Dimensions, FlatList, Image, Modal, StyleSheet, Text, TouchableOpacity, View, } from "react-native";
 import { RFValue } from "react-native-responsive-fontsize";
@@ -28,6 +29,48 @@ export default function HomeScreen() {
 
   // State to store user's full name
   const [userFullName, setUserFullName] = useState<string>('');
+
+  // Speech initialization state
+  const [isSpeechReady, setIsSpeechReady] = useState(false);
+  const [speechError, setSpeechError] = useState<string | null>(null);
+
+  // Network status state
+  const [isOnline, setIsOnline] = useState<boolean>(true);
+
+  // Voice status state
+  const [currentVoice, setCurrentVoice] = useState<string>('Checking...');
+
+  // Function to check available voices
+  const checkAvailableVoices = async () => {
+    try {
+      const voices = await Speech.getAvailableVoicesAsync();
+      console.log('=== AVAILABLE VOICES ===');
+      voices.forEach((voice, index) => {
+        console.log(`${index + 1}. ${voice.name} - ${voice.language} - ${voice.quality || 'Unknown quality'}`);
+      });
+      console.log('=== END VOICES ===');
+      
+      // Check if Filipino voice is available
+      const filipinoVoices = voices.filter(voice => 
+        voice.language.includes('fil') || 
+        voice.language.includes('tl') ||
+        voice.name.toLowerCase().includes('filipino')
+      );
+      console.log('Filipino voices found:', filipinoVoices.length);
+      
+      if (filipinoVoices.length > 0) {
+        setCurrentVoice(`Filipino (${filipinoVoices[0].name})`);
+      } else {
+        setCurrentVoice('English (Default)');
+      }
+      
+      return voices;
+    } catch (error) {
+      console.error('Error checking voices:', error);
+      setCurrentVoice('Error checking voices');
+      return [];
+    }
+  };
 
   // Function to get user's full name from Firebase
   const fetchUserFullName = async () => {
@@ -73,39 +116,15 @@ export default function HomeScreen() {
     }
   };
 
-  // LOGGING FUNCTIONS - Updated to get fresh name if userFullName is empty
-  const logCardTap = async (card: CardType, action: 'add' | 'remove', sentencePosition?: number) => {
-    try {
-      // Get fresh user name if not already loaded
-      let currentUserName = userFullName;
-      if (!currentUserName || currentUserName === user?.email) {
-        console.log("User full name not loaded, fetching now...");
-        currentUserName = await fetchUserFullName();
-      }
-      
-      console.log("Logging card tap with user name:", currentUserName);
-
-      const logData = {
-        user_id: user?.uid || 'unknown',
-        user_name: currentUserName || user?.email || 'unknown',
-        action: action === 'add' ? 'card added to sentence' : 'card removed from sentence',
-        item_category: card.categoryId,
-        item_id: card.id,
-        item_name: card.text,
-        sentence_position: sentencePosition,
-        timestamp: firestore.FieldValue.serverTimestamp(),
-        user_type: 'learner',
-      };
-
-      await firestore().collection('pecsLogs').add(logData);
-      console.log(`Card ${action} logged to pecsLogs:`, card.text, sentencePosition ? `at position ${sentencePosition}` : '');
-    } catch (error) {
-      console.error('Error logging card tap:', error);
-    }
-  };
-
+  // ONLY KEEP: Sentence play logging function
   const logPlaySentence = async (sentenceCards: SentenceCardType[]) => {
     try {
+      // Only log if online
+      if (!isOnline) {
+        console.log('Offline mode - skipping sentence play logging');
+        return;
+      }
+
       // Get fresh user name if not already loaded
       let currentUserName = userFullName;
       if (!currentUserName || currentUserName === user?.email) {
@@ -149,16 +168,15 @@ export default function HomeScreen() {
       // Sign out from Firebase Auth
       await auth().signOut();
 
-      // Clear user data from Zustand store (use the logout function already declared at component level)
-      logout(); // ✅ Use the logout function that's already available
+      // Clear user data from Zustand store
+      logout();
 
       // Navigate back to login screen
-      router.replace("/"); // Use replace instead of push to prevent going back
+      router.replace("/");
 
       console.log("User logged out successfully");
     } catch (error) {
       console.error("Error during logout:", error);
-      // Show error to user if needed
       alert("Error logging out. Please try again.");
     }
   };
@@ -172,11 +190,36 @@ export default function HomeScreen() {
     lockOrientation();
   }, []);
 
+  // Network status detection
+  useEffect(() => {
+    const checkNetworkStatus = async () => {
+      try {
+        const networkState = await NetInfo.fetch();
+        setIsOnline(networkState.isConnected ?? true);
+        console.log('Network status:', networkState.isConnected ? 'Online' : 'Offline');
+      } catch (error) {
+        console.error('Error checking network status:', error);
+        setIsOnline(true); // Assume online as fallback
+      }
+    };
+
+    // Check initially
+    checkNetworkStatus();
+
+    // Listen for network changes
+    const unsubscribe = NetInfo.addEventListener(state => {
+      setIsOnline(state.isConnected ?? true);
+      console.log('Network status changed:', state.isConnected ? 'Online' : 'Offline');
+    });
+
+    return () => unsubscribe();
+  }, []);
+
   const { width, height } = Dimensions.get("window");
   const isTablet = width > 968;
   const cardsPerRow = isTablet ? 8 : width > 600 ? 6 : 4;
-  const cardWidth = (width * 1 - 25 * (cardsPerRow + 1)) / cardsPerRow;
-  const cardHeight = cardWidth * 0.9;
+  const cardWidth = (width * 1 - 26 * (cardsPerRow + 1)) / cardsPerRow;
+  const cardHeight = cardWidth * 1;
 
   type CardType = {
     id: string;
@@ -185,12 +228,10 @@ export default function HomeScreen() {
     categoryId: string;
   };
 
-  // UPDATED: Add background_color to sentence card type
   type SentenceCardType = CardType & {
-    categoryColor: string; // Store the category color with the card
+    categoryColor: string;
   };
 
-  // UPDATED: Remove active property from CategoryType - we'll compute it dynamically
   type CategoryType = {
     id: string;
     category_name: string;
@@ -198,7 +239,6 @@ export default function HomeScreen() {
     background_color?: string;
   };
 
-  // UPDATED: Change sentenceCards type to SentenceCardType
   const [sentenceCards, setSentenceCards] = useState<SentenceCardType[]>([]);
   const [allCards, setAllCards] = useState<CardType[]>([]);
   const [displayedCards, setDisplayedCards] = useState<CardType[]>([]);
@@ -218,6 +258,11 @@ export default function HomeScreen() {
   const notificationOpacity = useRef(new Animated.Value(0)).current;
   const notificationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Break reminder states
+  const [showBreakReminder, setShowBreakReminder] = useState<boolean>(false);
+  const breakReminderOpacity = useRef(new Animated.Value(0)).current;
+  const breakReminderTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Animation for card tap feedback
   const cardTapScale = useRef(new Animated.Value(1)).current;
 
@@ -226,52 +271,197 @@ export default function HomeScreen() {
   const allCardsRef = useRef<CardType[]>([]);
   const displayedCardsRef = useRef<CardType[]>([]);
 
-  // NEW: Add state for footer readiness
+  // Add state for footer readiness
   const [isFooterReady, setIsFooterReady] = useState(false);
 
-  // UPDATED: Enhanced function to check if arrays are equal (including content changes)
-  const areArraysEqual = (arr1: any[], arr2: any[]) => {
-    if (arr1.length !== arr2.length) return false;
-    
-    return arr1.every((item, index) => {
-      const item2 = arr2[index];
-      if (!item2) return false;
+  // Enhanced speech function with better Filipino support
+  const speakWithSpeech = async (text: string, options = {}) => {
+    try {
+      // Stop any current speech first
+      await Speech.stop();
+      await new Promise(resolve => setTimeout(resolve, 50));
       
-      // Compare all relevant properties
-      if (item.id !== item2.id) return false;
+      // Check available voices
+      const availableVoices = await Speech.getAvailableVoicesAsync();
       
-      // For categories
-      if (item.category_name !== item2.category_name) return false;
-      if (item.image !== item2.image) return false;
-      if (item.background_color !== item2.background_color) return false;
+      // Try to find the best available voice for Filipino
+      let bestVoice = null;
       
-      // For cards - REMOVED text comparison to allow text updates
-      if (item.image !== item2.image) return false;
-      if (item.categoryId !== item2.categoryId) return false;
+      // Priority 1: Exact Filipino voice
+      bestVoice = availableVoices.find(voice => 
+        voice.language === 'fil-PH' || voice.language === 'tl-PH'
+      );
+      
+      // Priority 2: Any Filipino language
+      if (!bestVoice) {
+        bestVoice = availableVoices.find(voice => 
+          voice.language.includes('fil') || voice.language.includes('tl')
+        );
+      }
+      
+      // Priority 3: Enhanced quality default voice
+      if (!bestVoice) {
+        bestVoice = availableVoices.find(voice => 
+          voice.quality === 'Enhanced'
+        );
+      }
+      
+      // Priority 4: Any default voice
+      if (!bestVoice) {
+        bestVoice = availableVoices.find(voice => 
+          voice.quality === 'Default'
+        );
+      }
+      
+      console.log('Selected voice:', bestVoice?.name, 'Language:', bestVoice?.language);
+      
+      const speechOptions = {
+        language: "fil-PH", // Always try Filipino first
+        pitch: 1.1,
+        rate: 0.75,
+        ...options,
+      };
+      
+      // Add voice if found
+      if (bestVoice) {
+        speechOptions.voice = bestVoice.identifier;
+      }
+      
+      await Speech.speak(text, speechOptions);
       
       return true;
-    });
+    } catch (error) {
+      console.error('Error with Filipino speech:', error);
+      
+      // Fallback strategies for Filipino
+      try {
+        // Try different Filipino language codes
+        const languageAttempts = ['fil-PH', 'tl-PH', 'fil', 'tl'];
+        
+        for (const lang of languageAttempts) {
+          try {
+            await Speech.stop();
+            await new Promise(resolve => setTimeout(resolve, 50));
+            
+            await Speech.speak(text, {
+              language: lang,
+              pitch: 1.0,
+              rate: 0.8,
+            });
+            console.log(`Success with language: ${lang}`);
+            return true;
+          } catch (langError) {
+            if (langError instanceof Error) {
+              console.log(`Failed with language ${lang}:`, langError.message);
+            } else {
+              console.log(`Failed with language ${lang}:`, String(langError));
+            }
+            continue;
+          }
+        }
+        
+        // If all Filipino attempts fail, try English as last resort
+        if (!isOnline) {
+          await Speech.speak(text, {
+            language: "en-US",
+            pitch: 1.0,
+            rate: 0.8,
+          });
+          console.log('Used English fallback for offline speech');
+          return true;
+        }
+        
+      } catch (fallbackError) {
+        console.error('All speech fallbacks failed:', fallbackError);
+      }
+      
+      return false;
+    }
+  };
+
+  // Initialize Speech with voice checking
+  useEffect(() => {
+    const initializeSpeech = async () => {
+      try {
+        console.log('Initializing Speech...');
+        
+        // Check available voices first
+        await checkAvailableVoices();
+        
+        // Pre-warm the speech engine with a silent utterance
+        await Speech.speak(' ', {
+          language: "fil-PH",
+          pitch: 1.0,
+          rate: 0.8,
+          volume: 0.01,
+        });
+        
+        // Stop immediately after a short delay
+        setTimeout(async () => {
+          await Speech.stop();
+          setIsSpeechReady(true);
+          console.log('Speech initialized successfully');
+        }, 100);
+        
+      } catch (error) {
+        console.error('Error initializing speech:', error);
+        setSpeechError('Speech may not work properly');
+        setIsSpeechReady(true);
+      }
+    };
+
+    initializeSpeech();
+  }, []);
+
+  // Ultimate fallback: play each card individually
+  const playCardsIndividually = async (cards: SentenceCardType[]) => {
+    for (const card of cards) {
+      await playCardName(card.text);
+      await new Promise(resolve => setTimeout(resolve, 400));
+    }
+  };
+
+  // Play sentence in chunks for better offline reliability
+  const playChunkedSentence = async (cards: SentenceCardType[]) => {
+    const chunkSize = 3;
+    const delayBetweenChunks = 500;
+    
+    for (let i = 0; i < cards.length; i += chunkSize) {
+      const chunk = cards.slice(i, i + chunkSize);
+      const chunkText = chunk.map(card => card.text).join(" ");
+      
+      const success = await speakWithSpeech(chunkText, { rate: 0.8 });
+      
+      if (!success) {
+        // If chunk fails, try playing individual cards in this chunk
+        for (const card of chunk) {
+          await playCardName(card.text);
+          await new Promise(resolve => setTimeout(resolve, 300));
+        }
+      }
+      
+      // Wait between chunks
+      if (i + chunkSize < cards.length) {
+        await new Promise(resolve => setTimeout(resolve, delayBetweenChunks));
+      }
+    }
   };
 
   // Function to show notification
   const showNotificationMessage = () => {
-    // Clear any existing timeout
     if (notificationTimeoutRef.current) {
       clearTimeout(notificationTimeoutRef.current);
     }
 
     setShowNotification(true);
 
-    // Fade in animation
     Animated.timing(notificationOpacity, {
       toValue: 1,
       duration: 300,
       useNativeDriver: false,
     }).start();
 
-    // Auto hide after 2 seconds
     notificationTimeoutRef.current = setTimeout(() => {
-      // Fade out animation
       Animated.timing(notificationOpacity, {
         toValue: 0,
         duration: 300,
@@ -282,23 +472,67 @@ export default function HomeScreen() {
     }, 2000);
   };
 
+  // Function to show break reminder
+  const showBreakReminderMessage = async () => {
+    setShowBreakReminder(true);
+
+    Animated.timing(breakReminderOpacity, {
+      toValue: 1,
+      duration: 500,
+      useNativeDriver: false,
+    }).start();
+
+    // Speak the break reminder message
+    try {
+      await Speech.stop(); // Stop any ongoing speech
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      const breakMessage = "Time for a break! You've been using the app for 30 minutes. Take a short break to rest your eyes and stretch.";
+      await speakWithSpeech(breakMessage, { rate: 0.8 });
+    } catch (error) {
+      console.error('Error speaking break reminder:', error);
+    }
+  };
+
+  // Function to dismiss break reminder
+  const dismissBreakReminder = () => {
+    Animated.timing(breakReminderOpacity, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: false,
+    }).start(() => {
+      setShowBreakReminder(false);
+      // Reset timer for another 30 minutes
+      startBreakReminderTimer();
+    });
+  };
+
+  // Function to start break reminder timer
+  const startBreakReminderTimer = () => {
+    if (breakReminderTimeoutRef.current) {
+      clearTimeout(breakReminderTimeoutRef.current);
+    }
+
+    // 30 minutes = 1800000 milliseconds
+    breakReminderTimeoutRef.current = setTimeout(() => {
+      showBreakReminderMessage();
+    }, 180000); // 30 minutes
+  };
+
   // Function to handle profile image taps
   const handleProfileTap = () => {
     setTapCount((prev) => {
       const newCount = prev + 1;
 
-      // Clear existing timeout
       if (tapTimeoutRef.current) {
         clearTimeout(tapTimeoutRef.current);
       }
 
-      // If reached 5 taps, show modal
       if (newCount >= 5) {
         setShowSettingsModal(true);
-        return 0; // Reset counter
+        return 0;
       }
 
-      // Reset counter after 2 seconds of no taps
       tapTimeoutRef.current = setTimeout(() => {
         setTapCount(0);
       }, 2000);
@@ -315,6 +549,9 @@ export default function HomeScreen() {
 
   // Clean up timeout on unmount
   useEffect(() => {
+    // Start break reminder timer when component mounts
+    startBreakReminderTimer();
+
     return () => {
       if (tapTimeoutRef.current) {
         clearTimeout(tapTimeoutRef.current);
@@ -322,61 +559,46 @@ export default function HomeScreen() {
       if (notificationTimeoutRef.current) {
         clearTimeout(notificationTimeoutRef.current);
       }
+      if (breakReminderTimeoutRef.current) {
+        clearTimeout(breakReminderTimeoutRef.current);
+      }
+      Speech.stop();
     };
   }, []);
 
-  // Function to play card name when added to sentence strip
+  // Function to play card name using Expo Speech
   const playCardName = async (cardText: string) => {
     if (isPlayingCardName) {
-      // If already playing a card name, stop the current one first
       await Speech.stop();
     }
 
     setIsPlayingCardName(true);
 
     try {
-      // Configure speech options for card name
-      const speechOptions = {
-        language: "fil-PH",
-        pitch: 1.1, // Slightly higher pitch for card names
-        rate: 0.9, // Normal speed for single words
-        voice: undefined,
-      };
+      const success = await speakWithSpeech(cardText);
+      
+      if (!success) {
+        console.warn('Speech failed for card:', cardText);
+      }
 
-      // Speak the card name
-      await Speech.speak(cardText, {
-        ...speechOptions,
-        onStart: () => {
-          console.log("Card name speech started:", cardText);
-        },
-        onDone: () => {
-          console.log("Card name speech finished:", cardText);
-          setIsPlayingCardName(false);
-        },
-        onStopped: () => {
-          console.log("Card name speech stopped:", cardText);
-          setIsPlayingCardName(false);
-        },
-        onError: (error) => {
-          console.error("Card name speech error:", error);
-          setIsPlayingCardName(false);
-        },
-      });
+      const estimatedDuration = Math.max(1000, cardText.length * 200);
+      setTimeout(() => {
+        setIsPlayingCardName(false);
+      }, estimatedDuration);
+      
     } catch (error) {
-      console.error("Error playing card name:", error);
+      console.error('Error playing card name:', error);
       setIsPlayingCardName(false);
     }
   };
 
-  // UPDATED: Function to handle card tap - now includes category color AND logging
+  // Function to handle card tap
   const handleCardTap = async (card: CardType) => {
-    // Check if sentence strip is full (max 8 cards)
     if (sentenceCards.length >= 8) {
       console.log("Sentence strip is full");
       return;
     }
 
-    // Add visual feedback animation
     Animated.sequence([
       Animated.timing(cardTapScale, {
         toValue: 1.1,
@@ -390,34 +612,26 @@ export default function HomeScreen() {
       }),
     ]).start();
 
-    // Get the current category color
     const currentCategoryColor = getCurrentCategoryBackgroundColor();
 
-    // Create sentence card with category color
     const sentenceCard: SentenceCardType = {
       ...card,
       categoryColor: currentCategoryColor,
     };
 
-    // Add card to sentence strip with its category color
     setSentenceCards((prev) => [...prev, sentenceCard]);
-
-    // LOG: Card added to sentence strip
-    await logCardTap(card, 'add', sentenceCards.length + 1);
-
-    // Play the card name when added to sentence strip
     await playCardName(card.text);
 
     console.log("Card added to sentence with color:", card.text, currentCategoryColor);
   };
 
-  // NEW: Helper function to get current category background color
+  // Helper function to get current category background color
   const getCurrentCategoryBackgroundColor = () => {
     const currentCategory = categories.find(cat => cat.id === selectedCategory);
-    return currentCategory?.background_color || "#5FA056"; // Default fallback color
+    return currentCategory?.background_color || "#5FA056";
   };
 
-  // UPDATED: Enhanced function to filter and update displayed cards with ID-based matching
+  // Enhanced function to filter and update displayed cards with ID-based matching
   const updateDisplayedCards = useCallback((allCards: CardType[], categories: CategoryType[], selectedCatId: string) => {
     if (!selectedCatId || categories.length === 0 || allCards.length === 0) {
       setDisplayedCards([]);
@@ -435,13 +649,9 @@ export default function HomeScreen() {
 
     console.log("Updating displayed cards for category:", selectedCat.category_name, "ID:", selectedCat.id);
 
-    // NEW: Get all cards that belong to this category by matching category ID
-    // First, try to find cards that have category_id field matching the category ID
     const filteredCards = allCards.filter((card) => {
-      // Check if card has direct category ID reference
       const hasDirectCategoryIdMatch = card.categoryId === selectedCat.id;
       
-      // Also check if card has category_name that matches the category's name (backward compatibility)
       const categoryName = selectedCat.category_name;
       const cardCategoryId = card.categoryId;
       
@@ -460,18 +670,16 @@ export default function HomeScreen() {
 
     console.log(`Found ${filteredCards.length} cards for category "${selectedCat.category_name}"`);
 
-    // Only update if cards actually changed
     if (!areArraysEqual(displayedCardsRef.current, filteredCards)) {
       displayedCardsRef.current = filteredCards;
       setDisplayedCards(filteredCards);
     }
   }, []);
 
-  // NEW: Improved function to filter categories to only show those with cards
+  // Improved function to filter categories to only show those with cards
   const filterCategoriesWithCards = useCallback((allCategories: CategoryType[], allCardsData: CardType[]): CategoryType[] => {
     const categoriesWithCards = allCategories.filter((category) => {
       const categoryCards = allCardsData.filter((card) => {
-        // Check multiple matching strategies
         const hasDirectCategoryIdMatch = card.categoryId === category.id;
         
         const categoryName = category.category_name;
@@ -494,36 +702,48 @@ export default function HomeScreen() {
     return categoriesWithCards;
   }, []);
 
-  // NEW: Helper function to check if data actually changed (simplified)
+  // Helper function to check if data actually changed
   const hasDataChanged = (oldData: any[], newData: any[]) => {
     if (oldData.length !== newData.length) return true;
     
-    // Check if any item has different data or if order changed
     return newData.some((newItem, index) => {
       const oldItem = oldData[index];
       if (!oldItem) return true;
       
-      // Compare only ID and structural properties, not content
       if (newItem.id !== oldItem.id) return true;
       if (newItem.category_name !== oldItem.category_name) return true;
       if (newItem.image !== oldItem.image) return true;
       if (newItem.background_color !== oldItem.background_color) return true;
       if (newItem.categoryId !== oldItem.categoryId) return true;
       
-      // DON'T compare text to allow text updates
-      // if (newItem.text !== oldItem.text) return true;
-      
       return false;
     });
   };
 
-  // FIXED: Handle category press - simplified without active state management
+  const areArraysEqual = (arr1: any[], arr2: any[]) => {
+    if (arr1.length !== arr2.length) return false;
+    
+    return arr1.every((item, index) => {
+      const item2 = arr2[index];
+      if (!item2) return false;
+      
+      if (item.id !== item2.id) return false;
+      if (item.category_name !== item2.category_name) return false;
+      if (item.image !== item2.image) return false;
+      if (item.background_color !== item2.background_color) return false;
+      if (item.categoryId !== item2.categoryId) return false;
+      
+      return true;
+    });
+  };
+
+  // Handle category press
   const handleCategoryPress = useCallback((categoryId: string) => {
     console.log("Category pressed:", categoryId);
     setSelectedCategory(categoryId);
-  }, []); // No dependencies needed
+  }, []);
 
-  // UPDATED: Use real-time listeners with proper update handling
+  // Use real-time listeners with proper update handling
   useEffect(() => {
     if (!user?.uid) {
       console.log("No user found, not setting up listeners");
@@ -536,15 +756,13 @@ export default function HomeScreen() {
     console.log("Current user ID:", user.uid);
 
     setLoading(true);
-    setIsFooterReady(false); // Reset footer readiness
+    setIsFooterReady(false);
 
-    // Fetch user's full name first
     fetchUserFullName();
 
-    // Array to store unsubscribe functions
     const unsubscribeListeners: (() => void)[] = [];
 
-    // Real-time listener for categories
+    // Real-time listener for categories - ONLY SHOW ASSIGNED CATEGORIES
     const categoriesUnsubscribe = firestore()
       .collection("pecsCategories")
       .onSnapshot(
@@ -562,28 +780,13 @@ export default function HomeScreen() {
               console.log("Created by:", categoryData.created_by);
               console.log("Assigned to:", categoryData.assigned_to);
 
-              const isAdminCreated = 
-                categoryData.created_by === "ADMIN" ||
-                categoryData.created_by === "admin" ||
-                (typeof categoryData.created_by === 'string' && categoryData.created_by.toUpperCase() === "ADMIN");
-
-              // Categories filtering logic
               let shouldShowCategory = false;
 
-              if (categoryData.created_by === currentUserId) {
-                shouldShowCategory = true;
-                console.log("Showing category: Created by current user");
-              } else if (isAdminCreated) {
-                shouldShowCategory = true;
-                console.log("Showing category: Created by admin (PUBLIC CATEGORY)");
-              } else if (categoryData.assigned_to && Array.isArray(categoryData.assigned_to) && categoryData.assigned_to.includes(currentUserId)) {
+              if (categoryData.assigned_to && Array.isArray(categoryData.assigned_to) && categoryData.assigned_to.includes(currentUserId)) {
                 shouldShowCategory = true;
                 console.log("Showing category: Assigned to current user");
-              } else if (!categoryData.assigned_to) {
-                shouldShowCategory = true;
-                console.log("Showing category: Public category (no assignment)");
               } else {
-                console.log("Hiding category: Not accessible to current user");
+                console.log("Hiding category: Not assigned to current user");
               }
 
               if (shouldShowCategory) {
@@ -601,54 +804,47 @@ export default function HomeScreen() {
 
             console.log("All accessible categories:", allCategoriesData.map(c => c.category_name));
 
-            // Check if categories actually changed (including updates)
             const categoriesChanged = hasDataChanged(categoriesRef.current, allCategoriesData);
             
             if (categoriesChanged) {
               console.log("Categories changed - updating state");
               categoriesRef.current = allCategoriesData;
               
-              // Filter categories to only show those with cards
               const filteredCategories = filterCategoriesWithCards(allCategoriesData, allCardsRef.current);
               console.log("Categories with cards:", filteredCategories.map(c => c.category_name));
               
-              // Update categories state
               setCategories(filteredCategories);
 
-              // Auto-select first category if none selected
               if (filteredCategories.length > 0 && !selectedCategory) {
                 const firstCategoryId = filteredCategories[0].id;
                 setSelectedCategory(firstCategoryId);
                 console.log("Auto-selected first category:", firstCategoryId);
               }
 
-              // Mark footer as ready when we have categories
               setIsFooterReady(true);
 
-              // Update displayed cards when categories change
               if (selectedCategory) {
                 updateDisplayedCards(allCardsRef.current, filteredCategories, selectedCategory);
               }
             } else {
               console.log("Categories unchanged - skipping state update");
-              // Still mark footer as ready even if no changes
               setIsFooterReady(true);
             }
 
           } catch (error) {
             console.error("Error processing categories update:", error);
-            setIsFooterReady(true); // Mark ready even on error to show footer
+            setIsFooterReady(true);
           }
         },
         (error) => {
           console.error("Error in categories listener:", error);
-          setIsFooterReady(true); // Mark ready even on error to show footer
+          setIsFooterReady(true);
         }
       );
 
     unsubscribeListeners.push(categoriesUnsubscribe);
 
-    // Real-time listener for cards
+    // Real-time listener for cards - ONLY SHOW ASSIGNED CARDS
     const cardsUnsubscribe = firestore()
       .collection("cards")
       .onSnapshot(
@@ -668,25 +864,13 @@ export default function HomeScreen() {
               console.log("Created by:", cardData.created_by);
               console.log("Assigned to:", cardData.assigned_to);
 
-              const isAdminCreated = 
-                cardData.created_by === "ADMIN" ||
-                cardData.created_by === "admin" ||
-                (typeof cardData.created_by === 'string' && cardData.created_by.toUpperCase() === "ADMIN");
-
-              // Cards filtering logic
               let shouldShowCard = false;
 
-              if (cardData.created_by === currentUserId) {
-                shouldShowCard = true;
-                console.log("Showing card: Created by current user");
-              } else if (isAdminCreated) {
-                shouldShowCard = true;
-                console.log("Showing card: Created by admin (public card)");
-              } else if (cardData.assigned_to && Array.isArray(cardData.assigned_to) && cardData.assigned_to.includes(currentUserId)) {
+              if (cardData.assigned_to && Array.isArray(cardData.assigned_to) && cardData.assigned_to.includes(currentUserId)) {
                 shouldShowCard = true;
                 console.log("Showing card: Assigned to current user");
               } else {
-                console.log("Hiding card: Not created by user/admin and not assigned to user");
+                console.log("Hiding card: Not assigned to current user");
               }
 
               if (shouldShowCard) {
@@ -694,8 +878,7 @@ export default function HomeScreen() {
                   id: cardDoc.id,
                   image: cardData.image || "",
                   text: cardData.card_name || cardData.text || "No text",
-                  // IMPORTANT: Store both category ID and name for better matching
-                  categoryId: cardData.category_id || cardData.category_name || "", // Prefer category_id if available
+                  categoryId: cardData.category_id || cardData.category_name || "",
                 });
                 console.log("✓ Card added to display:", cardData.card_name, "Category ref:", cardData.category_id || cardData.category_name);
               } else {
@@ -705,10 +888,8 @@ export default function HomeScreen() {
 
             console.log("Filtered cards count:", cardsData.length);
 
-            // Check if cards actually changed (including updates)
             const cardsChanged = hasDataChanged(allCardsRef.current, cardsData);
             
-            // NEW: Also check for individual card text changes
             const hasIndividualCardChanges = allCardsRef.current.some((oldCard, index) => {
               const newCard = cardsData[index];
               if (!newCard) return true;
@@ -725,17 +906,14 @@ export default function HomeScreen() {
               allCardsRef.current = cardsData;
               setAllCards(cardsData);
 
-              // Filter categories to only show those with cards
               const filteredCategories = filterCategoriesWithCards(categoriesRef.current, cardsData);
               console.log("Categories with cards after cards update:", filteredCategories.map(c => c.category_name));
               
               setCategories(filteredCategories);
 
-              // Update displayed cards when all cards change
               if (selectedCategory && filteredCategories.length > 0) {
                 updateDisplayedCards(cardsData, filteredCategories, selectedCategory);
               } else if (filteredCategories.length > 0 && !selectedCategory) {
-                // Auto-select first category if none selected
                 const firstCategoryId = filteredCategories[0].id;
                 setSelectedCategory(firstCategoryId);
                 console.log("Auto-selected first category after cards update:", firstCategoryId);
@@ -755,16 +933,15 @@ export default function HomeScreen() {
 
     unsubscribeListeners.push(cardsUnsubscribe);
 
-    // NEW: Individual card update listener for real-time text changes
+    // Individual card update listener for real-time text changes
     const cardUpdatesUnsubscribe = firestore()
       .collection("cards")
-      .where("created_by", "in", [user.uid, "ADMIN", "admin"])
+      .where("assigned_to", "array-contains", user.uid)
       .onSnapshot((snapshot) => {
         snapshot.docChanges().forEach((change) => {
           if (change.type === 'modified') {
             console.log("Card modified - forcing update:", change.doc.id, change.doc.data().card_name);
             
-            // Force update the displayed cards to trigger re-render
             setAllCards(prev => [...prev]);
             setDisplayedCards(prev => [...prev]);
           }
@@ -773,23 +950,20 @@ export default function HomeScreen() {
 
     unsubscribeListeners.push(cardUpdatesUnsubscribe);
 
-    // Set loading to false after initial setup
     setTimeout(() => {
       setLoading(false);
-      // Ensure footer is marked as ready even if no categories were found
       if (!isFooterReady) {
         setIsFooterReady(true);
       }
     }, 1000);
 
-    // Cleanup function to unsubscribe from listeners
     return () => {
       console.log("=== CLEANING UP REAL-TIME LISTENERS ===");
       unsubscribeListeners.forEach(unsubscribe => unsubscribe());
     };
   }, [user?.uid, updateDisplayedCards, filterCategoriesWithCards]);
 
-  // NEW: Effect to handle category selection changes
+  // Effect to handle category selection changes
   useEffect(() => {
     if (selectedCategory && categories.length > 0 && allCards.length > 0) {
       console.log("Category selection changed, updating displayed cards");
@@ -805,7 +979,7 @@ export default function HomeScreen() {
     setSentenceCards((prev) => prev.slice(0, -1));
   };
 
-  // UPDATED: Play sentence function with logging
+  // Enhanced Play sentence function with offline support
   const playSentence = async () => {
     if (sentenceCards.length > 0 && !isPlaying) {
       setIsPlaying(true);
@@ -814,53 +988,40 @@ export default function HomeScreen() {
       await logPlaySentence(sentenceCards);
 
       try {
-        // Stop any ongoing speech (including card names)
         await Speech.stop();
         setIsPlayingCardName(false);
 
-        // Create the sentence from card texts
+        await new Promise(resolve => setTimeout(resolve, 100));
+
         const sentence = sentenceCards.map((card) => card.text).join(" ");
         console.log("Playing sentence:", sentence);
 
-        // Configure speech options
-        const speechOptions = {
-          language: "fil-PH", // You can change this to other languages like 'es-ES', 'fr-FR', etc.
-          pitch: 1.1, // Range: 0.5 - 2.0
-          rate: 0.9, // Range: 0.1 - 2.0 (0.8 is slightly slower for better clarity)
-          voice: undefined, // Let the system choose the default voice
-        };
+        // Always try Filipino first, even offline
+        const success = await speakWithSpeech(sentence, { rate: 0.75 });
+        
+        if (!success) {
+          console.warn('Filipino sentence speech failed, trying chunked approach');
+          await playChunkedSentence(sentenceCards);
+        }
 
-        // Speak the sentence
-        await Speech.speak(sentence, {
-          ...speechOptions,
-          onStart: () => {
-            console.log("Speech started");
-          },
-          onDone: () => {
-            console.log("Speech finished");
-            setIsPlaying(false);
-          },
-          onStopped: () => {
-            console.log("Speech stopped");
-            setIsPlaying(false);
-          },
-          onError: (error) => {
-            console.error("Speech error:", error);
-            setIsPlaying(false);
-          },
-        });
+        const sentenceDuration = Math.max(2000, sentence.length * 150);
+        setTimeout(() => {
+          setIsPlaying(false);
+        }, sentenceDuration);
+        
       } catch (error) {
         console.error("Error playing sentence:", error);
+        
+        // Final fallback: play cards individually
+        await playCardsIndividually(sentenceCards);
         setIsPlaying(false);
-        alert("Error playing audio. Please try again.");
       }
     } else if (sentenceCards.length === 0) {
-      // Show notification instead of alert
       showNotificationMessage();
     }
   };
 
-  // Stop speech function (useful for cleanup)
+  // Stop speech function
   const stopSpeech = async () => {
     try {
       await Speech.stop();
@@ -871,14 +1032,7 @@ export default function HomeScreen() {
     }
   };
 
-  // Cleanup speech when component unmounts
-  useEffect(() => {
-    return () => {
-      Speech.stop();
-    };
-  }, []);
-
-  // UPDATED: Simplified card render function - now uses dynamic background color
+  // Simplified card render function
   const renderCard = ({
     item,
     index,
@@ -886,10 +1040,8 @@ export default function HomeScreen() {
     item: CardType;
     index: number;
   }): JSX.Element => {
-    // DEBUG: Log when card is rendered
     console.log(`Rendering card: ${item.text} (ID: ${item.id})`);
     
-    // Get the background color from the current category
     const cardBackgroundColor = getCurrentCategoryBackgroundColor();
     
     return (
@@ -899,7 +1051,7 @@ export default function HomeScreen() {
           {
             width: cardWidth,
             height: cardHeight,
-            backgroundColor: cardBackgroundColor, // Apply dynamic background color
+            backgroundColor: cardBackgroundColor,
           },
         ]}
         onPress={() => handleCardTap(item)}
@@ -911,7 +1063,7 @@ export default function HomeScreen() {
               styles.imageContainer,
               {
                 width: cardWidth,
-                height: cardHeight * 0.7, // 70% of card height for image
+                height: cardHeight * 0.7,
               },
             ]}
           >
@@ -929,16 +1081,16 @@ export default function HomeScreen() {
               styles.textContainer,
               {
                 width: cardWidth,
-                height: cardHeight * 0.3, // 30% of card height for text
+                height: cardHeight * 0.3,
               },
             ]}
           >
             <Text
               style={[styles.cardText]}
-              numberOfLines={2} // Allow maximum 2 lines
-              adjustsFontSizeToFit={true} // Auto adjust font size to fit
-              minimumFontScale={0.6} // Minimum scale for font size
-              textBreakStrategy="balanced" // Better text wrapping
+              numberOfLines={2}
+              adjustsFontSizeToFit={true}
+              minimumFontScale={0.6}
+              textBreakStrategy="balanced"
             >
               {item.text}
             </Text>
@@ -948,19 +1100,16 @@ export default function HomeScreen() {
     );
   };
 
-  // UPDATED: Sentence card now uses individual card's stored category color AND includes logging for removal
+  // Sentence card render function
   const renderSentenceCard = (card: SentenceCardType, index: number): JSX.Element => {
     return (
       <TouchableOpacity
         key={`sentence-${card.id}-${index}`}
         style={[
           styles.sentenceCard,
-          { backgroundColor: card.categoryColor } // Use the stored category color for each card
+          { backgroundColor: card.categoryColor }
         ]}
-        onPress={async () => {
-          // LOG: Card removed from sentence strip
-          await logCardTap(card, 'remove', index + 1);
-          
+        onPress={() => {
           setSentenceCards((prev: SentenceCardType[]) =>
             prev.filter((_, i: number) => i !== index)
           );
@@ -991,11 +1140,24 @@ export default function HomeScreen() {
     );
   };
 
+  // Add a debug component to show speech status
+  const renderSpeechStatus = () => {
+    if (speechError) {
+      return (
+        <View style={styles.speechErrorContainer}>
+          <Text style={styles.speechErrorText}>
+            Note: {speechError}
+          </Text>
+        </View>
+      );
+    }
+    return null;
+  };
+
   if (!fontsLoaded) {
-    return null; // Don't render until fonts are loaded
+    return null;
   }
 
-  // Fixed getItemLayout function
   const getItemLayout = (
     data: CardType[] | null | undefined,
     index: number
@@ -1016,6 +1178,16 @@ export default function HomeScreen() {
 
   return (
     <ThemedView style={styles.container}>
+      {/* Speech Status Indicator */}
+      {renderSpeechStatus()}
+
+      {/* Network Status Indicator */}
+      {!isOnline && (
+        <View style={styles.offlineContainer}>
+          <Text style={styles.offlineText}>Offline Mode</Text>
+        </View>
+      )}
+
       {/* NOTIFICATION BOX */}
       {showNotification && (
         <Animated.View
@@ -1034,6 +1206,31 @@ export default function HomeScreen() {
         </Animated.View>
       )}
 
+      {/* BREAK REMINDER NOTIFICATION */}
+      {showBreakReminder && (
+        <Animated.View
+          style={[
+            styles.breakReminderContainer,
+            {
+              opacity: breakReminderOpacity,
+            }
+          ]}
+        >
+          <View style={styles.breakReminderBox}>
+            <Text style={styles.breakReminderTitle}>Time for a Break!</Text>
+            <Text style={styles.breakReminderText}>
+              You've been using the app for 30 minutes. Take a short break to rest your eyes and stretch!
+            </Text>
+            <TouchableOpacity
+              style={styles.breakReminderButton}
+              onPress={dismissBreakReminder}
+            >
+              <Text style={styles.breakReminderButtonText}>OK, Got it!</Text>
+            </TouchableOpacity>
+          </View>
+        </Animated.View>
+      )}
+
       {/* HEADER */}
       <View style={styles.header}>
         <View style={styles.userInfoContainer}>
@@ -1042,20 +1239,12 @@ export default function HomeScreen() {
               source={require("@/assets/images/user2.png")}
               style={styles.headerImage}
             />
-            {/* Optional tap indicator */}
             {tapCount > 0 && tapCount < 5 && (
               <View style={styles.tapIndicator}>
                 <Text style={styles.tapIndicatorText}>{tapCount}/5</Text>
               </View>
             )}
           </TouchableOpacity>
-
-          {/* DEBUG: Show current user ID */}
-          {/* <View style={styles.debugContainer}>
-            <Text style={styles.debugText}>
-              User ID: {user?.uid || 'No user ID'}
-            </Text>
-          </View> */}
         </View>
       </View>
 
@@ -1103,7 +1292,7 @@ export default function HomeScreen() {
           <View
             style={[
               styles.sentenceStrip,
-              { width: Math.min(width * 0.95, 1200) },
+              { width: Math.min(width * 0.98, 1200) },
             ]}
           >
             <TouchableOpacity
@@ -1181,7 +1370,6 @@ export default function HomeScreen() {
             numColumns={cardsPerRow}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={[styles.cardsContainer]}
-            // getItemLayout={getItemLayout}
             removeClippedSubviews={false}
             initialNumToRender={cardsPerRow * 3}
             maxToRenderPerBatch={cardsPerRow * 2}
@@ -1196,7 +1384,6 @@ export default function HomeScreen() {
           <FlatList
             data={categories}
             renderItem={({ item, index }) => {
-              // Compute active state dynamically based on selectedCategory
               const isActive = item.id === selectedCategory;
               return (
                 <TouchableOpacity
@@ -1236,6 +1423,58 @@ const { width, height } = Dimensions.get("window");
 const isTablet = width > 915;
 
 const styles = StyleSheet.create({
+   breakReminderContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 9999,
+  },
+  breakReminderBox: {
+    backgroundColor: "#fafafa",
+    borderRadius: width * 0.02,
+    padding: 30,
+    width: "80%",
+    maxWidth: 500,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 10,
+  },
+  breakReminderTitle: {
+    fontSize: RFValue(16),
+    fontWeight: "700",
+    color: "#9B72CF",
+    marginBottom: 15,
+    textAlign: "center",
+  },
+  breakReminderText: {
+    fontSize: RFValue(12),
+    color: "#434343",
+    textAlign: "center",
+    marginBottom: 25,
+    lineHeight: 22,
+  },
+  breakReminderButton: {
+    backgroundColor: "#9B72CF",
+    paddingVertical: height * 0.03,
+    paddingHorizontal: width * 0.01,
+    borderRadius: width * 0.01,
+    marginBottom: width * 0.015,
+    minWidth: 200,
+    alignItems: "center",
+  },
+  breakReminderButtonText: {
+    color: "#fafafa",
+    fontSize: RFValue(12),
+    fontWeight: "600",
+  },
   container: {
     flex: 1,
     backgroundColor: "#fafafa",
@@ -1251,6 +1490,57 @@ const styles = StyleSheet.create({
     fontSize: RFValue(12),
     color: "#9B72CF",
     fontWeight: "500",
+  },
+
+  // Speech Error Styles
+  speechErrorContainer: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    right: 10,
+    backgroundColor: '#FFEAA7',
+    padding: 8,
+    borderRadius: 5,
+    zIndex: 1000,
+  },
+  speechErrorText: {
+    color: '#E17055',
+    fontSize: 10,
+    textAlign: 'center',
+    fontFamily: "Poppins",
+  },
+
+  // Offline Indicator Styles
+  offlineContainer: {
+    position: 'absolute',
+    top: 12,
+    left: 20,
+    backgroundColor: '#9B72CF',
+    borderRadius: width * 0.005,
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+    zIndex: 1000,
+  },
+  offlineText: {
+    color: '#fafafa',
+    fontSize: RFValue(7),
+    fontWeight: 'bold',
+    fontFamily: "Poppins",
+  },
+
+  // Voice Status Styles
+  voiceStatusContainer: {
+    position: 'absolute',
+    bottom: 10,
+    left: 10,
+    backgroundColor: 'rgba(155, 114, 207, 0.8)',
+    borderRadius: width * 0.005,
+    zIndex: 1000,
+  },
+  voiceStatusText: {
+    color: '#ffffff',
+    fontSize: 10,
+    fontFamily: "Poppins",
   },
 
   // NOTIFICATION STYLES
@@ -1380,7 +1670,7 @@ const styles = StyleSheet.create({
   },
   modalButtonText: {
     color: "white",
-    fontSize: RFValue(8),
+    fontSize: RFValue(9),
     fontWeight: "600",
     fontFamily: "Poppins",
   },
@@ -1396,7 +1686,7 @@ const styles = StyleSheet.create({
   },
   cancelButtonText: {
     color: "#434343",
-    fontSize: RFValue(8),
+    fontSize: RFValue(9),
     fontFamily: "Poppins",
   },
 
@@ -1413,7 +1703,7 @@ const styles = StyleSheet.create({
 
   sentenceStrip: {
     backgroundColor: "#9B72CF",
-    height: height * 0.19,
+    height: isTablet ? height * 0.17 : height * 0.19,
     flexDirection: "row",
     gap: width * 0.01,
     justifyContent: "space-between",
@@ -1427,7 +1717,7 @@ const styles = StyleSheet.create({
     paddingVertical: height * 0.01,
     paddingHorizontal: width * 0.01,
     borderRadius: width * 0.01,
-    height: height * 0.14, 
+    height: isTablet ? height * 0.12 : height * 0.14, 
     justifyContent: "center",
     alignItems: "center",
   },
@@ -1440,10 +1730,10 @@ const styles = StyleSheet.create({
   },
 
   buttonText: {
-    fontSize: RFValue(6),
+    fontSize: RFValue(7),
     fontFamily: "Poppins",
     letterSpacing: 0.5,
-    fontWeight: "bold",
+    fontWeight: "600",
     color: "#9B72CF",
     textAlign: "center",
   },
@@ -1466,7 +1756,7 @@ const styles = StyleSheet.create({
   sentence: {
     backgroundColor: "#fafafa",
     flex: 1,
-    height: height * 0.17,
+    height: isTablet ? height * 0.15 : height * 0.17,
     borderRadius: width * 0.01,
     justifyContent: "center",
     alignItems: "center",
@@ -1483,9 +1773,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
-  // CARDS IN SENTENCE STRIP - Each card now uses its own stored category color
+  // CARDS IN SENTENCE STRIP
   sentenceCard: {
-    // backgroundColor is now set dynamically using card.categoryColor
     borderRadius: width * 0.01,
     marginRight: wp(0.5),
     alignItems: "center",
@@ -1499,7 +1788,7 @@ const styles = StyleSheet.create({
   sentenceCardImageContainer: {
     width: width * 0.08,
     height: (height * 0.16) * 0.7,
-    backgroundColor: "#9B72CF",
+    backgroundColor: "#fafafa",
     overflow: "hidden",
   },
 
@@ -1507,12 +1796,11 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
     resizeMode: "cover",
-
   },
 
   sentenceCardTextContainer: {
     width: width * 0.08,
-    height: (height * 0.16) * 0.3, // 30% of updated sentence card height
+    height: (height * 0.16) * 0.3,
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: wp(0.5),
@@ -1520,7 +1808,7 @@ const styles = StyleSheet.create({
 
   sentenceCardText: {
     color: "#fafafa",
-    fontSize: RFValue(6),
+    fontSize: RFValue(7),
     fontWeight: "500",
     textAlign: "center",
     fontFamily: "Poppins",
@@ -1532,14 +1820,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
-  // DISPLAYED CARDS - Uses current category color
+  // DISPLAYED CARDS
   cardsContainer: {
     justifyContent: "space-around",
     borderRadius: width * 0.01,
   },
 
   card: {
-    // backgroundColor is now set dynamically using current category color
     borderRadius: width * 0.01,
     shadowColor: "rgba(67, 67, 67, 0.3)",
     shadowOffset: { width: 0, height: 1 },
@@ -1579,7 +1866,7 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins",
     fontWeight: "500",
     lineHeight: 16,
-    fontSize: RFValue(8),
+    fontSize: RFValue(10),
   },
 
   // FOOTER STYLES
@@ -1587,7 +1874,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#E5E5E5",
     flex: 0,
     justifyContent: "center",
-    minHeight: height * 0.10, // Add minimum height for consistency
+    minHeight: height * 0.10,
   },
 
   categoryContainer: {
@@ -1603,7 +1890,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: width * 0.01,
+    gap: width * 0.02,
     paddingHorizontal: width * 0.03,
     borderRightWidth: 1,
     borderColor: "#9B72CF",
@@ -1617,7 +1904,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     height: height * 0.10,
-    gap: width * 0.01,
+    gap: width * 0.02,
     borderBottomLeftRadius: width * 0.01,
     borderBottomRightRadius: width * 0.01,
     borderRightWidth: 1,
@@ -1630,14 +1917,14 @@ const styles = StyleSheet.create({
 
   categoryImage: {
     borderRadius: width * 0.005,
-    resizeMode: "contain",
+    resizeMode: "cover",
     aspectRatio: 1,
-    width: width * 0.02,
-    height: height * 0.02,
+    width: width * 0.025,
+    height: height * 0.025,
   },
 
   categoryText: {
-    fontSize: RFValue(8),
+    fontSize: RFValue(9), 
     fontWeight: "500",
     color: "#9B72CF",
     fontFamily: "Poppins",
