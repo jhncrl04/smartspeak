@@ -1,25 +1,15 @@
-import { ConfigPlugin, withAndroidManifest } from "@expo/config-plugins";
+const { withAndroidManifest } = require("@expo/config-plugins");
 
-const withCameraFeatures: ConfigPlugin = (config) => {
+const withCameraFeatures = (config) => {
   return withAndroidManifest(config, (config) => {
     const androidManifest = config.modResults;
     const mainApplication = androidManifest.manifest;
 
-    // Ensure uses-feature array exists
     if (!mainApplication["uses-feature"]) {
       mainApplication["uses-feature"] = [];
     }
 
-    // Define feature type
-    type Feature = {
-      $: {
-        "android:name": string;
-        "android:required": string;
-      };
-    };
-
-    // Add camera features if they don't exist
-    const features: Feature[] = [
+    const features = [
       {
         $: {
           "android:name": "android.hardware.camera",
@@ -40,14 +30,12 @@ const withCameraFeatures: ConfigPlugin = (config) => {
       },
     ];
 
-    const existingFeatures = mainApplication["uses-feature"] as Feature[];
-
     features.forEach((feature) => {
-      const exists = existingFeatures.some(
+      const exists = mainApplication["uses-feature"].some(
         (f) => f.$?.["android:name"] === feature.$["android:name"]
       );
       if (!exists) {
-        existingFeatures.push(feature);
+        mainApplication["uses-feature"].push(feature);
       }
     });
 
@@ -55,4 +43,4 @@ const withCameraFeatures: ConfigPlugin = (config) => {
   });
 };
 
-export default withCameraFeatures;
+module.exports = withCameraFeatures;

@@ -47,7 +47,7 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
-      "./plugins/withCameraFeatures.ts",
+      "./plugins/withCameraFeatures.js",
       "@react-native-firebase/app",
       "@react-native-firebase/auth",
       "@react-native-firebase/crashlytics",
