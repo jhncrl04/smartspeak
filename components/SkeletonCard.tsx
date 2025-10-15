@@ -1,7 +1,8 @@
 import COLORS from "@/constants/Colors";
 import { useResponsiveCardSize } from "@/helper/setCardWidth";
 import React from "react";
-import { StyleSheet, View } from "react-native";
+import { Image, StyleSheet, View } from "react-native";
+import SkeletonPlaceholder from "react-native-skeleton-placeholder";
 import Icon from "react-native-vector-icons/Octicons";
 
 type SkeletonType = "pecs" | "learner" | "board";
@@ -9,16 +10,18 @@ type SkeletonType = "pecs" | "learner" | "board";
 const SkeletonCard = ({ type }: { type: SkeletonType }) => {
   const { cardWidth, cardHeight } = useResponsiveCardSize();
 
+  const shimmerSpeed = 500; // ⏳ slower shimmer duration (2 seconds)
+  const numSkeletons = 5; // 🧱 render 5 placeholders dynamically
+  const skeletonArray = Array.from({ length: numSkeletons });
+
   const sharedStyles = StyleSheet.create({
     container: {
       flexDirection: "row",
-      flexWrap: "wrap",
       gap: 15,
-      justifyContent: "flex-start",
     },
   });
 
-  // ===== LEARNER CARD =====
+  // ---------- LEARNER SKELETON ----------
   const learnerCardStyles = StyleSheet.create({
     cards: {
       height: cardHeight,
@@ -31,6 +34,7 @@ const SkeletonCard = ({ type }: { type: SkeletonType }) => {
       shadowOffset: { width: 10, height: 10 },
       shadowRadius: 20,
       overflow: "hidden",
+      justifyContent: "flex-start",
     },
     cardImageContainer: {
       width: cardWidth,
@@ -38,13 +42,11 @@ const SkeletonCard = ({ type }: { type: SkeletonType }) => {
       padding: 4,
       justifyContent: "center",
       alignItems: "center",
-      backgroundColor: "#f5f5f5",
     },
     cardImage: {
       width: "100%",
       height: "100%",
       borderRadius: 8,
-      backgroundColor: "#e8e8e8",
     },
     cardInfoContainer: {
       flex: 1,
@@ -54,38 +56,37 @@ const SkeletonCard = ({ type }: { type: SkeletonType }) => {
       paddingVertical: 20,
       paddingHorizontal: 10,
     },
-    nameLine: {
-      width: "70%",
-      height: 14,
-      borderRadius: 4,
-      marginBottom: 6,
-      backgroundColor: "#e8e8e8",
-    },
-    smallLine: {
-      width: "50%",
-      height: 12,
-      borderRadius: 4,
-      backgroundColor: "#e8e8e8",
-    },
+    nameLine: { width: "70%", height: 14, borderRadius: 4, marginBottom: 6 },
+    smallLine: { width: "50%", height: 12, borderRadius: 4 },
   });
 
   const learnerSkeleton = (
     <View style={sharedStyles.container}>
-      {[...Array(5)].map((_, i) => (
+      {skeletonArray.map((_, i) => (
         <View key={i} style={learnerCardStyles.cards}>
-          <View style={learnerCardStyles.cardImageContainer}>
-            <View style={learnerCardStyles.cardImage} />
-          </View>
-          <View style={learnerCardStyles.cardInfoContainer}>
-            <View style={learnerCardStyles.nameLine} />
-            <View style={learnerCardStyles.smallLine} />
-          </View>
+          <SkeletonPlaceholder
+            borderRadius={4}
+            highlightColor="#f5f5f5"
+            backgroundColor="#e0e0e0"
+            speed={shimmerSpeed}
+          >
+            <View style={learnerCardStyles.cardImageContainer}>
+              <Image
+                source={require("@/assets/images/default.jpg")}
+                style={learnerCardStyles.cardImage}
+              />
+            </View>
+            <View style={learnerCardStyles.cardInfoContainer}>
+              <View style={learnerCardStyles.nameLine} />
+              <View style={learnerCardStyles.smallLine} />
+            </View>
+          </SkeletonPlaceholder>
         </View>
       ))}
     </View>
   );
 
-  // ===== PECS CARD =====
+  // ---------- PECS SKELETON ----------
   const pecsStyles = StyleSheet.create({
     shadowWrapper: {
       height: cardHeight,
@@ -107,7 +108,7 @@ const SkeletonCard = ({ type }: { type: SkeletonType }) => {
     pecsImage: {
       width: cardWidth,
       height: cardWidth,
-      backgroundColor: "#e8e8e8",
+      backgroundColor: COLORS.white,
     },
     pecsInfoContainer: {
       paddingVertical: 10,
@@ -115,43 +116,41 @@ const SkeletonCard = ({ type }: { type: SkeletonType }) => {
       justifyContent: "center",
       alignItems: "center",
     },
-    pecsName: {
-      width: "70%",
-      height: 14,
-      borderRadius: 4,
-      marginBottom: 6,
-      backgroundColor: "#e8e8e8",
-    },
-    pecsCategory: {
-      width: "50%",
-      height: 12,
-      borderRadius: 4,
-      backgroundColor: "#e8e8e8",
-    },
+    pecsName: { width: "70%", height: 14, borderRadius: 4, marginBottom: 6 },
+    pecsCategory: { width: "50%", height: 12, borderRadius: 4 },
   });
 
   const pecsSkeleton = (
     <View style={sharedStyles.container}>
-      {[...Array(5)].map((_, i) => (
+      {skeletonArray.map((_, i) => (
         <View key={i} style={pecsStyles.shadowWrapper}>
-          <View style={pecsStyles.pecsContainer}>
-            <View style={pecsStyles.pecsImage} />
-            <View style={pecsStyles.pecsInfoContainer}>
-              <View style={pecsStyles.pecsName} />
-              <View style={pecsStyles.pecsCategory} />
+          <SkeletonPlaceholder
+            borderRadius={4}
+            highlightColor="#f5f5f5"
+            backgroundColor="#e0e0e0"
+            speed={shimmerSpeed}
+          >
+            <View style={pecsStyles.pecsContainer}>
+              <View style={pecsStyles.pecsImage} />
+              <View style={pecsStyles.pecsInfoContainer}>
+                <View style={pecsStyles.pecsName} />
+                <View style={pecsStyles.pecsCategory} />
+              </View>
             </View>
-          </View>
+          </SkeletonPlaceholder>
         </View>
       ))}
     </View>
   );
 
-  // ===== BOARD CARD =====
+  // ---------- BOARD SKELETON ----------
   const boardIconSize = cardWidth * 0.3;
+
   const boardStyles = StyleSheet.create({
     boardContainer: {
       width: cardWidth,
       height: cardWidth * 0.9,
+      position: "relative",
       justifyContent: "center",
       alignItems: "center",
     },
@@ -162,44 +161,42 @@ const SkeletonCard = ({ type }: { type: SkeletonType }) => {
       paddingTop: 30,
       justifyContent: "center",
       alignItems: "center",
+      gap: 0,
+      paddingHorizontal: 5,
     },
-    boardIcon: {
-      width: boardIconSize,
-      height: boardIconSize,
-      borderRadius: 5,
-      backgroundColor: "#e8e8e8",
-    },
+    boardIcon: { width: boardIconSize, height: boardIconSize, borderRadius: 5 },
     boardName: {
       width: 75,
       height: 14,
       borderRadius: 4,
       marginTop: 4,
       marginBottom: 6,
-      backgroundColor: "#e8e8e8",
     },
-    creatorName: {
-      width: "90%",
-      height: 12,
-      borderRadius: 4,
-      backgroundColor: "#e8e8e8",
-    },
+    creatorName: { width: "90%", height: 12, borderRadius: 4 },
   });
 
   const boardSkeleton = (
     <View style={sharedStyles.container}>
-      {[...Array(5)].map((_, i) => (
+      {skeletonArray.map((_, i) => (
         <View key={i} style={boardStyles.boardContainer}>
           <Icon
             style={boardStyles.folderIcon}
-            name="file-directory"
+            name={"file-directory"}
             size={cardWidth}
             color={COLORS.lightGray}
           />
-          <View style={boardStyles.boardInfoContainer}>
-            <View style={boardStyles.boardIcon} />
-            <View style={boardStyles.boardName} />
-            <View style={boardStyles.creatorName} />
-          </View>
+          <SkeletonPlaceholder
+            borderRadius={4}
+            highlightColor="#f5f5f5"
+            backgroundColor="#e0e0e0"
+            speed={shimmerSpeed}
+          >
+            <View style={boardStyles.boardInfoContainer}>
+              <View style={boardStyles.boardIcon} />
+              <View style={boardStyles.boardName} />
+              <View style={boardStyles.creatorName} />
+            </View>
+          </SkeletonPlaceholder>
         </View>
       ))}
     </View>

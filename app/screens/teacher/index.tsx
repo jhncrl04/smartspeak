@@ -112,7 +112,7 @@ const ManageLearnersScreen = () => {
     const timer = setTimeout(() => {
       setLoading(false);
       setFiltering(false);
-    }, 1000);
+    }, 2000);
 
     return () => clearTimeout(timer);
   }, [loading]);

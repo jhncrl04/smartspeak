@@ -70,6 +70,12 @@ const ManageThisCategoryScreen = () => {
 
   const filteredCards = cards
     .filter((card) => {
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase().trim();
+        const cardName = card.card_name.toLowerCase();
+        if (!cardName.includes(query)) return false;
+      }
+
       const isAdminCard =
         card.created_by === "ADMIN" &&
         card.category_name === activeCategory?.category_name;
@@ -133,8 +139,10 @@ const ManageThisCategoryScreen = () => {
               </View>
               <PageHeader
                 collectionToSearch="cards"
-                onSearch={() => {}}
-                query="card"
+                onSearch={(query) => {
+                  handleSearch(query as string);
+                }}
+                query="local"
                 pageTitle={`${activeCategory?.category_name} Cards`}
                 hasFilter={true}
                 searchPlaceholder="Search Card"

@@ -9,7 +9,6 @@ import firestore, {
 } from "@react-native-firebase/firestore";
 import { Alert } from "react-native";
 import { createLog } from "./loggingService";
-import { getUserInfo } from "./userApi/Authentication";
 
 type categoryProps = {
   name: string;
@@ -62,23 +61,6 @@ export const addCategory = async (categoryInfo: categoryProps) => {
 
   const user = useAuthStore.getState().user;
 
-  // const newCategory = {
-  //   category_name: categoryInfo.name,
-  //   background_color: categoryInfo.color,
-  //   created_at: currentDate,
-  //   created_by: uid,
-  //   creator_name: user?.fname,
-  //   image: base64Image,
-  //   is_assignable: categoryInfo.isAssignable,
-  //   assigned_to: categoryInfo.isAssignable
-  //     ? []
-  //     : [categoryInfo.assignedLearnerId],
-  //   created_for: !categoryInfo.isAssignable
-  //     ? categoryInfo.assignedLearnerId
-  //     : "",
-  // };
-
-  // disable auto assign for now
   const newCategory = {
     category_name: categoryInfo.name,
     background_color: categoryInfo.color,
@@ -87,11 +69,27 @@ export const addCategory = async (categoryInfo: categoryProps) => {
     creator_name: user?.fname,
     image: base64Image,
     is_assignable: categoryInfo.isAssignable,
-    assigned_to: [],
+    assigned_to: categoryInfo.isAssignable
+      ? []
+      : [categoryInfo.assignedLearnerId],
     created_for: !categoryInfo.isAssignable
       ? categoryInfo.assignedLearnerId
       : "",
   };
+
+  // const newCategory = {
+  //   category_name: categoryInfo.name,
+  //   background_color: categoryInfo.color,
+  //   created_at: currentDate,
+  //   created_by: uid,
+  //   creator_name: user?.fname,
+  //   image: base64Image,
+  //   is_assignable: categoryInfo.isAssignable,
+  //   assigned_to: [],
+  //   created_for: !categoryInfo.isAssignable
+  //     ? categoryInfo.assignedLearnerId
+  //     : "",
+  // };
 
   try {
     const categoryRef = await categoryCollection.add(newCategory);
@@ -119,169 +117,12 @@ export const addCategory = async (categoryInfo: categoryProps) => {
   }
 };
 
-export const getCategories = async () => {
-  const uid = useAuthStore.getState().user?.uid;
-
-  const categories: any[] = [];
-
-  await categoryCollection
-    .where("created_by", "==", uid)
-    .get()
-    .then((querySnapshot) => {
-      querySnapshot.forEach(async (doc) => {
-        const category = doc.data();
-        category.id = doc.id;
-
-        if (category.is_assignable === false) {
-          const learner = await getUserInfo(category.assigned_to[0]);
-
-          category.assigned_to_name = `${learner?.first_name} ${learner?.last_name}`;
-        }
-
-        categories.push(category);
-      });
-    });
-
-  return categories;
-};
-
 export const getCategoryWithId = async (categoryId: string) => {
   const categorySnapshot = await categoryCollection.doc(categoryId).get();
 
   const category = categorySnapshot.data();
 
   return category;
-};
-
-export const listenCategories = (callback: (categories: any[]) => void) => {
-  const uid = useAuthStore.getState().user?.uid;
-  if (!uid) return () => {};
-
-  return categoryCollection.onSnapshot(async (snapshot) => {
-    const categories: any[] = [];
-
-    // We’ll collect promises here for fetching creator names
-    const promises = snapshot.docs.map(async (doc) => {
-      const category = doc.data();
-      category.id = doc.id;
-
-      if (
-        category.created_by === uid ||
-        category.created_by_role?.toString().toLowerCase() === "admin"
-      ) {
-        if (category.created_by) {
-          try {
-            const userDoc = await userCollection.doc(category.created_by).get();
-
-            if (userDoc.exists()) {
-              category.creatorName = userDoc.id === uid ? "You" : null;
-            } else {
-              category.creatorName = null;
-            }
-          } catch (error) {
-            category.creatorName = null;
-          }
-        } else {
-          category.creatorName = null;
-        }
-        categories.push(category);
-      }
-    });
-
-    await Promise.all(promises); // wait for all creator lookups
-    callback(categories); // push enriched categories to state
-  });
-};
-
-export const listenToUnassignedCategories = (
-  learnerId: string,
-  callback: (categories: any[]) => void
-) => {
-  const uid = useAuthStore.getState().user?.uid;
-  if (!uid) return () => {};
-
-  return categoryCollection.onSnapshot(async (snapshot) => {
-    const categories: any[] = [];
-
-    // We’ll collect promises here for fetching creator names
-    const promises = snapshot.docs.map(async (doc) => {
-      const category = doc.data();
-      category.id = doc.id;
-
-      // console.log(
-      //   `${category.category_name}: {assignedTo: ${
-      //     category.assigned_to
-      //   }, createdBy: ${
-      //     category.created_by || category.created_by_role.toLowerCase()
-      //   }, createdFor: ${category.created_for}}`
-      // );
-
-      if (
-        !category.assigned_to?.includes(learnerId) &&
-        category.created_by === uid &&
-        category.created_by_role?.toString().toLowerCase() !== "admin"
-      ) {
-        if (!category.created_for || category.created_for === learnerId) {
-          categories.push(category);
-        }
-      }
-    });
-
-    await Promise.all(promises); // wait for all creator lookups
-    callback(categories); // push enriched categories to state
-  });
-};
-
-export const getUnassignedCategories = async (learnerId: string) => {
-  const uid = useAuthStore.getState().user?.uid;
-
-  const categories: any[] = [];
-
-  // Get all categories created by the current user
-  const snapshot = await categoryCollection
-    .where("created_by", "==", uid)
-    .get();
-
-  snapshot.forEach((doc) => {
-    const category = doc.data();
-    category.id = doc.id;
-
-    // Filter out categories where learnerId is already in assigned_to
-    if (!category.assigned_to?.includes(learnerId)) {
-      if (
-        !category.created_for ||
-        category.created_for === learnerId ||
-        category.created_for === "all"
-      ) {
-        categories.push(category);
-      }
-    }
-  });
-
-  return categories;
-};
-
-export const getAssignedCategories = async (learnerId: string) => {
-  const uid = useAuthStore.getState().user?.uid;
-
-  const categories: any[] = [];
-
-  // Get all categories created by the current user
-  const snapshot = await categoryCollection
-    .where("created_by", "==", uid)
-    .get();
-
-  snapshot.forEach((doc) => {
-    const category = doc.data();
-    category.id = doc.id;
-
-    // Filter out categories where learnerId is already in assigned_to
-    if (category.assigned_to?.includes(learnerId)) {
-      categories.push(category);
-    }
-  });
-
-  return categories;
 };
 
 export const assignCategory = async (
@@ -415,48 +256,6 @@ export const unassignCategory = async (
 };
 
 const userCollection = firestore().collection("users");
-
-export const listenAssignedCategories = (
-  learnerId: string,
-  callback: (categories: any[]) => void
-) => {
-  const uid = useAuthStore.getState().user?.uid;
-  if (!uid) return () => {};
-
-  return categoryCollection.onSnapshot(async (snapshot) => {
-    const categories: any[] = [];
-
-    // We’ll collect promises here for fetching creator names
-    const promises = snapshot.docs.map(async (doc) => {
-      const category = doc.data();
-      category.id = doc.id;
-
-      if (
-        category.assigned_to?.includes(learnerId) ||
-        category.created_by_role?.toString().toLowerCase() === "admin"
-      ) {
-        if (category.created_by) {
-          try {
-            const userDoc = await userCollection.doc(category.created_by).get();
-            if (userDoc.exists()) {
-              category.creatorName = userDoc.data()?.first_name || null;
-            } else {
-              category.creatorName = null;
-            }
-          } catch (error) {
-            category.creatorName = null;
-          }
-        } else {
-          category.creatorName = null;
-        }
-        categories.push(category);
-      }
-    });
-
-    await Promise.all(promises); // wait for all creator lookups
-    callback(categories); // push enriched categories to state
-  });
-};
 
 export const updateCategory = async (
   categoryId: string,

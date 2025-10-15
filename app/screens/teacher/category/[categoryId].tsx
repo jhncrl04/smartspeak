@@ -69,6 +69,12 @@ const ManageThisCategoryScreen = () => {
 
   const filteredCards = cards
     .filter((card) => {
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase().trim();
+        const cardName = card.card_name.toLowerCase();
+        if (!cardName.includes(query)) return false;
+      }
+
       const isAdminCard =
         card.created_by === "ADMIN" &&
         card.category_name === activeCategory?.category_name;
