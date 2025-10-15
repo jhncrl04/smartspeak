@@ -17,21 +17,19 @@ export const useSectionsStore = create<SectionsStore>((set, get) => ({
 
   startListener: (userId: string) => {
     get().stopListener();
-
     set({ isLoading: true, error: null });
 
-    let unsubscribe;
+    // 🔥 collectionGroup() searches all "sections" subcollections in Firestore
+    const sectionsQuery = firestore()
+      .collectionGroup("sections")
+      .where("teachers", "array-contains", userId)
+      .orderBy("created_at", "desc");
 
-    const sectionsQuery = SECTION_COLLECTION.where(
-      "teachers",
-      "array-contains",
-      userId
-    );
-
-    unsubscribe = sectionsQuery.onSnapshot(
+    const unsubscribe = sectionsQuery.onSnapshot(
       (snapshot) => {
         const sections = snapshot.docs.map((doc) => ({
           id: doc.id,
+          path: doc.ref.path, // optional: helpful for knowing where it came from
           ...doc.data(),
         })) as Section[];
 
@@ -55,7 +53,7 @@ export const useSectionsStore = create<SectionsStore>((set, get) => ({
   },
 }));
 
-const GRADE_LEVEL_COLLECTION = firestore().collection("gradeLevels");
+const GRADE_LEVEL_COLLECTION = firestore().collectionGroup("gradeLevels");
 export const useGradeLevelsStore = create<GradeLevelsStore>((set, get) => ({
   gradeLevels: [],
   isLoading: true,

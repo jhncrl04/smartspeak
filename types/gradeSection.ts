@@ -3,6 +3,7 @@ import { Learner } from "./user";
 export type Section = {
   id: string;
   name: string;
+  path: string;
   grade_id: string;
   students: [];
 };

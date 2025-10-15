@@ -59,11 +59,10 @@ export const useUsersStore = create<UsersStore>((set, get) => ({
         unsub2();
       };
     } else if (role === "teacher") {
-      const sectionsQuery = SECTION_COLLECTION.where(
-        "teachers",
-        "array-contains",
-        userId
-      );
+      const sectionsQuery = firestore()
+        .collectionGroup("sections")
+        .where("teachers", "array-contains", userId)
+        .orderBy("created_at", "desc");
 
       unsubscribe = sectionsQuery.onSnapshot(
         async (snapshot) => {

@@ -32,15 +32,18 @@ const ManageLearnersScreen = () => {
     isLoading: sectionLoading,
     error: sectionError,
   } = useSectionsStore();
+
   const {
     gradeLevels,
     isLoading: gradeLevelLoading,
     error: gradeLevelError,
   } = useGradeLevelsStore();
+
   const { users: learners, isLoading: learnersLoading } = useUsersStore();
   const user = useAuthStore((state) => state.user);
 
   const [loading, setLoading] = useState(true);
+  const [filtering, setFiltering] = useState(true);
   const [searching, setSearching] = useState(false);
   const [activeSection, setActiveSection] = useState<string | undefined>(
     undefined
@@ -53,7 +56,10 @@ const ManageLearnersScreen = () => {
   const mappedSection = useMemo(() => {
     return sections
       .map((section) => {
-        const gradeLevel = gradeLevels.find((gl) => gl.id === section.grade_id);
+        const pathParts = section.path.split("/");
+        const gradeLevelId = pathParts[3];
+
+        const gradeLevel = gradeLevels.find((gl) => gl.id === gradeLevelId);
         return { gradeLevelInfo: gradeLevel, sectionInfo: section };
       })
       .filter((item) => item.gradeLevelInfo);
@@ -100,7 +106,7 @@ const ManageLearnersScreen = () => {
       duration: 300,
       useNativeDriver: true,
     }).start();
-  }, [searching, fadeAnim, loading]);
+  }, [searching, fadeAnim, loading, filtering]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -142,7 +148,12 @@ const ManageLearnersScreen = () => {
   );
 
   const handleSectionPress = useCallback((sectionId: string) => {
+    setFiltering(true);
     setActiveSection(sectionId);
+
+    setTimeout(() => {
+      setFiltering(false);
+    }, 500);
   }, []);
 
   // Loading state
@@ -164,8 +175,6 @@ const ManageLearnersScreen = () => {
       </View>
     );
   }
-
-  console.log(user?.handledChildren);
 
   return (
     <>
@@ -223,7 +232,7 @@ const ManageLearnersScreen = () => {
 
             {/* Students */}
             <View>
-              {loading || searching ? (
+              {loading || searching || filtering ? (
                 <SkeletonCard type="learner" />
               ) : (
                 <Animated.View
