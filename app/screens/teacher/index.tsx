@@ -165,6 +165,8 @@ const ManageLearnersScreen = () => {
     );
   }
 
+  console.log(user?.handledChildren);
+
   return (
     <>
       <View style={styles.container}>

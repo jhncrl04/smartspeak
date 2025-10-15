@@ -1,6 +1,6 @@
 import Sidebar from "@/components/Sidebar";
 import { formatDate, toDate } from "@/helper/formatDate";
-import { markAsRead } from "@/services/notificationService";
+import { deleteNotification, markAsRead } from "@/services/notificationService";
 import { respondToGuardianChangeRequest } from "@/services/userService";
 import { useNotifsStore } from "@/stores/notificationsStore";
 import { useAuthStore } from "@/stores/userAuthStore";
@@ -81,10 +81,6 @@ const NotificationsScreen = () => {
     filteredNotifications.forEach((notif) => {
       markAsRead(notif.id);
     });
-  };
-
-  const deleteNotification = (id: string) => {
-    // Implement delete functionality
   };
 
   const handleNotificationClick = async (notification: any) => {
@@ -234,7 +230,7 @@ const NotificationsScreen = () => {
         </View>
         <ScrollView
           decelerationRate="fast" // slows down the momentum
-          scrollEventThrottle={16}
+          scrollEventThrottle={8}
           style={styles.notificationsList}
           showsVerticalScrollIndicator={false}
         >

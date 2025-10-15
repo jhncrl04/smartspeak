@@ -16,6 +16,14 @@ export const markAsRead = async (id: string) => {
   }
 };
 
+export const deleteNotification = async (id: string) => {
+  try {
+    NOTIFICATION_COLLECTION.doc(id).delete();
+  } catch (error) {
+    showToast("error", "", "");
+  }
+};
+
 const markAllAsRead = async (ids: string[]) => {
   try {
     ids.forEach((id) => {
