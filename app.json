@@ -102,7 +102,7 @@
             "compileSdkVersion": 35,
             "targetSdkVersion": 35,
             "buildToolsVersion": "35.0.0",
-            "minSdkVersion": 24,
+            "minSdkVersion": 28,
             "gradleVersion": "8.4",
             "androidGradlePluginVersion": "8.1.4"
           }
