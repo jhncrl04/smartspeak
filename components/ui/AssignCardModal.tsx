@@ -4,7 +4,6 @@ import { useCardsStore } from "@/stores/cardsStore";
 import { useCategoriesStore } from "@/stores/categoriesStores";
 import { useState } from "react";
 import {
-  Alert,
   Modal,
   ScrollView,
   StyleSheet,
@@ -16,6 +15,7 @@ import {
 import Icon from "react-native-vector-icons/Octicons";
 import MySearchBar from "../mySearchBar";
 import AssignCardPreview from "./AssignCardPreview";
+import { showToast } from "./MyToast";
 
 type Props = {
   visible: boolean;
@@ -72,7 +72,7 @@ const AssignCardModal = ({
       transparent={true}
       visible={visible}
       onRequestClose={() => {
-        Alert.alert("Modal has been closed.");
+        showToast("success", "Modal has been closed.", "");
         onClose();
       }}
     >

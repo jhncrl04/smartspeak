@@ -29,6 +29,7 @@ import { useUsersStore } from "@/stores/userStore";
 import { useEffect, useMemo, useState } from "react";
 import TextFieldWrapper from "../TextfieldWrapper";
 import LoadingScreen from "./LoadingScreen";
+import { showToast } from "./MyToast";
 
 type AddPecsModalProps = {
   visible: boolean;
@@ -105,7 +106,7 @@ const AddPecsModal = ({ visible, onClose, categoryId }: AddPecsModalProps) => {
 
       const validate = await validateImage(uri);
       if (!validate.isValid && validate.error?.includes("Invalid image type")) {
-        Alert.alert("Invalid Image", validate.error);
+        showToast("error", "Invalid Image", validate.error);
         return;
       }
 
@@ -138,7 +139,7 @@ const AddPecsModal = ({ visible, onClose, categoryId }: AddPecsModalProps) => {
       if (uploadedBase64) {
         setImage(uploadedBase64);
       } else {
-        Alert.alert("Upload Failed", "Please try again.");
+        showToast("error", "Upload Failed", "Please try again.");
       }
 
       if (compression.compressedUri) {
@@ -255,7 +256,7 @@ const AddPecsModal = ({ visible, onClose, categoryId }: AddPecsModalProps) => {
         transparent={true}
         visible={visible}
         onRequestClose={() => {
-          Alert.alert("Modal has been closed.");
+          showToast("success", "Modal has been closed.", "");
           onClose();
         }}
       >
@@ -366,11 +367,19 @@ const AddPecsModal = ({ visible, onClose, categoryId }: AddPecsModalProps) => {
                   clickHandler={() => {
                     if (!canSubmit) {
                       if (image === "") {
-                        Alert.alert("Error", "Please select an image.");
+                        showToast("error", "Error", "Please select an image.");
                       } else if (cardName === "") {
-                        Alert.alert("Error", "Please enter a card name.");
+                        showToast(
+                          "error",
+                          "Error",
+                          "Please enter a card name."
+                        );
                       } else if (selectedCategory === "") {
-                        Alert.alert("Error", "Please select a category.");
+                        showToast(
+                          "error",
+                          "Error",
+                          "Please select a category."
+                        );
                       }
                       return;
                     }

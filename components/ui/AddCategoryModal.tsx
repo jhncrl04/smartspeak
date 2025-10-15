@@ -24,6 +24,7 @@ import { runOnJS } from "react-native-reanimated";
 import TextFieldWrapper from "../TextfieldWrapper";
 import LoadingScreen from "./LoadingScreen";
 import MyDropdown from "./MyDropdown";
+import { showToast } from "./MyToast";
 
 type Learner = {
   id: string;
@@ -73,7 +74,8 @@ const AddCategoryModal = ({ visible, onClose }: modalProps) => {
     }
 
     if (permissionResult.status !== "granted") {
-      Alert.alert(
+      showToast(
+        "error",
         "Permission Denied",
         `Sorry, ${
           useCamera ? "camera" : "media library"
@@ -146,9 +148,13 @@ const AddCategoryModal = ({ visible, onClose }: modalProps) => {
   const handleSubmit = async () => {
     if (!canSubmit) {
       if (categoryName === "") {
-        Alert.alert("Error", "Please enter a category name.");
+        showToast("error", "Error", "Please enter a category name.");
       } else if (!isAssignable && selectedLearner === "") {
-        Alert.alert("Error", "Please select a learner for this category.");
+        showToast(
+          "error",
+          "Error",
+          "Please select a learner for this category."
+        );
       }
       return;
     }
@@ -167,7 +173,7 @@ const AddCategoryModal = ({ visible, onClose }: modalProps) => {
       onClose();
     } catch (err) {
       console.error("Error adding category:", err);
-      Alert.alert("Error", "Failed to add category. Please try again.");
+      showToast("error", "Error", "Failed to add category. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -180,7 +186,7 @@ const AddCategoryModal = ({ visible, onClose }: modalProps) => {
         transparent={true}
         visible={visible}
         onRequestClose={() => {
-          Alert.alert("Modal has been closed.");
+          showToast("success", "Modal has been closed.", "");
           onClose();
         }}
       >

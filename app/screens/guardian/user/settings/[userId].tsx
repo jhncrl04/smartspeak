@@ -92,7 +92,7 @@ const ChildSettings = () => {
         const userData = await getUserInfo(userId as string);
 
         if (!userData) {
-          Alert.alert("Error", "Failed to load user information");
+          showToast("error", "Error", "Failed to load user information");
           router.back();
           return;
         }
@@ -116,7 +116,7 @@ const ChildSettings = () => {
         });
       } catch (error) {
         console.error("Error fetching user info:", error);
-        Alert.alert("Error", "Failed to load user information");
+        showToast("error", "Error", "Failed to load user information");
       } finally {
         setIsLoading(false);
       }
@@ -138,7 +138,11 @@ const ChildSettings = () => {
   // ✅ Handle info update
   const handleInfoUpdate = async () => {
     if (!formData.first_name.trim() || !formData.last_name.trim()) {
-      Alert.alert("Validation Error", "First name and last name are required.");
+      showToast(
+        "error",
+        "Validation Error",
+        "First name and last name are required."
+      );
       return;
     }
 
@@ -256,9 +260,9 @@ const ChildSettings = () => {
 
       if (uploadedBase64) {
         updateFormField("profile_pic", uploadedBase64);
-        Alert.alert("Success", "Profile picture updated!");
+        showToast("success", "Success", "Profile picture updated!");
       } else {
-        Alert.alert("Upload Failed", "Please try again.");
+        showToast("error", "Upload Failed", "Please try again.");
       }
 
       if (compression.compressedUri) {
@@ -266,7 +270,7 @@ const ChildSettings = () => {
       }
     } catch (err) {
       console.error("Upload failed:", err);
-      Alert.alert("Upload Failed", "Something went wrong.");
+      showToast("error", "Upload Failed", "Something went wrong.");
     }
   };
 
@@ -381,7 +385,11 @@ const ChildSettings = () => {
     // Validate email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!newGuardianEmail.trim() || !emailRegex.test(newGuardianEmail)) {
-      Alert.alert("Validation Error", "Please enter a valid email address.");
+      showToast(
+        "error",
+        "Validation Error",
+        "Please enter a valid email address."
+      );
       setIsLoading(false);
 
       return;
@@ -389,7 +397,11 @@ const ChildSettings = () => {
 
     // Prevent sending to same email
     if (newGuardianEmail.toLowerCase() === formData.email.toLowerCase()) {
-      Alert.alert("Error", "Cannot send request to the current guardian.");
+      showToast(
+        "error",
+        "Error",
+        "Cannot send request to the current guardian."
+      );
       setIsLoading(false);
 
       return;

@@ -32,6 +32,7 @@ import {
 
 // React Native Firebase SDK imports
 import firestore from "@react-native-firebase/firestore";
+import { showToast } from "@/components/ui/MyToast";
 
 interface ProfileFormData {
   fname: string;
@@ -634,7 +635,7 @@ export default function ProfileScreen() {
         const base64Img = await imageToBase64(uri);
 
         if (!base64Img) {
-          Alert.alert("Upload Failed", "Could not convert image.");
+          showToast("error", "Upload Failed", "Could not convert image.");
           return;
         }
 

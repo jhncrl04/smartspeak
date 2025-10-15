@@ -126,14 +126,15 @@ const EditCategoryModal = ({ visible, onClose, categoryId }: modalProps) => {
       // 1. Only validate file type
       const validate = await validateImage(uri);
       if (!validate.isValid && validate.error?.includes("Invalid image type")) {
-        Alert.alert("Invalid Image", validate.error);
+        showToast("error", "Invalid Image", validate.error);
         return;
       }
 
       // 2. Always compress the image
       const compression = await compressImageToSize(uri);
       if (!compression.success) {
-        Alert.alert(
+        showToast(
+          "error",
           "Compression Failed",
           compression.error || "Failed to process image"
         );
@@ -162,7 +163,7 @@ const EditCategoryModal = ({ visible, onClose, categoryId }: modalProps) => {
       if (uploadedBase64) {
         setImage(uploadedBase64);
       } else {
-        Alert.alert("Upload Failed", "Please try again.");
+        showToast("error", "Upload Failed", "Please try again.");
       }
 
       // 5. Cleanup temporary file
@@ -222,7 +223,7 @@ const EditCategoryModal = ({ visible, onClose, categoryId }: modalProps) => {
       onClose();
     } catch (err) {
       console.error("Error deleting category: ", err);
-      Alert.alert("Error", "Failed to delete category.");
+      showToast("error", "Error", "Failed to delete category.");
     }
   };
 
@@ -232,7 +233,7 @@ const EditCategoryModal = ({ visible, onClose, categoryId }: modalProps) => {
       transparent={true}
       visible={visible}
       onRequestClose={() => {
-        Alert.alert("Modal has been closed.");
+        showToast("success", "Modal has been closed.", "");
         onClose();
       }}
     >

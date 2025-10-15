@@ -251,7 +251,7 @@ const ViewCardModal = ({
         transparent={true}
         visible={visible}
         onRequestClose={() => {
-          Alert.alert("Modal has been closed.");
+          showToast("success", "Modal has been closed.", "");
           onClose();
         }}
       >

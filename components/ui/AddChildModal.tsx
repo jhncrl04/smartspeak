@@ -32,6 +32,7 @@ import MyDropdown from "./MyDropdown";
 
 import Constants from "expo-constants";
 import zxcvbn from "zxcvbn";
+import { showToast } from "./MyToast";
 
 const pscgApi = Constants.expoConfig?.extra?.PSGC_API;
 
@@ -329,17 +330,21 @@ const AddChildModal = ({ visible, onClose }: Props) => {
         formData.password === "" ||
         confirmPass === ""
       ) {
-        Alert.alert("Missing credentials", "Fill all the inputs.");
+        showToast("error", "Missing credentials", "Fill all the inputs.");
         return;
       }
 
       if (formData.password !== confirmPass) {
-        Alert.alert("Password mismatch", "Passwords don't match.");
+        showToast("error", "Password mismatch", "Passwords don't match.");
         return;
       }
 
       if (passwordStrength < 2) {
-        Alert.alert("Weak password", "Please create a stronger password.");
+        showToast(
+          "error",
+          "Weak password",
+          "Please create a stronger password."
+        );
         return;
       }
     }
@@ -351,7 +356,7 @@ const AddChildModal = ({ visible, onClose }: Props) => {
         formData.date_of_birth === null ||
         formData.gender === ""
       ) {
-        Alert.alert("Missing inputs", "Please fill all the inputs.");
+        showToast("error", "Missing inputs", "Please fill all the inputs.");
         return;
       }
     }
@@ -363,7 +368,11 @@ const AddChildModal = ({ visible, onClose }: Props) => {
         formData.municipality === "" ||
         formData.barangay === ""
       ) {
-        Alert.alert("Missing address", "Please fill all address fields.");
+        showToast(
+          "error",
+          "Missing address",
+          "Please fill all address fields."
+        );
         return;
       }
     }
@@ -399,7 +408,11 @@ const AddChildModal = ({ visible, onClose }: Props) => {
       }
     } catch (err) {
       console.error(err);
-      Alert.alert("Error", "Something went wrong while registering child.");
+      showToast(
+        "error",
+        "Error",
+        "Something went wrong while registering child."
+      );
     } finally {
       setIsLoading(false);
     }

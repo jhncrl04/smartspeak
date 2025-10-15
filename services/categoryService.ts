@@ -522,7 +522,7 @@ export const deleteCategory = async (categoryId: string): Promise<boolean> => {
     // Get category data before deletion
     const category = await getCategoryWithId(categoryId);
     if (!category) {
-      Alert.alert("Error", "Category not found!");
+      showToast("error", "Error", "Category not found!");
       return false;
     }
 
@@ -565,7 +565,7 @@ export const deleteCategory = async (categoryId: string): Promise<boolean> => {
     return true;
   } catch (error) {
     console.error("Error deleting category:", error);
-    Alert.alert("Error", "Failed to delete category. Please try again.");
+    showToast("error", "Error", "Failed to delete category. Please try again.");
     return false;
   }
 };
@@ -622,7 +622,11 @@ const performDeletion = async (categoryId: string, category: any) => {
       categoryCollection.doc(categoryId).delete(),
     ]);
 
-    Alert.alert("Success", "Category and its cards deleted successfully!");
+    showToast(
+      "success",
+      "Success",
+      "Category and its cards deleted successfully!"
+    );
   } catch (error) {
     console.error("Error in performDeletion:", error);
     throw error; // Re-throw to be handled by caller

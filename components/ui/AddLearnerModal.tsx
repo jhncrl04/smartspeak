@@ -2,7 +2,6 @@ import COLORS from "@/constants/Colors";
 import { getSectionList } from "@/services/sectionService";
 import React, { useEffect, useState } from "react";
 import {
-  Alert,
   Modal,
   ScrollView,
   StyleSheet,
@@ -14,6 +13,7 @@ import {
 import Icon from "react-native-vector-icons/Octicons";
 import MySearchBar from "../mySearchBar";
 import AddChildPreview from "./AddChildPreview";
+import { showToast } from "./MyToast";
 
 type Section = { label: string | null; value: string | null };
 
@@ -67,7 +67,7 @@ const AddLearnerModal = ({ visible, onClose }: Props) => {
       transparent={true}
       visible={visible}
       onRequestClose={() => {
-        Alert.alert("Modal has been closed.");
+        showToast("success", "Modal has been closed.", "");
         handleClose();
       }}
     >
