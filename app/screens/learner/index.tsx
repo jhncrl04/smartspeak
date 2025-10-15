@@ -514,7 +514,7 @@ export default function HomeScreen() {
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       const breakMessage =
-        "Time for a break! You've been using the app for an hour. Take a short break to rest your eyes and stretch.";
+        "Time for a break! You've been using the app for 1 hour. Take a short break to rest your eyes and stretch.";
       await speakWithSpeech(breakMessage, { rate: 0.8 });
     } catch (error) {
       console.error("Error speaking break reminder:", error);
@@ -1344,7 +1344,7 @@ export default function HomeScreen() {
           <View style={styles.breakReminderBox}>
             <Text style={styles.breakReminderTitle}>Time for a Break!</Text>
             <Text style={styles.breakReminderText}>
-              You've been using the app for an hour. Take a short break to rest
+              You've been using the app for 1 hour. Take a short break to rest
               your eyes and stretch!
             </Text>
             <TouchableOpacity
