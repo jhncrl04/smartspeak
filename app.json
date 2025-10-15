@@ -129,17 +129,7 @@
         }
       ],
       "expo-notifications",
-      "expo-web-browser",
-      [
-        "expo-gradle-ext-plugin",
-        {
-          "android": {
-            "excludeDependencies": [
-              "com.android.support"
-            ]
-          }
-        }
-      ]
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true
