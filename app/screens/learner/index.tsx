@@ -1,14 +1,25 @@
 import { ThemedView } from "@/components/ThemedView";
 import { useAuthStore } from "@/stores/userAuthStore";
-import NetInfo from '@react-native-community/netinfo';
+import NetInfo from "@react-native-community/netinfo";
 import auth from "@react-native-firebase/auth";
 import firestore from "@react-native-firebase/firestore";
 import { useFonts } from "expo-font";
 import { router } from "expo-router";
 import * as ScreenOrientation from "expo-screen-orientation";
-import * as Speech from 'expo-speech';
+import * as Speech from "expo-speech";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Animated, Dimensions, FlatList, Image, Modal, StyleSheet, Text, TouchableOpacity, View, } from "react-native";
+import {
+  ActivityIndicator,
+  Animated,
+  Dimensions,
+  FlatList,
+  Image,
+  Modal,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { RFValue } from "react-native-responsive-fontsize";
 import {
   heightPercentageToDP as hp,
@@ -16,11 +27,10 @@ import {
 } from "react-native-responsive-screen";
 
 export default function HomeScreen() {
-  
   // Get user data from auth store
   const user = useAuthStore((state) => state.user);
 
-  // LOGOUT FUNCTION 
+  // LOGOUT FUNCTION
   const logout = useAuthStore((state) => state.logout);
 
   const [fontsLoaded] = useFonts({
@@ -28,7 +38,7 @@ export default function HomeScreen() {
   });
 
   // State to store user's full name
-  const [userFullName, setUserFullName] = useState<string>('');
+  const [userFullName, setUserFullName] = useState<string>("");
 
   // Speech initialization state
   const [isSpeechReady, setIsSpeechReady] = useState(false);
@@ -38,79 +48,81 @@ export default function HomeScreen() {
   const [isOnline, setIsOnline] = useState<boolean>(true);
 
   // Voice status state
-  const [currentVoice, setCurrentVoice] = useState<string>('Checking...');
+  const [currentVoice, setCurrentVoice] = useState<string>("Checking...");
 
   // Function to check available voices
   const checkAvailableVoices = async () => {
     try {
       const voices = await Speech.getAvailableVoicesAsync();
-      console.log('=== AVAILABLE VOICES ===');
+      console.log("=== AVAILABLE VOICES ===");
       voices.forEach((voice, index) => {
-        console.log(`${index + 1}. ${voice.name} - ${voice.language} - ${voice.quality || 'Unknown quality'}`);
+        console.log(
+          `${index + 1}. ${voice.name} - ${voice.language} - ${
+            voice.quality || "Unknown quality"
+          }`
+        );
       });
-      console.log('=== END VOICES ===');
-      
+      console.log("=== END VOICES ===");
+
       // Check if Filipino voice is available
-      const filipinoVoices = voices.filter(voice => 
-        voice.language.includes('fil') || 
-        voice.language.includes('tl') ||
-        voice.name.toLowerCase().includes('filipino')
+      const filipinoVoices = voices.filter(
+        (voice) =>
+          voice.language.includes("fil") ||
+          voice.language.includes("tl") ||
+          voice.name.toLowerCase().includes("filipino")
       );
-      console.log('Filipino voices found:', filipinoVoices.length);
-      
+      console.log("Filipino voices found:", filipinoVoices.length);
+
       if (filipinoVoices.length > 0) {
         setCurrentVoice(`Filipino (${filipinoVoices[0].name})`);
       } else {
-        setCurrentVoice('English (Default)');
+        setCurrentVoice("English (Default)");
       }
-      
+
       return voices;
     } catch (error) {
-      console.error('Error checking voices:', error);
-      setCurrentVoice('Error checking voices');
+      console.error("Error checking voices:", error);
+      setCurrentVoice("Error checking voices");
       return [];
     }
   };
 
   // Function to get user's full name from Firebase
   const fetchUserFullName = async () => {
-    if (!user?.uid) return '';
+    if (!user?.uid) return "";
 
     try {
       console.log("=== FETCHING USER FULL NAME ===");
-      const userDoc = await firestore()
-        .collection("users")
-        .doc(user.uid)
-        .get();
+      const userDoc = await firestore().collection("users").doc(user.uid).get();
 
       if (userDoc.exists()) {
         const userData = userDoc.data();
         console.log("User data from Firebase:", userData);
-        
+
         // Get the full name using the same logic as ProfileScreen
-        const firstName = userData?.first_name || userData?.fname || '';
-        const lastName = userData?.last_name || userData?.lname || '';
+        const firstName = userData?.first_name || userData?.fname || "";
+        const lastName = userData?.last_name || userData?.lname || "";
         const fullName = `${firstName} ${lastName}`.trim();
-        
+
         console.log("First name:", firstName);
         console.log("Last name:", lastName);
         console.log("Combined full name:", fullName);
-        
+
         // If no name is available, fall back to email
-        const displayName = fullName || user?.email || 'Unknown User';
+        const displayName = fullName || user?.email || "Unknown User";
         console.log("Final display name:", displayName);
-        
+
         setUserFullName(displayName);
         return displayName;
       } else {
         console.log("User document does not exist");
-        const fallbackName = user?.email || 'Unknown User';
+        const fallbackName = user?.email || "Unknown User";
         setUserFullName(fallbackName);
         return fallbackName;
       }
     } catch (error) {
-      console.error('Error fetching user full name:', error);
-      const fallbackName = user?.email || 'Unknown User';
+      console.error("Error fetching user full name:", error);
+      const fallbackName = user?.email || "Unknown User";
       setUserFullName(fallbackName);
       return fallbackName;
     }
@@ -121,7 +133,7 @@ export default function HomeScreen() {
     try {
       // Only log if online
       if (!isOnline) {
-        console.log('Offline mode - skipping sentence play logging');
+        console.log("Offline mode - skipping sentence play logging");
         return;
       }
 
@@ -131,32 +143,32 @@ export default function HomeScreen() {
         console.log("User full name not loaded, fetching now...");
         currentUserName = await fetchUserFullName();
       }
-      
+
       console.log("Logging sentence play with user name:", currentUserName);
 
-      const sentence = sentenceCards.map(card => card.text).join(' ');
+      const sentence = sentenceCards.map((card) => card.text).join(" ");
       const cardDetails = sentenceCards.map((card, index) => ({
         card_id: card.id,
         card_name: card.text,
         category: card.categoryId,
-        position: index + 1
+        position: index + 1,
       }));
 
       const logData = {
-        user_id: user?.uid || 'unknown',
-        user_name: currentUserName || user?.email || 'unknown',
-        action: 'sentence played',
+        user_id: user?.uid || "unknown",
+        user_name: currentUserName || user?.email || "unknown",
+        action: "sentence played",
         sentence_text: sentence,
         card_count: sentenceCards.length,
         cards_in_sentence: cardDetails,
         timestamp: firestore.FieldValue.serverTimestamp(),
-        user_type: 'learner',
+        user_type: "learner",
       };
 
-      await firestore().collection('pecsLogs').add(logData);
-      console.log('Sentence play logged to pecsLogs:', sentence);
+      await firestore().collection("pecsLogs").add(logData);
+      console.log("Sentence play logged to pecsLogs:", sentence);
     } catch (error) {
-      console.error('Error logging sentence play:', error);
+      console.error("Error logging sentence play:", error);
     }
   };
 
@@ -196,9 +208,12 @@ export default function HomeScreen() {
       try {
         const networkState = await NetInfo.fetch();
         setIsOnline(networkState.isConnected ?? true);
-        console.log('Network status:', networkState.isConnected ? 'Online' : 'Offline');
+        console.log(
+          "Network status:",
+          networkState.isConnected ? "Online" : "Offline"
+        );
       } catch (error) {
-        console.error('Error checking network status:', error);
+        console.error("Error checking network status:", error);
         setIsOnline(true); // Assume online as fallback
       }
     };
@@ -207,9 +222,12 @@ export default function HomeScreen() {
     checkNetworkStatus();
 
     // Listen for network changes
-    const unsubscribe = NetInfo.addEventListener(state => {
+    const unsubscribe = NetInfo.addEventListener((state) => {
       setIsOnline(state.isConnected ?? true);
-      console.log('Network status changed:', state.isConnected ? 'Online' : 'Offline');
+      console.log(
+        "Network status changed:",
+        state.isConnected ? "Online" : "Offline"
+      );
     });
 
     return () => unsubscribe();
@@ -256,12 +274,16 @@ export default function HomeScreen() {
   // New states for notification
   const [showNotification, setShowNotification] = useState<boolean>(false);
   const notificationOpacity = useRef(new Animated.Value(0)).current;
-  const notificationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const notificationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
 
   // Break reminder states
   const [showBreakReminder, setShowBreakReminder] = useState<boolean>(false);
   const breakReminderOpacity = useRef(new Animated.Value(0)).current;
-  const breakReminderTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const breakReminderTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
 
   // Animation for card tap feedback
   const cardTapScale = useRef(new Animated.Value(1)).current;
@@ -279,70 +301,76 @@ export default function HomeScreen() {
     try {
       // Stop any current speech first
       await Speech.stop();
-      await new Promise(resolve => setTimeout(resolve, 50));
-      
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
       // Check available voices
       const availableVoices = await Speech.getAvailableVoicesAsync();
-      
+
       // Try to find the best available voice for Filipino
       let bestVoice = null;
-      
+
       // Priority 1: Exact Filipino voice
-      bestVoice = availableVoices.find(voice => 
-        voice.language === 'fil-PH' || voice.language === 'tl-PH'
+      bestVoice = availableVoices.find(
+        (voice) => voice.language === "fil-PH" || voice.language === "tl-PH"
       );
-      
+
       // Priority 2: Any Filipino language
       if (!bestVoice) {
-        bestVoice = availableVoices.find(voice => 
-          voice.language.includes('fil') || voice.language.includes('tl')
+        bestVoice = availableVoices.find(
+          (voice) =>
+            voice.language.includes("fil") || voice.language.includes("tl")
         );
       }
-      
+
       // Priority 3: Enhanced quality default voice
       if (!bestVoice) {
-        bestVoice = availableVoices.find(voice => 
-          voice.quality === 'Enhanced'
+        bestVoice = availableVoices.find(
+          (voice) => voice.quality === "Enhanced"
         );
       }
-      
+
       // Priority 4: Any default voice
       if (!bestVoice) {
-        bestVoice = availableVoices.find(voice => 
-          voice.quality === 'Default'
+        bestVoice = availableVoices.find(
+          (voice) => voice.quality === "Default"
         );
       }
-      
-      console.log('Selected voice:', bestVoice?.name, 'Language:', bestVoice?.language);
-      
+
+      console.log(
+        "Selected voice:",
+        bestVoice?.name,
+        "Language:",
+        bestVoice?.language
+      );
+
       const speechOptions = {
         language: "fil-PH", // Always try Filipino first
         pitch: 1.1,
         rate: 0.75,
         ...options,
       };
-      
+
       // Add voice if found
       if (bestVoice) {
         speechOptions.voice = bestVoice.identifier;
       }
-      
+
       await Speech.speak(text, speechOptions);
-      
+
       return true;
     } catch (error) {
-      console.error('Error with Filipino speech:', error);
-      
+      console.error("Error with Filipino speech:", error);
+
       // Fallback strategies for Filipino
       try {
         // Try different Filipino language codes
-        const languageAttempts = ['fil-PH', 'tl-PH', 'fil', 'tl'];
-        
+        const languageAttempts = ["fil-PH", "tl-PH", "fil", "tl"];
+
         for (const lang of languageAttempts) {
           try {
             await Speech.stop();
-            await new Promise(resolve => setTimeout(resolve, 50));
-            
+            await new Promise((resolve) => setTimeout(resolve, 50));
+
             await Speech.speak(text, {
               language: lang,
               pitch: 1.0,
@@ -359,7 +387,7 @@ export default function HomeScreen() {
             continue;
           }
         }
-        
+
         // If all Filipino attempts fail, try English as last resort
         if (!isOnline) {
           await Speech.speak(text, {
@@ -367,14 +395,13 @@ export default function HomeScreen() {
             pitch: 1.0,
             rate: 0.8,
           });
-          console.log('Used English fallback for offline speech');
+          console.log("Used English fallback for offline speech");
           return true;
         }
-        
       } catch (fallbackError) {
-        console.error('All speech fallbacks failed:', fallbackError);
+        console.error("All speech fallbacks failed:", fallbackError);
       }
-      
+
       return false;
     }
   };
@@ -383,29 +410,28 @@ export default function HomeScreen() {
   useEffect(() => {
     const initializeSpeech = async () => {
       try {
-        console.log('Initializing Speech...');
-        
+        console.log("Initializing Speech...");
+
         // Check available voices first
         await checkAvailableVoices();
-        
+
         // Pre-warm the speech engine with a silent utterance
-        await Speech.speak(' ', {
+        await Speech.speak(" ", {
           language: "fil-PH",
           pitch: 1.0,
           rate: 0.8,
           volume: 0.01,
         });
-        
+
         // Stop immediately after a short delay
         setTimeout(async () => {
           await Speech.stop();
           setIsSpeechReady(true);
-          console.log('Speech initialized successfully');
+          console.log("Speech initialized successfully");
         }, 100);
-        
       } catch (error) {
-        console.error('Error initializing speech:', error);
-        setSpeechError('Speech may not work properly');
+        console.error("Error initializing speech:", error);
+        setSpeechError("Speech may not work properly");
         setIsSpeechReady(true);
       }
     };
@@ -417,7 +443,7 @@ export default function HomeScreen() {
   const playCardsIndividually = async (cards: SentenceCardType[]) => {
     for (const card of cards) {
       await playCardName(card.text);
-      await new Promise(resolve => setTimeout(resolve, 400));
+      await new Promise((resolve) => setTimeout(resolve, 400));
     }
   };
 
@@ -425,24 +451,24 @@ export default function HomeScreen() {
   const playChunkedSentence = async (cards: SentenceCardType[]) => {
     const chunkSize = 3;
     const delayBetweenChunks = 500;
-    
+
     for (let i = 0; i < cards.length; i += chunkSize) {
       const chunk = cards.slice(i, i + chunkSize);
-      const chunkText = chunk.map(card => card.text).join(" ");
-      
+      const chunkText = chunk.map((card) => card.text).join(" ");
+
       const success = await speakWithSpeech(chunkText, { rate: 0.8 });
-      
+
       if (!success) {
         // If chunk fails, try playing individual cards in this chunk
         for (const card of chunk) {
           await playCardName(card.text);
-          await new Promise(resolve => setTimeout(resolve, 300));
+          await new Promise((resolve) => setTimeout(resolve, 300));
         }
       }
-      
+
       // Wait between chunks
       if (i + chunkSize < cards.length) {
-        await new Promise(resolve => setTimeout(resolve, delayBetweenChunks));
+        await new Promise((resolve) => setTimeout(resolve, delayBetweenChunks));
       }
     }
   };
@@ -485,12 +511,13 @@ export default function HomeScreen() {
     // Speak the break reminder message
     try {
       await Speech.stop(); // Stop any ongoing speech
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      const breakMessage = "Time for a break! You've been using the app for 30 minutes. Take a short break to rest your eyes and stretch.";
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      const breakMessage =
+        "Time for a break! You've been using the app for 30 minutes. Take a short break to rest your eyes and stretch.";
       await speakWithSpeech(breakMessage, { rate: 0.8 });
     } catch (error) {
-      console.error('Error speaking break reminder:', error);
+      console.error("Error speaking break reminder:", error);
     }
   };
 
@@ -516,7 +543,7 @@ export default function HomeScreen() {
     // 30 minutes = 1800000 milliseconds
     breakReminderTimeoutRef.current = setTimeout(() => {
       showBreakReminderMessage();
-    }, 180000); // 30 minutes
+    }, 3600000); // 30 minutes
   };
 
   // Function to handle profile image taps
@@ -576,18 +603,17 @@ export default function HomeScreen() {
 
     try {
       const success = await speakWithSpeech(cardText);
-      
+
       if (!success) {
-        console.warn('Speech failed for card:', cardText);
+        console.warn("Speech failed for card:", cardText);
       }
 
       const estimatedDuration = Math.max(1000, cardText.length * 200);
       setTimeout(() => {
         setIsPlayingCardName(false);
       }, estimatedDuration);
-      
     } catch (error) {
-      console.error('Error playing card name:', error);
+      console.error("Error playing card name:", error);
       setIsPlayingCardName(false);
     }
   };
@@ -622,117 +648,167 @@ export default function HomeScreen() {
     setSentenceCards((prev) => [...prev, sentenceCard]);
     await playCardName(card.text);
 
-    console.log("Card added to sentence with color:", card.text, currentCategoryColor);
+    console.log(
+      "Card added to sentence with color:",
+      card.text,
+      currentCategoryColor
+    );
   };
 
   // Helper function to get current category background color
   const getCurrentCategoryBackgroundColor = () => {
-    const currentCategory = categories.find(cat => cat.id === selectedCategory);
+    const currentCategory = categories.find(
+      (cat) => cat.id === selectedCategory
+    );
     return currentCategory?.background_color || "#5FA056";
   };
 
   // Enhanced function to filter and update displayed cards with ID-based matching
-  const updateDisplayedCards = useCallback((allCards: CardType[], categories: CategoryType[], selectedCatId: string) => {
-    if (!selectedCatId || categories.length === 0 || allCards.length === 0) {
-      setDisplayedCards([]);
-      displayedCardsRef.current = [];
-      return;
-    }
-
-    const selectedCat = categories.find(cat => cat.id === selectedCatId);
-    if (!selectedCat) {
-      console.log("Selected category not found:", selectedCatId);
-      setDisplayedCards([]);
-      displayedCardsRef.current = [];
-      return;
-    }
-
-    console.log("Updating displayed cards for category:", selectedCat.category_name, "ID:", selectedCat.id);
-
-    const filteredCards = allCards.filter((card) => {
-      const hasDirectCategoryIdMatch = card.categoryId === selectedCat.id;
-      
-      const categoryName = selectedCat.category_name;
-      const cardCategoryId = card.categoryId;
-      
-      const exactMatch = cardCategoryId === categoryName;
-      const caseInsensitiveMatch = cardCategoryId.toLowerCase() === categoryName.toLowerCase();
-      const trimmedMatch = cardCategoryId.trim().toLowerCase() === categoryName.trim().toLowerCase();
-      
-      const matches = hasDirectCategoryIdMatch || exactMatch || caseInsensitiveMatch || trimmedMatch;
-      
-      if (matches) {
-        console.log(`Card "${card.text}" matches category "${selectedCat.category_name}"`);
+  const updateDisplayedCards = useCallback(
+    (
+      allCards: CardType[],
+      categories: CategoryType[],
+      selectedCatId: string
+    ) => {
+      if (!selectedCatId || categories.length === 0 || allCards.length === 0) {
+        setDisplayedCards([]);
+        displayedCardsRef.current = [];
+        return;
       }
-      
-      return matches;
-    });
 
-    console.log(`Found ${filteredCards.length} cards for category "${selectedCat.category_name}"`);
+      const selectedCat = categories.find((cat) => cat.id === selectedCatId);
+      if (!selectedCat) {
+        console.log("Selected category not found:", selectedCatId);
+        setDisplayedCards([]);
+        displayedCardsRef.current = [];
+        return;
+      }
 
-    if (!areArraysEqual(displayedCardsRef.current, filteredCards)) {
-      displayedCardsRef.current = filteredCards;
-      setDisplayedCards(filteredCards);
-    }
-  }, []);
+      console.log(
+        "Updating displayed cards for category:",
+        selectedCat.category_name,
+        "ID:",
+        selectedCat.id
+      );
 
-  // Improved function to filter categories to only show those with cards
-  const filterCategoriesWithCards = useCallback((allCategories: CategoryType[], allCardsData: CardType[]): CategoryType[] => {
-    const categoriesWithCards = allCategories.filter((category) => {
-      const categoryCards = allCardsData.filter((card) => {
-        const hasDirectCategoryIdMatch = card.categoryId === category.id;
-        
-        const categoryName = category.category_name;
+      const filteredCards = allCards.filter((card) => {
+        const hasDirectCategoryIdMatch = card.categoryId === selectedCat.id;
+
+        const categoryName = selectedCat.category_name;
         const cardCategoryId = card.categoryId;
-        
+
         const exactMatch = cardCategoryId === categoryName;
-        const caseInsensitiveMatch = cardCategoryId.toLowerCase() === categoryName.toLowerCase();
-        const trimmedMatch = cardCategoryId.trim().toLowerCase() === categoryName.trim().toLowerCase();
-        
-        return hasDirectCategoryIdMatch || exactMatch || caseInsensitiveMatch || trimmedMatch;
+        const caseInsensitiveMatch =
+          cardCategoryId.toLowerCase() === categoryName.toLowerCase();
+        const trimmedMatch =
+          cardCategoryId.trim().toLowerCase() ===
+          categoryName.trim().toLowerCase();
+
+        const matches =
+          hasDirectCategoryIdMatch ||
+          exactMatch ||
+          caseInsensitiveMatch ||
+          trimmedMatch;
+
+        if (matches) {
+          console.log(
+            `Card "${card.text}" matches category "${selectedCat.category_name}"`
+          );
+        }
+
+        return matches;
       });
 
-      const hasCards = categoryCards.length > 0;
-      console.log(`Category "${category.category_name}" (ID: ${category.id}) has ${categoryCards.length} cards - ${hasCards ? 'SHOWING' : 'HIDING'}`);
-      
-      return hasCards;
-    });
+      console.log(
+        `Found ${filteredCards.length} cards for category "${selectedCat.category_name}"`
+      );
 
-    console.log("Categories with cards:", categoriesWithCards.map(c => `${c.category_name} (${c.id})`));
-    return categoriesWithCards;
-  }, []);
+      if (!areArraysEqual(displayedCardsRef.current, filteredCards)) {
+        displayedCardsRef.current = filteredCards;
+        setDisplayedCards(filteredCards);
+      }
+    },
+    []
+  );
+
+  // Improved function to filter categories to only show those with cards
+  const filterCategoriesWithCards = useCallback(
+    (
+      allCategories: CategoryType[],
+      allCardsData: CardType[]
+    ): CategoryType[] => {
+      const categoriesWithCards = allCategories.filter((category) => {
+        const categoryCards = allCardsData.filter((card) => {
+          const hasDirectCategoryIdMatch = card.categoryId === category.id;
+
+          const categoryName = category.category_name;
+          const cardCategoryId = card.categoryId;
+
+          const exactMatch = cardCategoryId === categoryName;
+          const caseInsensitiveMatch =
+            cardCategoryId.toLowerCase() === categoryName.toLowerCase();
+          const trimmedMatch =
+            cardCategoryId.trim().toLowerCase() ===
+            categoryName.trim().toLowerCase();
+
+          return (
+            hasDirectCategoryIdMatch ||
+            exactMatch ||
+            caseInsensitiveMatch ||
+            trimmedMatch
+          );
+        });
+
+        const hasCards = categoryCards.length > 0;
+        console.log(
+          `Category "${category.category_name}" (ID: ${category.id}) has ${
+            categoryCards.length
+          } cards - ${hasCards ? "SHOWING" : "HIDING"}`
+        );
+
+        return hasCards;
+      });
+
+      console.log(
+        "Categories with cards:",
+        categoriesWithCards.map((c) => `${c.category_name} (${c.id})`)
+      );
+      return categoriesWithCards;
+    },
+    []
+  );
 
   // Helper function to check if data actually changed
   const hasDataChanged = (oldData: any[], newData: any[]) => {
     if (oldData.length !== newData.length) return true;
-    
+
     return newData.some((newItem, index) => {
       const oldItem = oldData[index];
       if (!oldItem) return true;
-      
+
       if (newItem.id !== oldItem.id) return true;
       if (newItem.category_name !== oldItem.category_name) return true;
       if (newItem.image !== oldItem.image) return true;
       if (newItem.background_color !== oldItem.background_color) return true;
       if (newItem.categoryId !== oldItem.categoryId) return true;
-      
+
       return false;
     });
   };
 
   const areArraysEqual = (arr1: any[], arr2: any[]) => {
     if (arr1.length !== arr2.length) return false;
-    
+
     return arr1.every((item, index) => {
       const item2 = arr2[index];
       if (!item2) return false;
-      
+
       if (item.id !== item2.id) return false;
       if (item.category_name !== item2.category_name) return false;
       if (item.image !== item2.image) return false;
       if (item.background_color !== item2.background_color) return false;
       if (item.categoryId !== item2.categoryId) return false;
-      
+
       return true;
     });
   };
@@ -782,7 +858,11 @@ export default function HomeScreen() {
 
               let shouldShowCategory = false;
 
-              if (categoryData.assigned_to && Array.isArray(categoryData.assigned_to) && categoryData.assigned_to.includes(currentUserId)) {
+              if (
+                categoryData.assigned_to &&
+                Array.isArray(categoryData.assigned_to) &&
+                categoryData.assigned_to.includes(currentUserId)
+              ) {
                 shouldShowCategory = true;
                 console.log("Showing category: Assigned to current user");
               } else {
@@ -792,7 +872,8 @@ export default function HomeScreen() {
               if (shouldShowCategory) {
                 allCategoriesData.push({
                   id: categoryDoc.id,
-                  category_name: categoryData.category_name || "Unknown Category",
+                  category_name:
+                    categoryData.category_name || "Unknown Category",
                   image: categoryData.image || "",
                   background_color: categoryData.background_color || "#5FA056",
                 });
@@ -802,17 +883,29 @@ export default function HomeScreen() {
               }
             });
 
-            console.log("All accessible categories:", allCategoriesData.map(c => c.category_name));
+            console.log(
+              "All accessible categories:",
+              allCategoriesData.map((c) => c.category_name)
+            );
 
-            const categoriesChanged = hasDataChanged(categoriesRef.current, allCategoriesData);
-            
+            const categoriesChanged = hasDataChanged(
+              categoriesRef.current,
+              allCategoriesData
+            );
+
             if (categoriesChanged) {
               console.log("Categories changed - updating state");
               categoriesRef.current = allCategoriesData;
-              
-              const filteredCategories = filterCategoriesWithCards(allCategoriesData, allCardsRef.current);
-              console.log("Categories with cards:", filteredCategories.map(c => c.category_name));
-              
+
+              const filteredCategories = filterCategoriesWithCards(
+                allCategoriesData,
+                allCardsRef.current
+              );
+              console.log(
+                "Categories with cards:",
+                filteredCategories.map((c) => c.category_name)
+              );
+
               setCategories(filteredCategories);
 
               if (filteredCategories.length > 0 && !selectedCategory) {
@@ -824,13 +917,16 @@ export default function HomeScreen() {
               setIsFooterReady(true);
 
               if (selectedCategory) {
-                updateDisplayedCards(allCardsRef.current, filteredCategories, selectedCategory);
+                updateDisplayedCards(
+                  allCardsRef.current,
+                  filteredCategories,
+                  selectedCategory
+                );
               }
             } else {
               console.log("Categories unchanged - skipping state update");
               setIsFooterReady(true);
             }
-
           } catch (error) {
             console.error("Error processing categories update:", error);
             setIsFooterReady(true);
@@ -866,7 +962,11 @@ export default function HomeScreen() {
 
               let shouldShowCard = false;
 
-              if (cardData.assigned_to && Array.isArray(cardData.assigned_to) && cardData.assigned_to.includes(currentUserId)) {
+              if (
+                cardData.assigned_to &&
+                Array.isArray(cardData.assigned_to) &&
+                cardData.assigned_to.includes(currentUserId)
+              ) {
                 shouldShowCard = true;
                 console.log("Showing card: Assigned to current user");
               } else {
@@ -878,9 +978,15 @@ export default function HomeScreen() {
                   id: cardDoc.id,
                   image: cardData.image || "",
                   text: cardData.card_name || cardData.text || "No text",
-                  categoryId: cardData.category_id || cardData.category_name || "",
+                  categoryId:
+                    cardData.category_id || cardData.category_name || "",
                 });
-                console.log("✓ Card added to display:", cardData.card_name, "Category ref:", cardData.category_id || cardData.category_name);
+                console.log(
+                  "✓ Card added to display:",
+                  cardData.card_name,
+                  "Category ref:",
+                  cardData.category_id || cardData.category_name
+                );
               } else {
                 console.log("✗ Card filtered out");
               }
@@ -889,39 +995,55 @@ export default function HomeScreen() {
             console.log("Filtered cards count:", cardsData.length);
 
             const cardsChanged = hasDataChanged(allCardsRef.current, cardsData);
-            
-            const hasIndividualCardChanges = allCardsRef.current.some((oldCard, index) => {
-              const newCard = cardsData[index];
-              if (!newCard) return true;
-              
-              return (
-                oldCard.text !== newCard.text ||
-                oldCard.image !== newCard.image ||
-                oldCard.categoryId !== newCard.categoryId
-              );
-            });
+
+            const hasIndividualCardChanges = allCardsRef.current.some(
+              (oldCard, index) => {
+                const newCard = cardsData[index];
+                if (!newCard) return true;
+
+                return (
+                  oldCard.text !== newCard.text ||
+                  oldCard.image !== newCard.image ||
+                  oldCard.categoryId !== newCard.categoryId
+                );
+              }
+            );
 
             if (cardsChanged || hasIndividualCardChanges) {
-              console.log("Cards changed or individual card properties updated - updating state");
+              console.log(
+                "Cards changed or individual card properties updated - updating state"
+              );
               allCardsRef.current = cardsData;
               setAllCards(cardsData);
 
-              const filteredCategories = filterCategoriesWithCards(categoriesRef.current, cardsData);
-              console.log("Categories with cards after cards update:", filteredCategories.map(c => c.category_name));
-              
+              const filteredCategories = filterCategoriesWithCards(
+                categoriesRef.current,
+                cardsData
+              );
+              console.log(
+                "Categories with cards after cards update:",
+                filteredCategories.map((c) => c.category_name)
+              );
+
               setCategories(filteredCategories);
 
               if (selectedCategory && filteredCategories.length > 0) {
-                updateDisplayedCards(cardsData, filteredCategories, selectedCategory);
+                updateDisplayedCards(
+                  cardsData,
+                  filteredCategories,
+                  selectedCategory
+                );
               } else if (filteredCategories.length > 0 && !selectedCategory) {
                 const firstCategoryId = filteredCategories[0].id;
                 setSelectedCategory(firstCategoryId);
-                console.log("Auto-selected first category after cards update:", firstCategoryId);
+                console.log(
+                  "Auto-selected first category after cards update:",
+                  firstCategoryId
+                );
               }
             } else {
               console.log("Cards unchanged - skipping state update");
             }
-
           } catch (error) {
             console.error("Error processing cards update:", error);
           }
@@ -939,11 +1061,15 @@ export default function HomeScreen() {
       .where("assigned_to", "array-contains", user.uid)
       .onSnapshot((snapshot) => {
         snapshot.docChanges().forEach((change) => {
-          if (change.type === 'modified') {
-            console.log("Card modified - forcing update:", change.doc.id, change.doc.data().card_name);
-            
-            setAllCards(prev => [...prev]);
-            setDisplayedCards(prev => [...prev]);
+          if (change.type === "modified") {
+            console.log(
+              "Card modified - forcing update:",
+              change.doc.id,
+              change.doc.data().card_name
+            );
+
+            setAllCards((prev) => [...prev]);
+            setDisplayedCards((prev) => [...prev]);
           }
         });
       });
@@ -959,7 +1085,7 @@ export default function HomeScreen() {
 
     return () => {
       console.log("=== CLEANING UP REAL-TIME LISTENERS ===");
-      unsubscribeListeners.forEach(unsubscribe => unsubscribe());
+      unsubscribeListeners.forEach((unsubscribe) => unsubscribe());
     };
   }, [user?.uid, updateDisplayedCards, filterCategoriesWithCards]);
 
@@ -991,16 +1117,18 @@ export default function HomeScreen() {
         await Speech.stop();
         setIsPlayingCardName(false);
 
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise((resolve) => setTimeout(resolve, 100));
 
         const sentence = sentenceCards.map((card) => card.text).join(" ");
         console.log("Playing sentence:", sentence);
 
         // Always try Filipino first, even offline
         const success = await speakWithSpeech(sentence, { rate: 0.75 });
-        
+
         if (!success) {
-          console.warn('Filipino sentence speech failed, trying chunked approach');
+          console.warn(
+            "Filipino sentence speech failed, trying chunked approach"
+          );
           await playChunkedSentence(sentenceCards);
         }
 
@@ -1008,10 +1136,9 @@ export default function HomeScreen() {
         setTimeout(() => {
           setIsPlaying(false);
         }, sentenceDuration);
-        
       } catch (error) {
         console.error("Error playing sentence:", error);
-        
+
         // Final fallback: play cards individually
         await playCardsIndividually(sentenceCards);
         setIsPlaying(false);
@@ -1041,9 +1168,9 @@ export default function HomeScreen() {
     index: number;
   }): JSX.Element => {
     console.log(`Rendering card: ${item.text} (ID: ${item.id})`);
-    
+
     const cardBackgroundColor = getCurrentCategoryBackgroundColor();
-    
+
     return (
       <TouchableOpacity
         style={[
@@ -1101,14 +1228,14 @@ export default function HomeScreen() {
   };
 
   // Sentence card render function
-  const renderSentenceCard = (card: SentenceCardType, index: number): JSX.Element => {
+  const renderSentenceCard = (
+    card: SentenceCardType,
+    index: number
+  ): JSX.Element => {
     return (
       <TouchableOpacity
         key={`sentence-${card.id}-${index}`}
-        style={[
-          styles.sentenceCard,
-          { backgroundColor: card.categoryColor }
-        ]}
+        style={[styles.sentenceCard, { backgroundColor: card.categoryColor }]}
         onPress={() => {
           setSentenceCards((prev: SentenceCardType[]) =>
             prev.filter((_, i: number) => i !== index)
@@ -1145,9 +1272,7 @@ export default function HomeScreen() {
     if (speechError) {
       return (
         <View style={styles.speechErrorContainer}>
-          <Text style={styles.speechErrorText}>
-            Note: {speechError}
-          </Text>
+          <Text style={styles.speechErrorText}>Note: {speechError}</Text>
         </View>
       );
     }
@@ -1195,7 +1320,7 @@ export default function HomeScreen() {
             styles.notificationContainer,
             {
               opacity: notificationOpacity,
-            }
+            },
           ]}
         >
           <View style={styles.notificationBox}>
@@ -1213,13 +1338,14 @@ export default function HomeScreen() {
             styles.breakReminderContainer,
             {
               opacity: breakReminderOpacity,
-            }
+            },
           ]}
         >
           <View style={styles.breakReminderBox}>
             <Text style={styles.breakReminderTitle}>Time for a Break!</Text>
             <Text style={styles.breakReminderText}>
-              You've been using the app for 30 minutes. Take a short break to rest your eyes and stretch!
+              You've been using the app for 30 minutes. Take a short break to
+              rest your eyes and stretch!
             </Text>
             <TouchableOpacity
               style={styles.breakReminderButton}
@@ -1402,9 +1528,7 @@ export default function HomeScreen() {
                     }
                     style={styles.categoryImage}
                   />
-                  <Text style={styles.categoryText}>
-                    {item.category_name}
-                  </Text>
+                  <Text style={styles.categoryText}>{item.category_name}</Text>
                 </TouchableOpacity>
               );
             }}
@@ -1423,7 +1547,7 @@ const { width, height } = Dimensions.get("window");
 const isTablet = width > 915;
 
 const styles = StyleSheet.create({
-   breakReminderContainer: {
+  breakReminderContainer: {
     position: "absolute",
     top: 0,
     left: 0,
@@ -1494,51 +1618,51 @@ const styles = StyleSheet.create({
 
   // Speech Error Styles
   speechErrorContainer: {
-    position: 'absolute',
+    position: "absolute",
     top: 10,
     left: 10,
     right: 10,
-    backgroundColor: '#FFEAA7',
+    backgroundColor: "#FFEAA7",
     padding: 8,
     borderRadius: 5,
     zIndex: 1000,
   },
   speechErrorText: {
-    color: '#E17055',
+    color: "#E17055",
     fontSize: 10,
-    textAlign: 'center',
+    textAlign: "center",
     fontFamily: "Poppins",
   },
 
   // Offline Indicator Styles
   offlineContainer: {
-    position: 'absolute',
+    position: "absolute",
     top: 12,
     left: 20,
-    backgroundColor: '#9B72CF',
+    backgroundColor: "#9B72CF",
     borderRadius: width * 0.005,
     paddingVertical: 2,
     paddingHorizontal: 6,
     zIndex: 1000,
   },
   offlineText: {
-    color: '#fafafa',
+    color: "#fafafa",
     fontSize: RFValue(7),
-    fontWeight: 'bold',
+    fontWeight: "bold",
     fontFamily: "Poppins",
   },
 
   // Voice Status Styles
   voiceStatusContainer: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 10,
     left: 10,
-    backgroundColor: 'rgba(155, 114, 207, 0.8)',
+    backgroundColor: "rgba(155, 114, 207, 0.8)",
     borderRadius: width * 0.005,
     zIndex: 1000,
   },
   voiceStatusText: {
-    color: '#ffffff',
+    color: "#ffffff",
     fontSize: 10,
     fontFamily: "Poppins",
   },
@@ -1599,7 +1723,7 @@ const styles = StyleSheet.create({
 
   // DEBUG STYLES
   debugContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    backgroundColor: "rgba(255, 255, 255, 0.8)",
     padding: 4,
     borderRadius: 4,
     marginLeft: 10,
@@ -1607,8 +1731,8 @@ const styles = StyleSheet.create({
 
   debugText: {
     fontSize: 10,
-    color: '#9B72CF',
-    fontWeight: '500',
+    color: "#9B72CF",
+    fontWeight: "500",
     fontFamily: "Poppins",
   },
 
@@ -1717,7 +1841,7 @@ const styles = StyleSheet.create({
     paddingVertical: height * 0.01,
     paddingHorizontal: width * 0.01,
     borderRadius: width * 0.01,
-    height: isTablet ? height * 0.12 : height * 0.14, 
+    height: isTablet ? height * 0.12 : height * 0.14,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -1787,7 +1911,7 @@ const styles = StyleSheet.create({
 
   sentenceCardImageContainer: {
     width: width * 0.08,
-    height: (height * 0.16) * 0.7,
+    height: height * 0.16 * 0.7,
     backgroundColor: "#fafafa",
     overflow: "hidden",
   },
@@ -1800,7 +1924,7 @@ const styles = StyleSheet.create({
 
   sentenceCardTextContainer: {
     width: width * 0.08,
-    height: (height * 0.16) * 0.3,
+    height: height * 0.16 * 0.3,
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: wp(0.5),
@@ -1874,7 +1998,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#E5E5E5",
     flex: 0,
     justifyContent: "center",
-    minHeight: height * 0.10,
+    minHeight: height * 0.1,
   },
 
   categoryContainer: {
@@ -1903,7 +2027,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    height: height * 0.10,
+    height: height * 0.1,
     gap: width * 0.02,
     borderBottomLeftRadius: width * 0.01,
     borderBottomRightRadius: width * 0.01,
@@ -1924,11 +2048,11 @@ const styles = StyleSheet.create({
   },
 
   categoryText: {
-    fontSize: RFValue(9), 
+    fontSize: RFValue(9),
     fontWeight: "500",
     color: "#9B72CF",
     fontFamily: "Poppins",
     textAlign: "left",
-    justifyContent: 'center',
+    justifyContent: "center",
   },
 });
