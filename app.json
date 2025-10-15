@@ -36,6 +36,18 @@
       "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
+    "manifest": {
+      "usesFeatures": [
+        {
+          "android:name": "android.hardware.camera",
+          "android:required": false
+        },
+        {
+          "android:name": "android.hardware.camera.front",
+          "android:required": false
+        }
+      ]
+    },
     "plugins": [
       "@react-native-firebase/app",
       "@react-native-firebase/auth",
