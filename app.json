@@ -29,24 +29,22 @@
         "android.permission.RECORD_AUDIO",
         "android.permission.MODIFY_AUDIO_SETTINGS"
       ],
-      "runtimeVersion": "1.0.0"
+      "runtimeVersion": "1.0.0",
+      "usesFeatures": [
+        {
+          "name": "android.hardware.camera",
+          "required": false
+        },
+        {
+          "name": "android.hardware.camera.front",
+          "required": false
+        }
+      ]
     },
     "web": {
       "bundler": "metro",
       "output": "static",
       "favicon": "./assets/images/favicon.png"
-    },
-    "manifest": {
-      "usesFeatures": [
-        {
-          "android:name": "android.hardware.camera",
-          "android:required": false
-        },
-        {
-          "android:name": "android.hardware.camera.front",
-          "android:required": false
-        }
-      ]
     },
     "plugins": [
       "@react-native-firebase/app",
