@@ -106,6 +106,15 @@
         }
       ],
       [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app needs access to your photos to let you upload a profile picture.",
+          "cameraPermission": "The app needs access to your camera to let you take a profile picture."
+        },
+        "expo-notifications",
+        "expo-web-browser"
+      ],
+      [
         "expo-build-properties",
         {
           "android": {
@@ -117,14 +126,7 @@
             "androidGradlePluginVersion": "8.1.4"
           }
         }
-      ],
-      "expo-image-picker",
-      {
-        "photosPermission": "The app needs access to your photos to let you upload a profile picture.",
-        "cameraPermission": "The app needs access to your camera to let you take a profile picture."
-      },
-      "expo-notifications",
-      "expo-web-browser"
+      ]
     ],
     "experiments": {
       "typedRoutes": true
