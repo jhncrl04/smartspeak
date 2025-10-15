@@ -23,6 +23,8 @@
         "foregroundImage": "./assets/images/logo.png",
         "backgroundColor": "#ffffff"
       },
+      "minSdkVersion": 28,
+      "targetSdkVersion": 35,
       "package": "com.smartspeak.Smartspeak",
       "versionCode": 1,
       "permissions": [
@@ -127,7 +129,17 @@
         }
       ],
       "expo-notifications",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-gradle-ext-plugin",
+        {
+          "android": {
+            "excludeDependencies": [
+              "com.android.support"
+            ]
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
