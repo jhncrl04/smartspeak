@@ -99,16 +99,35 @@ const SignupScreen = () => {
         content={`Please read these terms and conditions carefully before using our service.
 
 1. Acceptance of Terms
-By accessing and using this application, you accept and agree to be bound by the terms and provision of this agreement.
+Welcome to SmartSpeak, developed to support communication for individuals with speech and language challenges. 
+By accessing or using our App, you agree to be bound by these Terms and Conditions. If you do not agree to these terms, please do not use the App.
 
-2. User Responsibilities
-You are responsible for maintaining the confidentiality of your account and password and for restricting access to your device.
+2. Description of Service
+PECS Communication App provides:
+  - Digital Picture Exchange Communication System (PECS) cards
+  - Text-to-speech functionality
+  - Communication board management
+  - Multi-user support for Learners, guardian and teachers
 
-3. Content
-Our service allows you to post, link, store, share and otherwise make available certain information, text, graphics, videos, or other material.
+3. User Content
+You keep ownership of your:
+  - Custom uploaded images
+  - Personal communication boards
+  - User-generated content
 
-4. Termination
-We may terminate or suspend your account immediately, without prior notice or liability, for any reason whatsoever.
+You grant us permission to use this content only to provide and improve the app's services.
+
+4. Privacy and Data Protection
+We Collect:
+  - Personal Information: Name, email, role (teacher/guardian), and usage data.
+  - Usage Data: Information on how you use the app, including device information and log data.
+
+We Use This Information To:
+  - Provide and maintain our services
+  - Improve user experience
+  - Communicate with you about updates and promotions
+
+We Do Not Share Your Personal Information With Third Parties Except As Described In Our Privacy Policy.
 
 5. Changes to Terms
 We reserve the right, at our sole discretion, to modify or replace these Terms at any time.
@@ -128,10 +147,10 @@ We collect information you provide directly to us, such as when you create an ac
 
 2. How We Use Your Information
 We use the information we collect to:
-- Provide, maintain, and improve our services
-- Send you technical notices and support messages
-- Respond to your comments and questions
-- Monitor and analyze trends and usage
+  - Provide and personalize communication support
+  - Improve app functionality and user experience
+  - Generate progress reports for guardians/teachers
+  - Monitor and analyze trends and usage
 
 3. Information Sharing
 We do not share your personal information with third parties except as described in this policy.
@@ -143,7 +162,10 @@ We implement appropriate technical and organizational security measures to prote
 You have the right to access, correct, or delete your personal information.
 
 6. Children's Privacy
-Our service does not address anyone under the age of 13.
+For users under 13:
+  - We require parental consent
+  - We collect minimal information
+  - Parents can review child's data
 
 If you have any questions about this Privacy Policy, please contact us.`}
       />
