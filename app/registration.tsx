@@ -162,7 +162,7 @@ We implement appropriate technical and organizational security measures to prote
 You have the right to access, correct, or delete your personal information.
 
 6. Children's Privacy
-For users under 13:
+For childrens:
   - We require parental consent
   - We collect minimal information
   - Parents can review child's data
