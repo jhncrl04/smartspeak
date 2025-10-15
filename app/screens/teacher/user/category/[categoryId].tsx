@@ -110,10 +110,12 @@ const LearnerProfileCategory = () => {
             <View style={{ paddingTop: 10 }}>
               <ActionLink
                 text="Back"
-                icon={
-                  <Icon name="arrow-left" size={22} color={COLORS.accent} />
-                }
                 clickHandler={router.back}
+                fontSize={16}
+                isBold
+                icon={
+                  <Icon name="arrow-left" size={24} color={COLORS.accent} />
+                }
               />
             </View>
             <LearnerProfileHeader

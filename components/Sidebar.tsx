@@ -4,6 +4,7 @@ import { useAuthStore } from "@/stores/userAuthStore";
 import { router, usePathname } from "expo-router";
 import { useRef, useState } from "react";
 import {
+  Animated,
   Image,
   ScrollView,
   StyleSheet,
@@ -29,6 +30,8 @@ const Sidebar = ({ onNavigate, userRole }: SidebarProps) => {
   const { setWidth } = useSidebarWidth();
 
   const isNavigatingRef = useRef(false);
+  const animatedWidth = useRef(new Animated.Value(60)).current;
+  const animatedWidthPercent = useRef(new Animated.Value(0)).current;
 
   const teachersMenuItems = [
     { icon: "people", label: "Learners", screen: "/screens/teacher" },
@@ -64,12 +67,25 @@ const Sidebar = ({ onNavigate, userRole }: SidebarProps) => {
   const toggleSidebar = () => {
     const newExpanded = !expanded;
     setExpanded(newExpanded);
+
+    if (newExpanded) {
+      Animated.timing(animatedWidthPercent, {
+        toValue: 25,
+        duration: 200,
+        useNativeDriver: false,
+      }).start();
+    } else {
+      Animated.timing(animatedWidth, {
+        toValue: 60,
+        duration: 200,
+        useNativeDriver: false,
+      }).start();
+    }
+
     setWidth(newExpanded ? "25%" : 60);
   };
 
-  const currentWidth = expanded ? "25%" : 60;
-
-  const handleMenuPress = async (screen: string) => {
+  const handleMenuPress = (screen: string) => {
     if (isNavigatingRef.current || disableSidebar || pathname === screen)
       return;
 
@@ -77,19 +93,14 @@ const Sidebar = ({ onNavigate, userRole }: SidebarProps) => {
     setDisableSidebar(true);
     setIsLoading(true);
 
-    try {
-      router.push(screen as any);
-      onNavigate(screen);
-    } catch (error) {
-      console.error("Navigation error:", error);
-    } finally {
-      // small timeout helps prevent rapid double-presses
-      setTimeout(() => {
-        isNavigatingRef.current = false;
-        setDisableSidebar(false);
-        setIsLoading(false);
-      }, 250);
-    }
+    router.push(screen as any);
+    onNavigate(screen);
+
+    setTimeout(() => {
+      isNavigatingRef.current = false;
+      setDisableSidebar(false);
+      setIsLoading(false);
+    }, 300);
   };
 
   const logoutHandler = () => {
@@ -98,7 +109,19 @@ const Sidebar = ({ onNavigate, userRole }: SidebarProps) => {
 
   return (
     <>
-      <View style={[styles.sidebar, { width: currentWidth }]}>
+      <Animated.View
+        style={[
+          styles.sidebar,
+          {
+            width: expanded
+              ? animatedWidthPercent.interpolate({
+                  inputRange: [0, 25],
+                  outputRange: ["0%", "25%"],
+                })
+              : animatedWidth,
+          },
+        ]}
+      >
         <ScrollView
           decelerationRate="fast"
           scrollEventThrottle={16}
@@ -107,8 +130,7 @@ const Sidebar = ({ onNavigate, userRole }: SidebarProps) => {
           <View
             style={{ paddingVertical: 16, justifyContent: "space-between" }}
           >
-            {/* Top Section */}
-            <View>
+            <View style={{ gap: 0 }}>
               <View style={styles.toggleButton}>
                 {expanded && (
                   <TouchableOpacity
@@ -145,7 +167,6 @@ const Sidebar = ({ onNavigate, userRole }: SidebarProps) => {
                     </Text>
                   </TouchableOpacity>
                 )}
-
                 <TouchableOpacity
                   style={{
                     width: 40,
@@ -153,7 +174,6 @@ const Sidebar = ({ onNavigate, userRole }: SidebarProps) => {
                     justifyContent: "center",
                   }}
                   onPress={toggleSidebar}
-                  disabled={isNavigatingRef.current}
                 >
                   <Icon
                     name={expanded ? "chevron-left" : "chevron-right"}
@@ -163,7 +183,6 @@ const Sidebar = ({ onNavigate, userRole }: SidebarProps) => {
                 </TouchableOpacity>
               </View>
 
-              {/* Menu Items */}
               <View style={styles.sidebarInnerContainer}>
                 {menuItems.map((item) => (
                   <TouchableOpacity
@@ -194,6 +213,7 @@ const Sidebar = ({ onNavigate, userRole }: SidebarProps) => {
                         }
                       />
                     </View>
+
                     {expanded && (
                       <Text
                         style={[
@@ -209,7 +229,6 @@ const Sidebar = ({ onNavigate, userRole }: SidebarProps) => {
               </View>
             </View>
 
-            {/* Logout */}
             <TouchableOpacity
               style={styles.menuItem}
               disabled={isNavigatingRef.current}
@@ -228,12 +247,12 @@ const Sidebar = ({ onNavigate, userRole }: SidebarProps) => {
                   style={{ transform: [{ scaleX: -1 }] }}
                 />
               </View>
+
               {expanded && <Text style={styles.menuText}>Log Out</Text>}
             </TouchableOpacity>
           </View>
         </ScrollView>
-      </View>
-
+      </Animated.View>
       <LoadingScreen visible={isLoading} />
     </>
   );

@@ -470,11 +470,11 @@ const ChildSettings = () => {
             style={{ flexDirection: "row", justifyContent: "space-between" }}
           >
             <ActionLink
-              icon={<Icon name="arrow-left" size={24} color={COLORS.accent} />}
               text="Back"
               clickHandler={router.back}
               fontSize={16}
               isBold
+              icon={<Icon name="arrow-left" size={24} color={COLORS.accent} />}
             />
             <Text style={styles.header}>Child Settings</Text>
             <View />

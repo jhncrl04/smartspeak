@@ -122,10 +122,12 @@ const ManageThisCategoryScreen = () => {
                 )}
 
                 <ActionLink
-                  text="Return"
+                  text="Back"
                   clickHandler={router.back}
+                  fontSize={16}
+                  isBold
                   icon={
-                    <Icon name="arrow-left" size={22} color={COLORS.accent} />
+                    <Icon name="arrow-left" size={24} color={COLORS.accent} />
                   }
                 />
               </View>

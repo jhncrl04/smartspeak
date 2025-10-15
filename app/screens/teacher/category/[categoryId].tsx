@@ -15,6 +15,7 @@ import { router } from "expo-router";
 import { useLocalSearchParams } from "expo-router/build/hooks";
 import { useEffect, useRef, useState } from "react";
 import { Animated, ScrollView, StyleSheet, Text, View } from "react-native";
+import Icon from "react-native-vector-icons/Octicons";
 
 const ManageThisCategoryScreen = () => {
   const handleNavigation = (screen: string) => {
@@ -119,7 +120,15 @@ const ManageThisCategoryScreen = () => {
                   </View>
                 )}
 
-                <ActionLink text="Return" clickHandler={router.back} />
+                <ActionLink
+                  text="Back"
+                  clickHandler={router.back}
+                  fontSize={16}
+                  isBold
+                  icon={
+                    <Icon name="arrow-left" size={24} color={COLORS.accent} />
+                  }
+                />
               </View>
               <PageHeader
                 collectionToSearch="cards"
