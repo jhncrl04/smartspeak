@@ -1,6 +1,8 @@
 import { showToast } from "@/components/ui/MyToast";
 import imageToBase64 from "@/helper/imageToBase64";
+import { useCategoriesStore } from "@/stores/categoriesStores";
 import { useAuthStore } from "@/stores/userAuthStore";
+import { useUsersStore } from "@/stores/userStore";
 import { CreateLogInput, DeleteLogInput, UpdateLog } from "@/types/log";
 import NetInfo from "@react-native-community/netinfo";
 import firestore, {
@@ -9,6 +11,7 @@ import firestore, {
 } from "@react-native-firebase/firestore";
 import { Alert } from "react-native";
 import { createLog } from "./loggingService";
+import { createNotification } from "./notificationService";
 
 type categoryProps = {
   name: string;
@@ -140,6 +143,30 @@ export const assignCategory = async (
   }
 
   try {
+    const users = useUsersStore.getState().users;
+    const categories = useCategoriesStore.getState().categories;
+
+    const learner = users.find((u) => u.id === learnerId);
+    const category = categories.find((c) => c.id === categoryId);
+
+    const assignedByUser = useAuthStore.getState().user;
+
+    const notification: any = {
+      action: "Assign Category",
+      created_for: learnerId!,
+      message: `${assignedByUser?.fname} ${assignedByUser?.lname}(${assignedByUser?.role}) has assigned ${category?.category_name} category to ${learner?.first_name} ${learner?.last_name}`,
+      timestamp: firestore.Timestamp.fromDate(new Date()),
+      item_name: category?.category_name,
+      notification_type: "Category",
+      read: false,
+      learner_id: learnerId!,
+      user_name: `${assignedByUser?.fname} ${assignedByUser?.lname}`,
+      user_type: assignedByUser?.role,
+      sender_id: assignedByUser?.uid,
+    };
+
+    createNotification(notification);
+
     await categoryCollection
       .doc(categoryId)
       .update({ assigned_to: arrayUnion(learnerId) });
@@ -235,6 +262,32 @@ export const unassignCategory = async (
         );
       });
     }
+
+    const users = useUsersStore.getState().users;
+    const categories = useCategoriesStore.getState().categories;
+
+    const learner = users.find((u) => u.id === learnerId);
+    const category = categories.find((c) => c.id === categoryId);
+
+    const assignedByUser = useAuthStore.getState().user;
+
+    const notification: any = {
+      action: "Assign Category",
+      created_for: learnerId!,
+      message: `${assignedByUser?.fname} ${assignedByUser?.lname}(${assignedByUser?.role}) has unassigned ${category?.category_name} category to ${learner?.first_name} ${learner?.last_name}`,
+      timestamp: firestore.Timestamp.fromDate(new Date()),
+      item_name: category?.category_name,
+      notification_type: "Category",
+      read: false,
+      learner_id: learnerId!,
+      user_name: `${assignedByUser?.fname} ${assignedByUser?.lname}`,
+      user_type: assignedByUser?.role,
+      sender_id: assignedByUser?.uid,
+    };
+
+    console.log(notification);
+
+    createNotification(notification);
 
     // If no cards, just unassign the category directly
     await categoryCollection.doc(categoryId).update({

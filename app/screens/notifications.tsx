@@ -1,5 +1,6 @@
 import Sidebar from "@/components/Sidebar";
 import { formatDate, toDate } from "@/helper/formatDate";
+import getCurrentUid from "@/helper/getCurrentUid";
 import { deleteNotification, markAsRead } from "@/services/notificationService";
 import { respondToGuardianChangeRequest } from "@/services/userService";
 import { useNotifsStore } from "@/stores/notificationsStore";
@@ -79,7 +80,7 @@ const NotificationsScreen = () => {
 
   const markAllAsRead = () => {
     filteredNotifications.forEach((notif) => {
-      markAsRead(notif.id);
+      markAsRead(notif.id!);
     });
   };
 
@@ -134,7 +135,18 @@ const NotificationsScreen = () => {
 
   const filteredNotifications = notifications
     .map((notif) => {
+      // Skip notifications from current user
+      if (notif.senderId === getCurrentUid()) {
+        return null;
+      }
+
       const senderInfo = notif.senderId ? senderProfiles[notif.senderId] : null;
+
+      // Skip if senderInfo is not available yet
+      if (!senderInfo) {
+        return null;
+      }
+
       const receiverInfo = user;
 
       const notifTitle = `${senderInfo.first_name} ${
@@ -196,13 +208,21 @@ const NotificationsScreen = () => {
         receiverInfo,
       };
     })
+    .filter((notif) => notif !== null) // Remove nulls from mapping
     .filter((notif) => {
       if (filter === "unread") return !notif.read;
       if (filter === "read") return notif.read;
       return true;
     });
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  const unreadCount = notifications.filter((n) => {
+    // Exclude current user's notifications
+    if (n.senderId === getCurrentUid()) return false;
+    // Exclude notifications without sender profile loaded
+    if (!senderProfiles[n.senderId]) return false;
+    // Count only unread
+    return !n.read;
+  }).length;
 
   return (
     <View style={{ flex: 1, flexDirection: "row" }}>
@@ -323,7 +343,7 @@ const NotificationsScreen = () => {
                   style={styles.deleteButton}
                   onPress={(e) => {
                     e.stopPropagation();
-                    deleteNotification(notification.id);
+                    deleteNotification(notification.id!);
                   }}
                 >
                   <Text style={styles.deleteIcon}>×</Text>
@@ -518,7 +538,8 @@ const NotificationsScreen = () => {
                           style={styles.secondaryActionButton}
                           onPress={(e) => {
                             e.stopPropagation();
-                            deleteNotification(selectedNotification.id);
+
+                            deleteNotification(selectedNotification.id!);
                             closeDetailModal();
                           }}
                         >

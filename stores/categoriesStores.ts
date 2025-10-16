@@ -14,11 +14,40 @@ export const useCategoriesStore = create<CategoriesStore>((set, get) => ({
     set({ isLoading: true, error: null });
 
     const categoriesMap = new Map<string, Category>();
+    // Track which listeners are tracking each category
+    const listenerTracking = new Map<string, Set<string>>();
     const unsubscribers: (() => void)[] = [];
 
     const updateCategories = () => {
       const categories = Array.from(categoriesMap.values());
       set({ categories, isLoading: false, error: null });
+    };
+
+    const addCategory = (
+      categoryId: string,
+      categoryData: Category,
+      listenerId: string
+    ) => {
+      categoriesMap.set(categoryId, categoryData);
+
+      if (!listenerTracking.has(categoryId)) {
+        listenerTracking.set(categoryId, new Set());
+      }
+      listenerTracking.get(categoryId)!.add(listenerId);
+    };
+
+    const removeCategory = (categoryId: string, listenerId: string) => {
+      const listeners = listenerTracking.get(categoryId);
+
+      if (listeners) {
+        listeners.delete(listenerId);
+
+        // Only remove from map if no other listeners are tracking it
+        if (listeners.size === 0) {
+          categoriesMap.delete(categoryId);
+          listenerTracking.delete(categoryId);
+        }
+      }
     };
 
     // Listener for categories created by the current user
@@ -35,9 +64,9 @@ export const useCategoriesStore = create<CategoriesStore>((set, get) => ({
           } as Category;
 
           if (change.type === "added" || change.type === "modified") {
-            categoriesMap.set(change.doc.id, categoryData);
+            addCategory(change.doc.id, categoryData, "user");
           } else if (change.type === "removed") {
-            categoriesMap.delete(change.doc.id);
+            removeCategory(change.doc.id, "user");
           }
         });
         updateCategories();
@@ -55,6 +84,7 @@ export const useCategoriesStore = create<CategoriesStore>((set, get) => ({
       const batchSize = 10;
       for (let i = 0; i < learnerIds.length; i += batchSize) {
         const batch = learnerIds.slice(i, i + batchSize);
+        const listenerId = `assigned_${i}`;
 
         const assignedUnsubscribe = CATEGORY_COLLECTION.where(
           "assigned_to",
@@ -69,18 +99,11 @@ export const useCategoriesStore = create<CategoriesStore>((set, get) => ({
               } as Category;
 
               if (change.type === "added" || change.type === "modified") {
-                categoriesMap.set(change.doc.id, categoryData);
+                addCategory(change.doc.id, categoryData, listenerId);
               } else if (change.type === "removed") {
-                // Only delete if it's not created for any of the learners
-                const createdForArray = Array.isArray(categoryData.created_for)
-                  ? categoryData.created_for
-                  : [categoryData.created_for].filter(Boolean);
-                const isCreatedFor = createdForArray.some((learnerId: string) =>
-                  batch.includes(learnerId)
-                );
-                if (!isCreatedFor) {
-                  categoriesMap.delete(change.doc.id);
-                }
+                // Document no longer matches this query (e.g., arrayRemove)
+                // But don't remove if other listeners still track it
+                removeCategory(change.doc.id, listenerId);
               }
             });
             updateCategories();
@@ -108,9 +131,9 @@ export const useCategoriesStore = create<CategoriesStore>((set, get) => ({
             } as Category;
 
             if (change.type === "added" || change.type === "modified") {
-              categoriesMap.set(change.doc.id, categoryData);
+              addCategory(change.doc.id, categoryData, "created_for");
             } else if (change.type === "removed") {
-              categoriesMap.delete(change.doc.id);
+              removeCategory(change.doc.id, "created_for");
             }
           });
           updateCategories();
@@ -138,9 +161,9 @@ export const useCategoriesStore = create<CategoriesStore>((set, get) => ({
           } as Category;
 
           if (change.type === "added" || change.type === "modified") {
-            categoriesMap.set(change.doc.id, categoryData);
+            addCategory(change.doc.id, categoryData, "admin");
           } else if (change.type === "removed") {
-            categoriesMap.delete(change.doc.id);
+            removeCategory(change.doc.id, "admin");
           }
         });
         updateCategories();

@@ -167,7 +167,12 @@ const LearnerProfileCategory = () => {
               </View>
             ) : (
               filteredCards.map((card) => (
-                <PecsCard action="Unassign" cardId={card.id} key={card.id} />
+                <PecsCard
+                  learnerId={userId as string}
+                  action="Unassign"
+                  cardId={card.id}
+                  key={card.id}
+                />
               ))
             )}
           </View>

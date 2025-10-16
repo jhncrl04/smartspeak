@@ -1,7 +1,7 @@
 import { FirebaseFirestoreTypes } from "@react-native-firebase/firestore";
 
 export type Notification = {
-  id: string;
+  id?: string; //setting as optional for creating notif
   action: string;
   createdFor: string;
   message: string;
@@ -30,6 +30,6 @@ export type NotificationsStore = {
   fetchSenderProfiles: (senderIds: string[]) => Promise<Record<string, any>>;
 
   // Actions
-  startListener: (userId: string) => void;
+  startListener: (userId: string, learners: string[]) => void;
   stopListener: () => void;
 };

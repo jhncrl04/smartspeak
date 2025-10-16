@@ -6,6 +6,8 @@ import Constants from "expo-constants";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 
+import NetInfo from "@react-native-community/netinfo";
+
 const NOTIFICATION_COLLECTION = firestore().collection("userNotifications");
 
 export const markAsRead = async (id: string) => {
@@ -18,6 +20,8 @@ export const markAsRead = async (id: string) => {
 
 export const deleteNotification = async (id: string) => {
   try {
+    console.log(id);
+
     NOTIFICATION_COLLECTION.doc(id).delete();
   } catch (error) {
     showToast("error", "", "");
@@ -31,6 +35,24 @@ const markAllAsRead = async (ids: string[]) => {
     });
   } catch (error) {
     showToast("error", "", "");
+  }
+};
+
+export const createNotification = async (notificationBody: any) => {
+  const networkStatus = await NetInfo.fetch();
+  if (!networkStatus.isConnected) {
+    showToast(
+      "error",
+      "No Internet Connection",
+      "Please check your connection and try again"
+    );
+    throw new Error("No Internet Connection");
+  }
+
+  try {
+    NOTIFICATION_COLLECTION.add(notificationBody);
+  } catch (err) {
+    console.error("Can't create notification: ", err);
   }
 };
 

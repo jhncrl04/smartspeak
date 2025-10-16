@@ -23,10 +23,9 @@ import Toast, { BaseToast, ErrorToast } from "react-native-toast-message";
 
 import * as Notifications from "expo-notifications";
 
-// SplashScreen.preventAutoHideAsync();
-
 const RootLayout = () => {
   const user = useAuthStore((state) => state.user);
+  const sections = useSectionsStore((state) => state.sections);
 
   const notificationListener = useRef<any>("");
   const responseListener = useRef<any>("");
@@ -57,14 +56,12 @@ const RootLayout = () => {
   const startNotifListener = useNotifsStore((state) => state.startListener);
   const stopNotifListener = useNotifsStore((state) => state.stopListener);
 
+  // Initial setup when user logs in
   useEffect(() => {
     ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
-
     setAppToFullscreen();
 
     if (!user?.uid || !user?.role) return;
-
-    const role = user.role.toLowerCase();
 
     if (user?.uid && user?.role) {
       const { notificationListener: nListener, responseListener: rListener } =
@@ -78,7 +75,6 @@ const RootLayout = () => {
       startUsersListener(user.uid, user.role.toLowerCase());
       startSectionsListner(user.uid);
       startGradeLevelsListener();
-      startNotifListener(user.uid);
     }
 
     // Cleanup: stop all listeners when component unmounts or user logs out
@@ -97,6 +93,27 @@ const RootLayout = () => {
     };
   }, [user?.uid]);
 
+  // Separate effect to start notifications listener after sections are loaded
+  useEffect(() => {
+    if (!user?.uid || !user?.role) return;
+
+    const role = user.role.toLowerCase();
+
+    // For teachers, use students from sections; for others use handledChildren
+    const handledChildren =
+      role === "teacher" && sections.length > 0
+        ? sections.flatMap((s) => s.students)
+        : user.handledChildren || [];
+
+    console.log("Starting notif listener with children:", handledChildren);
+
+    startNotifListener(user.uid, handledChildren);
+
+    return () => {
+      stopNotifListener();
+    };
+  }, [user?.uid, sections, user?.role]);
+
   // setting default font, working on web but not on android
   const [fontsLoaded] = useFonts({
     "Poppins-Light": require("@/assets/fonts/Poppins-Light.ttf"),
@@ -106,7 +123,7 @@ const RootLayout = () => {
   });
 
   if (!fontsLoaded) {
-    return null; // Or a splash/loading screen
+    return null;
   }
 
   setCustomText({

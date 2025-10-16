@@ -17,7 +17,10 @@ import { Alert } from "react-native";
 import { getCategoryWithId } from "./categoryService";
 import { createLog } from "./loggingService";
 
+import { useCardsStore } from "@/stores/cardsStore";
+import { useUsersStore } from "@/stores/userStore";
 import NetInfo from "@react-native-community/netinfo";
+import { createNotification } from "./notificationService";
 
 type cardProps = {
   name: string;
@@ -263,6 +266,8 @@ export const assignCard = async (cardId: string, learnerId?: string) => {
 
     const learner = learnerSnapshot.data();
 
+    const assignedByUser = useAuthStore.getState().user;
+
     const assignedCard: CardDetail = {
       card_name: card?.card_name,
       card_id: card?.id,
@@ -270,20 +275,40 @@ export const assignCard = async (cardId: string, learnerId?: string) => {
       category_name: category?.category_name,
     };
 
-    const logBody: AssignLog = {
+    const notification: any = {
       action: "Assign Card",
-      card: assignedCard,
-      assigned_by_user_id: "",
-      assigned_by_user_name: "",
-      assigned_by_user_type: "",
-      assigned_to: {
-        id: learnerId,
-        name: `${learner?.first_name} ${learner?.last_name}`,
-      },
-      timestamp: new Date(),
+      created_for: learnerId!,
+      message: `${assignedByUser?.fname} ${assignedByUser?.lname}(${assignedByUser?.role}) has assigned ${card?.card_name} card to ${learner?.first_name} ${learner?.last_name}`,
+      timestamp: firestore.Timestamp.fromDate(new Date()),
+      item_name: card?.card_name,
+      notification_type: "Card",
+      read: false,
+      learner_id: learnerId!,
+      user_name: `${assignedByUser?.fname} ${assignedByUser?.lname}`,
+      user_type: assignedByUser?.role,
+      sender_id: assignedByUser?.uid,
     };
 
-    createLog(logBody);
+    console.log(notification);
+
+    createNotification(notification);
+
+    if (card!.created_by.toLowerCase() !== "admin") {
+      const logBody: AssignLog = {
+        action: "Assign Card",
+        card: assignedCard,
+        assigned_by_user_id: "",
+        assigned_by_user_name: "",
+        assigned_by_user_type: "",
+        assigned_to: {
+          id: learnerId,
+          name: `${learner?.first_name} ${learner?.last_name}`,
+        },
+        timestamp: new Date(),
+      };
+
+      createLog(logBody);
+    }
   } catch (err) {
     console.error("Error assigning card: ", err);
   }
@@ -316,6 +341,32 @@ export const unassignCard = async (learnerId: string, cardId: string) => {
   }
 
   try {
+    const users = useUsersStore.getState().users;
+    const cards = useCardsStore.getState().cards;
+
+    const learner = users.find((u) => u.id === learnerId);
+    const card = cards.find((c) => c.id === cardId);
+
+    const assignedByUser = useAuthStore.getState().user;
+
+    const notification: any = {
+      action: "Unassign Card",
+      created_for: learnerId!,
+      message: `${assignedByUser?.fname} ${assignedByUser?.lname}(${assignedByUser?.role}) has unassigned ${card?.card_name} card to ${learner?.first_name} ${learner?.last_name}`,
+      timestamp: firestore.Timestamp.fromDate(new Date()),
+      item_name: card?.card_name,
+      notification_type: "Card",
+      read: false,
+      learner_id: learnerId!,
+      user_name: `${assignedByUser?.fname} ${assignedByUser?.lname}`,
+      user_type: assignedByUser?.role,
+      sender_id: assignedByUser?.uid,
+    };
+
+    console.log(notification);
+
+    createNotification(notification);
+
     await cardCollection
       .doc(cardId)
       .update({ assigned_to: arrayRemove(learnerId) });
