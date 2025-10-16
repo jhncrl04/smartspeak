@@ -236,7 +236,7 @@ export default function HomeScreen() {
   const { width, height } = Dimensions.get("window");
   const isTablet = width > 968;
   const cardsPerRow = isTablet ? 8 : width > 600 ? 6 : 4;
-  const cardWidth = (width * 1 - 26 * (cardsPerRow + 1)) / cardsPerRow;
+  const cardWidth = (width * 1 - 10 * (cardsPerRow + 1)) / cardsPerRow;
   const cardHeight = cardWidth * 1;
 
   type CardType = {
@@ -1190,7 +1190,7 @@ export default function HomeScreen() {
               styles.imageContainer,
               {
                 width: cardWidth,
-                height: cardHeight * 0.7,
+                height: cardHeight * 0.77,
               },
             ]}
           >
@@ -1208,7 +1208,7 @@ export default function HomeScreen() {
               styles.textContainer,
               {
                 width: cardWidth,
-                height: cardHeight * 0.3,
+                height: cardHeight * 0.23,
               },
             ]}
           >
