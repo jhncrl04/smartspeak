@@ -112,7 +112,21 @@
             "buildToolsVersion": "35.0.0",
             "minSdkVersion": 28,
             "gradleVersion": "8.4",
-            "androidGradlePluginVersion": "8.1.4"
+            "androidGradlePluginVersion": "8.1.4",
+            "useAndroidX": true,
+            "enableJetifier": true,
+            "packagingOptions": {
+              "pickFirst": [
+                "META-INF/androidx.localbroadcastmanager_localbroadcastmanager.version",
+                "META-INF/androidx.versionedparcelable_versionedparcelable.version",
+                "META-INF/androidx.core_core.version",
+                "androidx/core/graphics/drawable/IconCompatParcelizer.class",
+                "androidx/core/internal/package-info.class"
+              ],
+              "exclude": [
+                "META-INF/proguard/androidx-*.pro"
+              ]
+            }
           }
         }
       ],
