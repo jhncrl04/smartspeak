@@ -540,7 +540,7 @@ export default function HomeScreen() {
       clearTimeout(breakReminderTimeoutRef.current);
     }
 
-    // 30 minutes = 1800000 milliseconds
+    // 30 minutes = 36000000 milliseconds
     breakReminderTimeoutRef.current = setTimeout(() => {
       showBreakReminderMessage();
     }, 3600000); // 30 minutes
@@ -1904,7 +1904,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     width: width * 0.08,
-    height: height * 0.16,
+    height: isTablet ? height * 0.14 : height * 0.16,
     overflow: "hidden",
     flexDirection: "column",
   },
