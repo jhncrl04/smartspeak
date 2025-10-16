@@ -14,7 +14,8 @@
     "**/*.tsx",
     ".expo/types/**/*.ts",
     "expo-env.d.ts",
-    "plugins/withCameraFeatures.js"
+    "plugins/withCameraFeatures.js",
+    "app.config.js"
   ],
   "exclude": ["node_modules"]
 }

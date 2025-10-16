@@ -23,25 +23,13 @@
         "foregroundImage": "./assets/images/logo.png",
         "backgroundColor": "#ffffff"
       },
-      "minSdkVersion": 28,
-      "targetSdkVersion": 35,
       "package": "com.smartspeak.Smartspeak",
       "versionCode": 1,
       "permissions": [
         "android.permission.RECORD_AUDIO",
         "android.permission.MODIFY_AUDIO_SETTINGS"
       ],
-      "runtimeVersion": "1.0.0",
-      "usesFeatures": [
-        {
-          "name": "android.hardware.camera",
-          "required": false
-        },
-        {
-          "name": "android.hardware.camera.front",
-          "required": false
-        }
-      ]
+      "runtimeVersion": "1.0.0"
     },
     "web": {
       "bundler": "metro",
