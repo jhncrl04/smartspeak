@@ -267,38 +267,61 @@ export default function ProfileScreen() {
 
   const [slideAnim] = useState(new Animated.Value(-100));
 
-  // Function to fetch learner's section
-  const fetchLearnerSection = async (userId: string) => {
-    try {
-      console.log("Fetching sections for learner:", userId);
+ // Function to fetch learner's section from nested path
+const fetchLearnerSection = async (userId: string) => {
+  try {
+    console.log("Fetching sections for learner:", userId);
 
-      const sectionsSnapshot = await firestore().collection("sections").get();
+    const schoolYearsSnapshot = await firestore()
+      .collection("schoolYears")
+      .get();
 
-      let learnerSection = "No Section";
+    let learnerSection = "No Section";
 
-      for (const doc of sectionsSnapshot.docs) {
-        const sectionData = doc.data();
-        const students = sectionData.students || [];
+    for (const schoolYearDoc of schoolYearsSnapshot.docs) {
+      const gradeLevelsSnapshot = await schoolYearDoc.ref
+        .collection("gradeLevels")
+        .get();
 
-        console.log(`Checking section ${doc.id}:`, {
-          name: sectionData.name,
-          students: students,
-        });
+      for (const gradeLevelDoc of gradeLevelsSnapshot.docs) {
+        const sectionsSnapshot = await gradeLevelDoc.ref
+          .collection("sections")
+          .get();
 
-        if (students.includes(userId)) {
-          learnerSection = sectionData.name || "Unnamed Section";
-          console.log("Found section for learner:", learnerSection);
+        for (const sectionDoc of sectionsSnapshot.docs) {
+          const sectionData = sectionDoc.data();
+          const students = sectionData.students || [];
+
+          console.log(`Checking section ${sectionDoc.id}:`, {
+            name: sectionData.name,
+            students: students,
+          });
+
+          if (students.includes(userId)) {
+            learnerSection = sectionData.name || "Unnamed Section";
+            console.log("Found section for learner:", learnerSection);
+            break;
+          }
+        }
+
+        // Break outer loops if section found
+        if (learnerSection !== "No Section") {
           break;
         }
       }
 
-      setSectionName(learnerSection);
-      console.log("Final section name:", learnerSection);
-    } catch (error) {
-      console.error("Error fetching learner section:", error);
-      setSectionName("No Section");
+      if (learnerSection !== "No Section") {
+        break;
+      }
     }
-  };
+
+    setSectionName(learnerSection);
+    console.log("Final section name:", learnerSection);
+  } catch (error) {
+    console.error("Error fetching learner section:", error);
+    setSectionName("No Section");
+  }
+};
 
   // Function to fetch address data from PSGC API
   const fetchAddressData = async () => {
