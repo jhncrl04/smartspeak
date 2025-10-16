@@ -115,18 +115,21 @@
             "androidGradlePluginVersion": "8.1.4",
             "useAndroidX": true,
             "enableJetifier": true,
-            "packagingOptions": {
-              "pickFirst": [
-                "META-INF/androidx.localbroadcastmanager_localbroadcastmanager.version",
-                "META-INF/androidx.versionedparcelable_versionedparcelable.version",
-                "META-INF/androidx.core_core.version",
-                "androidx/core/graphics/drawable/IconCompatParcelizer.class",
-                "androidx/core/internal/package-info.class"
+            "extraGradleOptions": "org.gradle.jvmargs=-Xmx4096m\nandroid.useAndroidX=true\nandroid.enableJetifier=true",
+            "gradleProperties": [
+              [
+                "android.useAndroidX",
+                "true"
               ],
-              "exclude": [
-                "META-INF/proguard/androidx-*.pro"
+              [
+                "android.enableJetifier",
+                "true"
+              ],
+              [
+                "android.suppressUnsupportedCompileSdk",
+                "35"
               ]
-            }
+            ]
           }
         }
       ],
