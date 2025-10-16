@@ -1,7 +1,10 @@
-const { withBuildGradle } = require("@expo/config-plugins");
+const {
+  withAppBuildGradle,
+  withProjectBuildGradle,
+} = require("@expo/config-plugins");
 
 module.exports = function withAndroidDependencyResolution(config) {
-  return withBuildGradle(config, async (config) => {
+  config = withProjectBuildGradle(config, async (config) => {
     const buildGradle = config.modResults.contents;
 
     const resolutionBlock = `
@@ -26,11 +29,13 @@ allprojects {
 }
 `;
 
-    // Insert the resolution block at the end of the buildscript block
+    // Insert the resolution block if not already present
     if (!buildGradle.includes("resolutionStrategy")) {
       config.modResults.contents = buildGradle + "\n" + resolutionBlock;
     }
 
     return config;
   });
+
+  return config;
 };
