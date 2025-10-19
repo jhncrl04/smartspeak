@@ -1,4 +1,7 @@
 // auth
+import { showToast } from "@/components/ui/MyToast";
+import { useAuthStore } from "@/stores/userAuthStore";
+import { getFriendlyRegistrationError } from "@/utils/firebaseError";
 import {
   createUserWithEmailAndPassword,
   getAuth,
@@ -15,7 +18,7 @@ type adultUserProps = {
   phone_number: string;
   email: string;
   password: string;
-  creation_date: Date;
+  created_at: Date;
   acct_status?: string;
   region: string;
   region_name: string;
@@ -51,15 +54,16 @@ export const registerAdultUser = async (userInfo: adultUserProps) => {
 
     return true;
   } catch (err: any) {
-    if (err.code === "auth/email-already-in-use") {
-      console.log("That email address is already in use!");
-    }
-
-    if (err.code === "auth/invalid-email") {
-      console.log("That email address is invalid!");
-    }
-
     console.error(err);
+
+    console.error("Login Error:", err);
+
+    const errorCode = (err.code as string) || "unknown";
+
+    const friendlyMessage = getFriendlyRegistrationError(errorCode);
+
+    showToast("error", "Login Failed", friendlyMessage);
+
     return false;
   }
 };
@@ -74,7 +78,7 @@ type childUserProps = {
   profile_pic: string;
   gender: string;
   guardian_id: string | undefined;
-  creation_date: Date;
+  created_at: Date;
   acct_status?: string;
   region: string;
   region_name: string;
@@ -111,7 +115,16 @@ export const registerChild = async (userInfo: childUserProps) => {
     }
 
     console.error(err);
-    return false;
+
+    console.error("Login Error:", err);
+
+    const errorCode = (err.code as string) || "unknown";
+
+    const friendlyMessage = getFriendlyRegistrationError(errorCode);
+
+    // showToast("error", "Login Failed", friendlyMessage);
+
+    return friendlyMessage;
   }
 };
 
@@ -139,11 +152,32 @@ const saveUserInfo = async (
 };
 
 const updateChildrenList = async (childId: string, uid: string) => {
-  const userCollection = firestore().collection("users");
+  try {
+    const userCollection = firestore().collection("users");
 
-  await userCollection.doc(uid).update({
-    children: firestore.FieldValue.arrayUnion(childId),
-  });
+    // Update Firestore - add child ID to children array
+    await userCollection.doc(uid).update({
+      children: firestore.FieldValue.arrayUnion(childId),
+    });
+
+    // Update Zustand store - append to handledChildren
+    const currentUser = useAuthStore.getState().user;
+
+    if (currentUser) {
+      const updatedChildren = currentUser.handledChildren
+        ? [...currentUser.handledChildren, childId]
+        : [childId];
+
+      useAuthStore.getState().updateUser({
+        handledChildren: updatedChildren,
+      });
+    }
+
+    console.log("Child added successfully to parent's list");
+  } catch (error) {
+    console.error("Error updating children list:", error);
+    throw error;
+  }
 };
 
 export default adultRegistration;

@@ -19,19 +19,30 @@ export const useSectionsStore = create<SectionsStore>((set, get) => ({
     get().stopListener();
     set({ isLoading: true, error: null });
 
-    // 🔥 collectionGroup() searches all "sections" subcollections in Firestore
     const sectionsQuery = firestore()
       .collectionGroup("sections")
       .where("teachers", "array-contains", userId)
       .orderBy("created_at", "desc");
 
     const unsubscribe = sectionsQuery.onSnapshot(
-      (snapshot) => {
-        const sections = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          path: doc.ref.path, // optional: helpful for knowing where it came from
-          ...doc.data(),
-        })) as Section[];
+      async (snapshot) => {
+        // Filter sections by checking parent schoolYear's is_active
+        const sectionsPromises = snapshot.docs.map(async (doc) => {
+          const schoolYearPath = doc.ref.path.split("/").slice(0, 2).join("/");
+          const schoolYearDoc = await firestore().doc(schoolYearPath).get();
+          const isActive = schoolYearDoc.data()?.is_active;
+
+          return isActive
+            ? {
+                id: doc.id,
+                path: doc.ref.path,
+                ...doc.data(),
+              }
+            : null;
+        });
+
+        const sectionsResults = await Promise.all(sectionsPromises);
+        const sections = sectionsResults.filter(Boolean) as Section[];
 
         set({ sections, isLoading: false, error: null });
       },

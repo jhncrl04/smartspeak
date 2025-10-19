@@ -51,7 +51,7 @@ type formDataType = {
   role: string;
   profile_pic: string;
   guardian_id: string | undefined;
-  creation_date: Date;
+  created_at: Date;
   region: string;
   region_name: string;
   province: string;
@@ -72,7 +72,7 @@ const initialFormData: formDataType = {
   role: "",
   profile_pic: "",
   guardian_id: "",
-  creation_date: new Date(),
+  created_at: new Date(),
   region: "",
   region_name: "",
   province: "",
@@ -398,13 +398,15 @@ const AddChildModal = ({ visible, onClose }: Props) => {
           user.date_of_birth
         ) as any;
       }
-      user.creation_date = firestore.Timestamp.fromDate(new Date()) as any;
+      user.created_at = firestore.Timestamp.fromDate(new Date()) as any;
 
       const isRegistrationComplete = await registerChild(user);
 
-      if (isRegistrationComplete) {
+      if (isRegistrationComplete === true) {
         console.log("Form submitted ✅");
         handleClose();
+      } else {
+        setError(isRegistrationComplete);
       }
     } catch (err) {
       console.error(err);

@@ -81,7 +81,21 @@ const LoginScreen = () => {
 
         const [firebaseUser, userDoc] = userAuth;
 
-        if (userDoc && "role" in userDoc) {
+        if (userDoc && "role" in userDoc && "acct_status" in userDoc) {
+          const accountStatus = userDoc.acct_status?.toUpperCase();
+
+          if (!accountStatus || accountStatus !== "ACTIVE") {
+            await auth().signOut();
+
+            const displayStatus = accountStatus?.toLowerCase() || "inactive";
+            showToast(
+              "error",
+              "Account Access Denied",
+              `Your account is currently ${displayStatus}. Please contact support for assistance.`
+            );
+            return;
+          }
+
           const role = userDoc.role;
 
           setLoginState(firebaseUser, userDoc);

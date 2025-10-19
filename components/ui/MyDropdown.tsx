@@ -47,6 +47,7 @@ const MyDropdown = (props: DropdownProps) => {
           setIsFocus(false);
         }}
         containerStyle={styles.dropdownContainer}
+        dropdownPosition="auto"
       />
     </>
   );

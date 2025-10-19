@@ -91,7 +91,7 @@ const RootLayout = () => {
       stopGradeLevelsListener();
       stopNotifListener();
     };
-  }, [user?.uid]);
+  }, [user?.uid, user?.handledChildren]);
 
   // Separate effect to start notifications listener after sections are loaded
   useEffect(() => {
@@ -112,7 +112,7 @@ const RootLayout = () => {
     return () => {
       stopNotifListener();
     };
-  }, [user?.uid, sections, user?.role]);
+  }, [user?.uid, sections, user?.role, user?.handledChildren]);
 
   // setting default font, working on web but not on android
   const [fontsLoaded] = useFonts({

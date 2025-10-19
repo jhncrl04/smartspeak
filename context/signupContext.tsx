@@ -7,7 +7,7 @@ export type FormDataType = {
   phone_number: string;
   email: string;
   password: string;
-  creation_date: Date;
+  created_at: Date;
   province: string;
   province_name: string;
   municipality: string;
@@ -31,7 +31,7 @@ const defaultValue: FormContextType = {
     phone_number: "",
     email: "",
     password: "",
-    creation_date: new Date(),
+    created_at: new Date(),
     province: "",
     province_name: "",
     municipality: "",
