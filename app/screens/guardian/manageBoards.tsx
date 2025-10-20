@@ -7,7 +7,6 @@ import AddCategoryModal from "@/components/ui/AddCategoryModal";
 import COLORS from "@/constants/Colors";
 import getCurrentUid from "@/helper/getCurrentUid";
 import { useCategoriesStore } from "@/stores/categoriesStores";
-import { useAuthStore } from "@/stores/userAuthStore";
 import { router } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -132,10 +131,6 @@ const ManageBoardsScreen = () => {
       setSearching(false);
     }, 1000);
   };
-
-  const user = useAuthStore.getState().user?.handledChildren;
-
-  console.log(user);
 
   return (
     <>

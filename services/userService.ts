@@ -404,6 +404,21 @@ export const updateUserInfo = async (
   }
 };
 
+export const updateChildProfile = async (
+  child_id: string,
+  newProfile: string
+) => {
+  try {
+    await userCollection.doc(child_id).update({ profile_pic: newProfile });
+
+    return { success: true };
+  } catch (err) {
+    console.error("Error updating user profile: ", err);
+
+    return { success: false, error: err as string };
+  }
+};
+
 export const requestGuardianChange = async (
   childId: string,
   newGuardianEmail: string,

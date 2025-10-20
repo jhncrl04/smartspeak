@@ -17,8 +17,8 @@ import {
 import TextFieldWrapper from "@/components/TextfieldWrapper";
 import {
   requestGuardianChange,
+  updateChildProfile,
   updateUserInfo,
-  uploadProfilePic,
 } from "@/services/userService";
 import * as ImagePicker from "expo-image-picker";
 
@@ -256,13 +256,20 @@ const ChildSettings = () => {
         );
       }
 
-      const uploadedBase64 = await uploadProfilePic(compression.base64!);
+      const uploadProfileResult = await updateChildProfile(
+        userId as string,
+        compression.base64!
+      );
 
-      if (uploadedBase64) {
-        updateFormField("profile_pic", uploadedBase64);
+      if (uploadProfileResult.success) {
+        updateFormField("profile_pic", compression.base64!);
         showToast("success", "Success", "Profile picture updated!");
       } else {
-        showToast("error", "Upload Failed", "Please try again.");
+        showToast(
+          "error",
+          "Upload Failed",
+          uploadProfileResult.error || "Please try again."
+        );
       }
 
       if (compression.compressedUri) {

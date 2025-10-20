@@ -16,6 +16,11 @@ import Icon from "react-native-vector-icons/Octicons";
 import ColorPicker, { Panel5 } from "reanimated-color-picker";
 import PrimaryButton from "../PrimaryButton";
 
+import {
+  cleanupCompressedImage,
+  compressImageToSize,
+  validateImage,
+} from "@/helper/imageCompressor";
 import { addCategory } from "@/services/categoryService";
 import { useAuthStore } from "@/stores/userAuthStore";
 import { useUsersStore } from "@/stores/userStore";
@@ -74,8 +79,7 @@ const AddCategoryModal = ({ visible, onClose }: modalProps) => {
     }
 
     if (permissionResult.status !== "granted") {
-      showToast(
-        "error",
+      Alert.alert(
         "Permission Denied",
         `Sorry, ${
           useCamera ? "camera" : "media library"
@@ -97,8 +101,47 @@ const AddCategoryModal = ({ visible, onClose }: modalProps) => {
 
     if (!result.canceled) {
       const uri = result.assets[0].uri;
-      setImage(uri);
       setError("");
+
+      const validate = await validateImage(uri);
+      if (!validate.isValid && validate.error?.includes("Invalid image type")) {
+        showToast("error", "Invalid Image", validate.error);
+        return;
+      }
+
+      const compression = await compressImageToSize(uri);
+      if (!compression.success) {
+        Alert.alert(
+          "Compression Failed",
+          compression.error || "Failed to process image"
+        );
+        return;
+      }
+
+      if (compression.originalSize && compression.compressedSize) {
+        const savings = (
+          ((compression.originalSize - compression.compressedSize) /
+            compression.originalSize) *
+          100
+        ).toFixed(1);
+        console.log(
+          `Image compressed: ${Math.round(
+            compression.originalSize / 1024
+          )}KB → ${Math.round(
+            compression.compressedSize / 1024
+          )}KB (${savings}% reduction)`
+        );
+      }
+
+      if (compression.base64) {
+        setImage(compression.base64);
+      } else {
+        showToast("error", "Upload Failed", "Please try again.");
+      }
+
+      if (compression.compressedUri) {
+        await cleanupCompressedImage(compression.compressedUri);
+      }
     }
   };
 
@@ -166,6 +209,8 @@ const AddCategoryModal = ({ visible, onClose }: modalProps) => {
       isAssignable: isAssignable,
       assignedLearnerId: isAssignable ? null : selectedLearner,
     };
+
+    console.log(category);
 
     try {
       setIsLoading(true);

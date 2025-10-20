@@ -83,6 +83,8 @@ export const createLog = async (
 
     const cleaned = removeEmpty(finalLog);
 
+    console.log(finalLog);
+
     try {
       logCollection.add(cleaned);
     } catch (error) {
