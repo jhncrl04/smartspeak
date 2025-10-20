@@ -224,12 +224,6 @@ const AddChildModal = ({ visible, onClose }: Props) => {
   ]);
 
   const validatePasswordStrength = (password: string) => {
-    if (password.length === 0) {
-      setPasswordMsg("");
-      setPasswordStrength(0);
-      return;
-    }
-
     const { score, feedback } = zxcvbn(password);
 
     setPasswordStrength(score);
@@ -237,12 +231,12 @@ const AddChildModal = ({ visible, onClose }: Props) => {
     switch (score) {
       case 0:
         setPasswordMsg("Password required");
-        break;
+        break; // ADDED
       case 1:
         setPasswordMsg(
           feedback.warning !== ""
             ? `${feedback.warning}.\nPassword is too weak.`
-            : "Password is too weak."
+            : `Password is too weak.`
         );
         break;
       case 2:
@@ -251,14 +245,27 @@ const AddChildModal = ({ visible, onClose }: Props) => {
             ? `${feedback.warning}.\nPassword is good.`
             : "Password is good."
         );
-        break;
+        break; // ADDED
       case 3:
         setPasswordMsg("Password is excellent.");
+        break; // ADDED
+      case 4:
+        setPasswordMsg("Password is very strong.");
         break;
       default:
-        setPasswordMsg("Password is excellent.");
+        break;
     }
   };
+
+  if (passwordStrength < 2) {
+    // CHANGED: < instead of >
+    showToast(
+      "error",
+      "Password is too weak",
+      "Please use a stronger password"
+    );
+    return;
+  }
 
   const resetForm = () => {
     setFormData(initialFormData);

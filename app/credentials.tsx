@@ -39,6 +39,7 @@ const SignUpCredentialScreens = () => {
     switch (score) {
       case 0:
         setPasswordMsg("Password required");
+        break; // ADDED
       case 1:
         setPasswordMsg(
           feedback.warning !== ""
@@ -52,12 +53,27 @@ const SignUpCredentialScreens = () => {
             ? `${feedback.warning}.\nPassword is good.`
             : "Password is good."
         );
+        break; // ADDED
       case 3:
         setPasswordMsg("Password is excellent.");
+        break; // ADDED
+      case 4:
+        setPasswordMsg("Password is very strong.");
+        break;
       default:
         break;
     }
   };
+
+  if (passwordStrength < 2) {
+    // CHANGED: < instead of >
+    showToast(
+      "error",
+      "Password is too weak",
+      "Please use a stronger password"
+    );
+    return;
+  }
 
   const [isLoading, setIsLoading] = useState(false);
 
