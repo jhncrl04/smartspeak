@@ -263,6 +263,16 @@ const SettingScreen = () => {
       return;
     }
 
+    // ADD THIS: Check password strength before updating
+    if (passwordStrength < 2) {
+      showToast(
+        "error",
+        "Weak Password",
+        "Please create a stronger password (at least score 2)"
+      );
+      return;
+    }
+
     const result = await updateUserPassword(currentPassword, newPassword);
     if (result.success) {
       showToast("success", "Success", result.message);
@@ -270,6 +280,8 @@ const SettingScreen = () => {
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
+      setPasswordStrength(0); // Reset password strength
+      setPasswordMsg(""); // Reset password message
     } else {
       showToast("error", "Updating password failed\n", result.message);
     }
@@ -414,6 +426,7 @@ const SettingScreen = () => {
   const validatePasswordStrength = (password: string) => {
     if (password.length === 0) {
       setPasswordMsg("");
+      setPasswordStrength(0); // Reset strength when empty
       return;
     }
 
@@ -424,6 +437,7 @@ const SettingScreen = () => {
     switch (score) {
       case 0:
         setPasswordMsg("Password required");
+        break; // ADDED
       case 1:
         setPasswordMsg(
           feedback.warning !== ""
@@ -437,8 +451,13 @@ const SettingScreen = () => {
             ? `${feedback.warning}.\nPassword is good.`
             : "Password is good."
         );
+        break; // ADDED
       case 3:
         setPasswordMsg("Password is excellent.");
+        break; // ADDED
+      case 4:
+        setPasswordMsg("Password is very strong.");
+        break;
       default:
         break;
     }

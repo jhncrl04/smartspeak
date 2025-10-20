@@ -65,16 +65,6 @@ const SignUpCredentialScreens = () => {
     }
   };
 
-  if (passwordStrength < 2) {
-    // CHANGED: < instead of >
-    showToast(
-      "error",
-      "Password is too weak",
-      "Please use a stronger password"
-    );
-    return;
-  }
-
   const [isLoading, setIsLoading] = useState(false);
 
   const finishRegistration = async (
@@ -280,13 +270,13 @@ const SignUpCredentialScreens = () => {
           <PrimaryButton
             title="Sign Up"
             clickHandler={() => {
-              if (passwordStrength > 2) {
+              if (passwordStrength < 2) {
+                // CHANGED: < instead of >
                 showToast(
                   "error",
                   "Password is too weak",
                   "Please use a stronger password"
                 );
-
                 return;
               }
               finishRegistration(

@@ -257,16 +257,6 @@ const AddChildModal = ({ visible, onClose }: Props) => {
     }
   };
 
-  if (passwordStrength < 2) {
-    // CHANGED: < instead of >
-    showToast(
-      "error",
-      "Password is too weak",
-      "Please use a stronger password"
-    );
-    return;
-  }
-
   const resetForm = () => {
     setFormData(initialFormData);
     setConfirmPass("");
@@ -347,10 +337,11 @@ const AddChildModal = ({ visible, onClose }: Props) => {
       }
 
       if (passwordStrength < 2) {
+        // CHANGED: < instead of >
         showToast(
           "error",
-          "Weak password",
-          "Please create a stronger password."
+          "Password is too weak",
+          "Please use a stronger password"
         );
         return;
       }
