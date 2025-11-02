@@ -1,5 +1,6 @@
 import { ThemedView } from "@/components/ThemedView";
 import { useAuthStore } from "@/stores/userAuthStore";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import NetInfo from "@react-native-community/netinfo";
 import auth from "@react-native-firebase/auth";
 import firestore from "@react-native-firebase/firestore";
@@ -50,6 +51,9 @@ export default function HomeScreen() {
   // Voice status state
   const [currentVoice, setCurrentVoice] = useState<string>("Checking...");
 
+  // New state for logout tutorial modal
+  const [showLogoutTutorial, setShowLogoutTutorial] = useState<boolean>(false);
+
   // Function to check available voices
   const checkAvailableVoices = async () => {
     try {
@@ -86,6 +90,51 @@ export default function HomeScreen() {
       return [];
     }
   };
+
+
+// SIMPLER APPROACH: Show tutorial only on fresh logins
+const checkNewLoginSession = async () => {
+  try {
+    if (!user?.uid) return false;
+    
+    const loginSessionKey = `loginSession_${user.uid}`;
+    const hasSeenTutorial = await AsyncStorage.getItem(loginSessionKey);
+    
+    console.log("Checking login session:", {
+      userId: user.uid,
+      loginSessionKey,
+      hasSeenTutorial,
+      shouldShowTutorial: !hasSeenTutorial
+    });
+    
+    if (!hasSeenTutorial) {
+      // Mark that user has seen tutorial for this login session
+      await AsyncStorage.setItem(loginSessionKey, 'true');
+      console.log("New login session detected - will show tutorial");
+      return true;
+    }
+    
+    console.log("Existing session - not showing tutorial");
+    return false;
+  } catch (error) {
+    console.error('Error checking login session:', error);
+    return false;
+  }
+};
+
+// Clear this on logout
+const clearLoginSession = async () => {
+  try {
+    if (!user?.uid) return;
+    
+    const loginSessionKey = `loginSession_${user.uid}`;
+    await AsyncStorage.removeItem(loginSessionKey);
+    console.log("Cleared login session:", loginSessionKey);
+  } catch (error) {
+    console.error('Error clearing login session:', error);
+  }
+};
+
 
   // Function to get user's full name from Firebase
   const fetchUserFullName = async () => {
@@ -172,26 +221,29 @@ export default function HomeScreen() {
     }
   };
 
-  // Function to handle logout
-  const handleLogout = async () => {
-    setShowSettingsModal(false);
+// Function to handle logout
+const handleLogout = async () => {
+  setShowSettingsModal(false);
 
-    try {
-      // Sign out from Firebase Auth
-      await auth().signOut();
+  try {
+    // Clear login session first
+    await clearLoginSession();
+    
+    // Sign out from Firebase Auth
+    await auth().signOut();
 
-      // Clear user data from Zustand store
-      logout();
+    // Clear user data from Zustand store
+    logout();
 
-      // Navigate back to login screen
-      router.replace("/");
+    // Navigate back to login screen
+    router.replace("/");
 
-      console.log("User logged out successfully");
-    } catch (error) {
-      console.error("Error during logout:", error);
-      alert("Error logging out. Please try again.");
-    }
-  };
+    console.log("User logged out successfully");
+  } catch (error) {
+    console.error("Error during logout:", error);
+    alert("Error logging out. Please try again.");
+  }
+};
 
   useEffect(() => {
     const lockOrientation = async () => {
@@ -201,6 +253,31 @@ export default function HomeScreen() {
     };
     lockOrientation();
   }, []);
+
+// Show logout tutorial only on new login sessions
+useEffect(() => {
+  const showTutorialIfNewSession = async () => {
+    if (!user?.uid) return;
+    
+    const isNewSession = await checkNewLoginSession();
+    
+    if (isNewSession) {
+      console.log("New login session detected - showing tutorial");
+      // Wait a bit for the screen to load
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      setShowLogoutTutorial(true);
+      
+      // Auto hide after 5 seconds
+      setTimeout(() => {
+        setShowLogoutTutorial(false);
+      }, 5000);
+    } else {
+      console.log("Existing session - not showing tutorial");
+    }
+  };
+
+  showTutorialIfNewSession();
+}, [user?.uid]);
 
   // Network status detection
   useEffect(() => {
@@ -1313,6 +1390,27 @@ export default function HomeScreen() {
         </View>
       )}
 
+      {/* LOGOUT TUTORIAL MODAL */}
+      <Modal
+        visible={showLogoutTutorial}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowLogoutTutorial(false)}
+      >
+        <View style={styles.tutorialOverlay}>
+          <View style={styles.tutorialContent}>
+            <View style={styles.tutorialArrow} />
+            <View style={styles.tutorialBox}>
+              <Text style={styles.tutorialTitle}>How to Log Out</Text>
+              <Text style={styles.tutorialText}>
+                To access logout and settings, tap the user icon 5 times quickly.
+              </Text>
+              
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       {/* NOTIFICATION BOX */}
       {showNotification && (
         <Animated.View
@@ -1547,6 +1645,69 @@ const { width, height } = Dimensions.get("window");
 const isTablet = width > 915;
 
 const styles = StyleSheet.create({
+  // Tutorial Modal Styles
+  tutorialOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    justifyContent: "flex-start",
+    alignItems: "flex-end",
+    paddingTop: height * 0.02,
+    paddingRight: width * 0.04,
+  },
+  tutorialContent: {
+    alignItems: "flex-end",
+  },
+  tutorialArrow: {
+    width: 0,
+    height: 0,
+    backgroundColor: "transparent",
+    borderStyle: "solid",
+    borderLeftWidth: 10,
+    borderRightWidth: 10,
+    borderBottomWidth: 10,
+    borderLeftColor: "transparent",
+    borderRightColor: "transparent",
+    borderBottomColor: "#9B72CF",
+    marginRight: width * 0.01,
+  },
+  tutorialBox: {
+    backgroundColor: "#9B72CF",
+    borderRadius: width * 0.01,
+    padding: width * 0.02,
+    maxWidth: width * 0.3,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  tutorialTitle: {
+    fontSize: RFValue(10),
+    fontWeight: "700",
+    color: "#fafafa",
+    marginBottom: height * 0.01,
+    textAlign: "center",
+    fontFamily: "Poppins",
+  },
+  tutorialText: {
+    fontSize: RFValue(8),
+    color: "#fafafa",
+    textAlign: "center",
+    marginBottom: height * 0.005,
+    lineHeight: 14,
+    fontFamily: "Poppins",
+  },
+  tutorialNote: {
+    fontSize: RFValue(7),
+    color: "#E5E5E5",
+    textAlign: "center",
+    fontStyle: "italic",
+    fontFamily: "Poppins",
+  },
+
   breakReminderContainer: {
     position: "absolute",
     top: 0,
@@ -1739,7 +1900,7 @@ const styles = StyleSheet.create({
   // Tap indicator styles
   tapIndicator: {
     position: "absolute",
-    top: -5,
+    top: 6,
     right: -5,
     backgroundColor: "#9B72CF",
     borderRadius: 10,
